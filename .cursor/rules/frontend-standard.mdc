@@ -1,0 +1,31 @@
+---
+description: FFresco frontend implementation rules
+alwaysApply: true
+---
+
+# FFresco Frontend Rules
+
+Follow the canonical docs:
+
+```txt
+docs/01-frontend-architecture-standard.md
+docs/02-ui-component-standard.md
+docs/03-api-integration-standard.md
+docs/04-modal-toast-standard.md
+docs/05-testing-strategy.md
+```
+
+Core rules:
+
+```txt
+1. Do not call fetch directly from visual components.
+2. Use services/api layer for backend calls.
+3. Use /v1 backend routes only.
+4. Pages orchestrate; components render.
+5. Reuse common UI components before creating new ones.
+6. Do not create ad hoc modal/toast patterns.
+7. Keep mocks aligned with backend contracts.
+8. Implement one PR scope at a time.
+9. Avoid broad refactors unless explicitly requested.
+10. Preserve existing UI behavior unless the ticket says otherwise.
+```

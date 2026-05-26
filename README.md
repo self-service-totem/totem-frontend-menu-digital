@@ -90,3 +90,7 @@ Cuando exista el backend:
 - Barra inferior fija con 5 secciones; "Pedir" como botón central destacado.
 - Tipografía del sistema, jerarquía clara.
 - Botones grandes (~44px) optimizados para touch.
+
+
+para comitear
+gh auth logout
