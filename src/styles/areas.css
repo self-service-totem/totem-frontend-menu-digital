@@ -1,0 +1,619 @@
+/* Styles for operational app areas: Kitchen, Admin, Kiosk, Queue, Waiter, Cashier */
+
+/* ─── Shared operational layout ─────────────────────────────────────────── */
+.ff-area-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+
+.ff-area-sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: #1a1a2e;
+  color: #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.ff-area-sidebar-logo {
+  padding: 20px 16px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+.ff-area-sidebar-nav {
+  flex: 1;
+  padding: 8px 0;
+}
+
+.ff-area-sidebar-nav a,
+.ff-area-sidebar-nav .ff-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 0;
+  transition: background .15s, color .15s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.ff-area-sidebar-nav a:hover,
+.ff-area-sidebar-nav a.active,
+.ff-area-sidebar-nav .ff-nav-item:hover,
+.ff-area-sidebar-nav .ff-nav-item.active {
+  background: rgba(255,255,255,.07);
+  color: #fff;
+}
+
+.ff-area-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.ff-area-topbar {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ff-area-topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.ff-area-content {
+  padding: 24px;
+  flex: 1;
+}
+
+/* ─── Metric cards ───────────────────────────────────────────────────────── */
+.ff-metric-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ff-metric-card-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ff-metric-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+}
+
+.ff-metric-card-icon {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+/* ─── Data table ─────────────────────────────────────────────────────────── */
+.ff-data-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.ff-data-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* ─── Kitchen ────────────────────────────────────────────────────────────── */
+.ff-kitchen-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #111827;
+  color: #f9fafb;
+}
+
+.ff-kitchen-topbar {
+  background: #1f2937;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #374151;
+}
+
+.ff-kitchen-topbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ff-kitchen-filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #1f2937;
+  flex-wrap: wrap;
+}
+
+.ff-kitchen-filter-btn {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid #374151;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.ff-kitchen-filter-btn.active {
+  background: var(--ff-primary);
+  border-color: var(--ff-primary);
+  color: #fff;
+}
+
+.ff-kitchen-columns {
+  display: flex;
+  gap: 16px;
+  padding: 16px 24px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.ff-kitchen-column {
+  flex: 1;
+  min-width: 260px;
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ff-kitchen-column-header {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.ff-kitchen-column-header.new { background: #1e40af; color: #bfdbfe; }
+.ff-kitchen-column-header.preparing { background: #92400e; color: #fde68a; }
+.ff-kitchen-column-header.ready { background: #065f46; color: #a7f3d0; }
+
+.ff-kitchen-ticket {
+  background: #374151;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: background .15s;
+  border: 1px solid transparent;
+}
+
+.ff-kitchen-ticket:hover { background: #4b5563; }
+.ff-kitchen-ticket.urgent { border-color: #ef4444; }
+
+.ff-kitchen-ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ff-kitchen-ticket-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ff-kitchen-ticket-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ff-kitchen-ticket-table {
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+.ff-kitchen-ticket-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ff-kitchen-ticket-item {
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+.ff-kitchen-ticket-item strong {
+  color: #fff;
+}
+
+/* ─── Kiosk ──────────────────────────────────────────────────────────────── */
+.ff-kiosk-layout {
+  min-height: 100vh;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.ff-kiosk-topbar {
+  background: var(--ff-primary);
+  color: #fff;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ff-kiosk-topbar-title {
+  font-size: 22px;
+  font-weight: 700;
+  flex: 1;
+  text-align: center;
+}
+
+.ff-kiosk-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ff-kiosk-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  gap: 32px;
+  text-align: center;
+}
+
+.ff-kiosk-welcome-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.ff-kiosk-service-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.ff-kiosk-service-btn {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.ff-kiosk-service-btn:hover,
+.ff-kiosk-service-btn.selected {
+  border-color: var(--ff-primary);
+  background: var(--ff-primary-soft);
+  color: var(--ff-primary);
+}
+
+.ff-kiosk-service-btn i {
+  font-size: 36px;
+}
+
+.ff-kiosk-category-bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  overflow-x: auto;
+}
+
+.ff-kiosk-category-btn {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  border-radius: 30px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  color: #374151;
+}
+
+.ff-kiosk-category-btn.active {
+  border-color: var(--ff-primary);
+  background: var(--ff-primary);
+  color: #fff;
+}
+
+.ff-kiosk-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.ff-kiosk-product-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+}
+
+.ff-kiosk-product-card:hover {
+  border-color: var(--ff-primary);
+  box-shadow: 0 4px 12px rgba(225,29,42,.12);
+}
+
+.ff-kiosk-product-img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+
+.ff-kiosk-product-body {
+  padding: 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ff-kiosk-product-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.ff-kiosk-product-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ff-primary);
+}
+
+.ff-kiosk-add-btn {
+  margin: 8px;
+  padding: 10px;
+  background: var(--ff-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.ff-kiosk-add-btn:hover { background: var(--ff-primary-hover); }
+
+/* ─── Queue Display ──────────────────────────────────────────────────────── */
+.ff-queue-layout {
+  min-height: 100vh;
+  background: #0f172a;
+  color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+}
+
+.ff-queue-header {
+  background: #1e293b;
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #334155;
+}
+
+.ff-queue-header-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  text-align: center;
+}
+
+.ff-queue-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  padding: 40px;
+  flex: 1;
+}
+
+.ff-queue-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ff-queue-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #94a3b8;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 10px;
+}
+
+.ff-queue-ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.ff-queue-ticket-badge {
+  border-radius: 14px;
+  padding: 20px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ff-queue-ticket-badge.waiting { background: #1e3a5f; }
+.ff-queue-ticket-badge.preparing { background: #78350f; }
+.ff-queue-ticket-badge.called, .ff-queue-ticket-badge.serving { background: #14532d; }
+
+.ff-queue-ticket-number {
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+}
+
+.ff-queue-ticket-status {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.7);
+}
+
+.ff-queue-ticket-name {
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Hub ────────────────────────────────────────────────────────────────── */
+.ff-hub-layout {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  gap: 40px;
+}
+
+.ff-hub-header {
+  text-align: center;
+  color: #fff;
+}
+
+.ff-hub-title {
+  font-size: 32px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.ff-hub-subtitle {
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+.ff-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+  width: 100%;
+}
+
+.ff-hub-card {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  padding: 28px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #e5e7eb;
+  transition: all .2s;
+}
+
+.ff-hub-card:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.2);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.ff-hub-card-icon {
+  font-size: 36px;
+}
+
+.ff-hub-card-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ff-hub-card-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.ff-hub-reset-btn {
+  background: rgba(239,68,68,.15);
+  border: 1px solid rgba(239,68,68,.3);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.ff-hub-reset-btn:hover {
+  background: rgba(239,68,68,.25);
+}

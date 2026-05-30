@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TopBar } from '@/components/layout/TopBar';
 import { WaiterActionCard } from '@/components/waiter/WaiterActionCard';
 import { Modal } from '@/components/common/Modal';
@@ -7,32 +8,35 @@ import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
-import { waiterService } from '@/services';
+import { waiterService, orderService } from '@/services';
 
-const actions = [
+type ActionId = 'call' | 'bill' | 'order' | 'other';
+
+const actions: { id: ActionId; icon: string }[] = [
   { id: 'call', icon: 'bi-bell' },
   { id: 'bill', icon: 'bi-receipt' },
   { id: 'order', icon: 'bi-clock-history' },
   { id: 'other', icon: 'bi-three-dots' },
-] as const;
+];
 
-const ACTION_LABELS_PT: Record<string, string> = {
+const ACTION_LABELS_PT: Record<ActionId, string> = {
   call: 'Chamar garçom',
   bill: 'Pedir a conta',
-  order: 'Consultar pedido',
+  order: 'Meus pedidos',
   other: 'Outro motivo',
 };
 
-const ACTION_LABELS_ES: Record<string, string> = {
+const ACTION_LABELS_ES: Record<ActionId, string> = {
   call: 'Llamar al mozo',
   bill: 'Pedir la cuenta',
-  order: 'Consultar pedido',
+  order: 'Mis pedidos',
   other: 'Otro motivo',
 };
 
 export function WaiterPage() {
   const { tableId, customer, setCustomerName, setCustomerPhone } = useSession();
   const { t, language } = useLabels();
+  const navigate = useNavigate();
   const actionLabels = language.startsWith('pt') ? ACTION_LABELS_PT : ACTION_LABELS_ES;
 
   const [open, setOpen] = useState(false);
@@ -41,13 +45,50 @@ export function WaiterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [confirmationVariant, setConfirmationVariant] = useState<'success' | 'info'>('success');
 
-  const startCall = () => {
+  function showConfirmation(msg: string, variant: 'success' | 'info' = 'success') {
+    setConfirmation(msg);
+    setConfirmationVariant(variant);
+    setTimeout(() => setConfirmation(null), 3500);
+  }
+
+  function handleAction(id: ActionId) {
+    // "Meus pedidos" → navigate to account/order history
+    if (id === 'order') {
+      navigate('/account');
+      return;
+    }
+    // "Pedir a conta" → request bill directly and navigate to bill view
+    if (id === 'bill') {
+      handleRequestBill();
+      return;
+    }
+    // "Chamar garçom" and "Outro motivo" → open waiter call modal
     setName(customer?.name ?? '');
     setPhone(customer?.phone ?? '');
     setError(null);
     setOpen(true);
-  };
+  }
+
+  async function handleRequestBill() {
+    if (!tableId) {
+      showConfirmation('Mesa não identificada.', 'info');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await orderService.requestCloseBill(tableId, {
+        customerName: customer?.name ?? '',
+      });
+      showConfirmation(t('bill.requestSent'));
+      navigate('/close-account');
+    } catch {
+      showConfirmation('Não foi possível solicitar a conta. Tente novamente.', 'info');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -69,8 +110,7 @@ export function WaiterPage() {
       if (name.trim()) setCustomerName(name.trim());
       if (phone.trim()) setCustomerPhone(phone.trim());
       setOpen(false);
-      setConfirmation(t('waiter.sent'));
-      setTimeout(() => setConfirmation(null), 3500);
+      showConfirmation(t('waiter.sent'));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'error');
     } finally {
@@ -99,7 +139,7 @@ export function WaiterPage() {
             key={a.id}
             icon={a.icon}
             label={actionLabels[a.id]}
-            onClick={startCall}
+            onClick={() => handleAction(a.id)}
           />
         ))}
       </div>
@@ -110,15 +150,20 @@ export function WaiterPage() {
           style={{
             margin: 16,
             padding: 12,
-            background: 'var(--ff-primary-soft)',
-            color: 'var(--ff-primary)',
+            background: confirmationVariant === 'success'
+              ? 'var(--ff-primary-soft)'
+              : '#f0f9ff',
+            color: confirmationVariant === 'success' ? 'var(--ff-primary)' : '#0369a1',
             borderRadius: 'var(--ff-radius-md)',
             fontSize: '0.9rem',
             fontWeight: 600,
             textAlign: 'center',
           }}
         >
-          <i className="bi bi-check-circle-fill" /> {confirmation}
+          <i
+            className={`bi ${confirmationVariant === 'success' ? 'bi-check-circle-fill' : 'bi-info-circle-fill'} me-1`}
+          />
+          {confirmation}
         </div>
       )}
 

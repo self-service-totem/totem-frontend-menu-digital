@@ -13,8 +13,8 @@ export function AccountPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    orderService.listMyOrders().then(setOrders);
-  }, []);
+    orderService.listMyOrders(customer?.name).then(setOrders);
+  }, [customer?.name]);
 
   return (
     <div className="ff-page">

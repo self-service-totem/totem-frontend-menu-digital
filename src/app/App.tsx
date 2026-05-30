@@ -4,7 +4,12 @@ import { CartProvider } from './CartContext';
 import { router } from './router';
 import { I18nProvider } from '@/i18n/I18nContext';
 import { resolveLanguage } from '@/i18n/labels';
+import { NotificationProvider } from '@/lib/notifications';
+import { seedDb } from '@/lib/mock-db';
 import type { ReactNode } from 'react';
+
+// Seed the shared mock-db on startup (idempotent)
+seedDb();
 
 function I18nFromMenuContext({ children }: { children: ReactNode }) {
   const { menuContext } = useSession();
@@ -14,12 +19,14 @@ function I18nFromMenuContext({ children }: { children: ReactNode }) {
 
 export function App() {
   return (
-    <SessionProvider>
-      <I18nFromMenuContext>
-        <CartProvider>
-          <RouterProvider router={router} />
-        </CartProvider>
-      </I18nFromMenuContext>
-    </SessionProvider>
+    <NotificationProvider>
+      <SessionProvider>
+        <I18nFromMenuContext>
+          <CartProvider>
+            <RouterProvider router={router} />
+          </CartProvider>
+        </I18nFromMenuContext>
+      </SessionProvider>
+    </NotificationProvider>
   );
 }

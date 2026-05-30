@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import type { Category, Product } from '@/types';
 import { menuService } from '@/services';
-import { mockPromotions } from '@/mocks';
+import { mapCategoriesResponseToViewModels, mapProductsResponseToViewModels } from '@/lib/jsonapi';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { SearchBar } from '@/components/common/SearchBar';
 import { CategoryCarousel } from '@/components/menu/CategoryCarousel';
-import { PromoBanner } from '@/components/menu/PromoBanner';
 import { ProductSection } from '@/components/menu/ProductSection';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ProductDetailModal } from '@/features/product-detail/ProductDetailModal';
 
 export function MenuPage() {
-  const { tableId: tableIdParam } = useParams();
-  const navigate = useNavigate();
+  const params = useParams();
+  // Supports both /menu/:tableId (legacy) and /menu/:branchId/table/:tableId (new)
+  const tableIdParam = params.tableId ?? params.branchId;
   const [searchParams, setSearchParams] = useSearchParams();
   const { menuContext, tableId, customer, setTableId, loading } = useSession();
   const { t } = useLabels();
@@ -34,9 +34,9 @@ export function MenuPage() {
 
   useEffect(() => {
     Promise.all([menuService.listCategories(), menuService.listProducts()]).then(
-      ([cats, prods]) => {
-        setCategories(cats);
-        setProducts(prods);
+      ([catsResponse, prodsResponse]) => {
+        setCategories(mapCategoriesResponseToViewModels(catsResponse));
+        setProducts(mapProductsResponseToViewModels(prodsResponse));
       },
     );
   }, []);
@@ -110,12 +110,7 @@ export function MenuPage() {
         onSelect={setActiveCategory}
       />
 
-      {!search && activeCategory === null && mockPromotions[0] && (
-        <PromoBanner
-          promotion={mockPromotions[0]}
-          onClick={() => navigate('/cashback')}
-        />
-      )}
+      {/* Promotions: loaded from promotionService when available */}
 
       {filtered.length === 0 ? (
         <EmptyState

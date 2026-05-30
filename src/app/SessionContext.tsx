@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { Customer, MenuContext } from '@/types';
 import { menuContextService, sessionService } from '@/services';
+import { mapMenuContextResponseToViewModel } from '@/lib/jsonapi';
 
 interface SessionContextValue {
   menuContext: MenuContext | null;
@@ -44,9 +45,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const effectiveId = tableId ?? FALLBACK_TABLE_ID;
     let cancelled = false;
     setLoading(true);
-    menuContextService.get(effectiveId).then((ctx) => {
+    menuContextService.get(effectiveId).then((response) => {
       if (cancelled) return;
-      setMenuContext(ctx);
+      setMenuContext(mapMenuContextResponseToViewModel(response));
       setLoading(false);
     });
     return () => {

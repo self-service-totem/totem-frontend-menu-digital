@@ -74,7 +74,15 @@ export type LabelKey =
   | 'common.close'
   | 'common.loading'
   | 'common.required'
-  | 'common.optional';
+  | 'common.optional'
+  | 'confirmation.title'
+  | 'confirmation.subtitle'
+  | 'confirmation.orderNumber'
+  | 'confirmation.customer'
+  | 'confirmation.table'
+  | 'confirmation.items'
+  | 'confirmation.note'
+  | 'confirmation.backToMenu';
 
 type LabelMap = Record<LabelKey, string>;
 
@@ -149,6 +157,14 @@ const ptBR: LabelMap = {
   'common.loading': 'Carregando...',
   'common.required': 'Obrigatório',
   'common.optional': 'Opcional',
+  'confirmation.title': 'Pedido confirmado!',
+  'confirmation.subtitle': 'Seu pedido foi enviado para a cozinha.',
+  'confirmation.orderNumber': 'Número do pedido',
+  'confirmation.customer': 'Nome',
+  'confirmation.table': 'Mesa',
+  'confirmation.items': 'Itens',
+  'confirmation.note': 'Acompanhe o status pelo painel ou aguarde ser chamado.',
+  'confirmation.backToMenu': 'Voltar ao menu',
 };
 
 const es: LabelMap = {
@@ -222,6 +238,14 @@ const es: LabelMap = {
   'common.loading': 'Cargando...',
   'common.required': 'Requerido',
   'common.optional': 'Opcional',
+  'confirmation.title': '¡Pedido confirmado!',
+  'confirmation.subtitle': 'Tu pedido fue enviado a la cocina.',
+  'confirmation.orderNumber': 'Número de pedido',
+  'confirmation.customer': 'Nombre',
+  'confirmation.table': 'Mesa',
+  'confirmation.items': 'Ítems',
+  'confirmation.note': 'Seguí el estado en el panel o esperá que te llamen.',
+  'confirmation.backToMenu': 'Volver al menú',
 };
 
 const en: LabelMap = {

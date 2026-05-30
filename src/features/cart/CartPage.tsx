@@ -45,7 +45,7 @@ export function CartPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await orderService.placeOrder(
+      const order = await orderService.placeOrder(
         tableId,
         {
           customerName,
@@ -58,7 +58,14 @@ export function CartPage() {
         items,
       );
       clear();
-      navigate(tableId ? `/menu/${tableId}` : '/menu');
+      navigate('/order-confirmation', {
+        state: {
+          orderNumber: order.orderNumber,
+          total: order.total,
+          customerName,
+          itemCount: items.reduce((s, i) => s + i.quantity, 0),
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'error');
     } finally {

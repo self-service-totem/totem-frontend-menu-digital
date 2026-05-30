@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Product } from '@/types';
 import { menuService } from '@/services';
+import { mapProductResponseToViewModel } from '@/lib/jsonapi';
 import { useCart } from '@/app/CartContext';
 import { useLabels } from '@/i18n/I18nContext';
 import { formatMoney } from '@/utils/format';
@@ -22,7 +23,9 @@ export function ProductDetailModal({ productId, onClose }: ProductDetailModalPro
   const [note, setNote] = useState('');
 
   useEffect(() => {
-    menuService.getProduct(productId).then((p) => setProduct(p ?? null));
+    menuService.getProduct(productId).then((response) =>
+      setProduct(response ? mapProductResponseToViewModel(response) : null),
+    );
     setQuantity(1);
     setNote('');
   }, [productId]);
