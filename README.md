@@ -92,5 +92,6 @@ Cuando exista el backend:
 - Botones grandes (~44px) optimizados para touch.
 
 
+## Git
 para comitear
 gh auth logout

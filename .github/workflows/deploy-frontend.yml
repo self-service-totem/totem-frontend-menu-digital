@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         options:
-          - dev
+          - develop
           - main
 
       release_version:
