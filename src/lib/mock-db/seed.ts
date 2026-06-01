@@ -11,7 +11,14 @@ import type {
   WaiterCall,
   Payment,
   KioskDevice,
+  ModifierGroup,
+  LoyaltyCard,
+  Reservation,
+  AggregatorSettings,
+  MockUser,
 } from '@/lib/types';
+
+export const BRANCH_ID_2 = 'branch-2';
 
 const NOW = new Date().toISOString();
 const TENANT_ID = 'tenant-1';
@@ -191,11 +198,168 @@ const kioskDevices: KioskDevice[] = [
   { id: 'kiosk-2', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Totem 02 — Corredor', status: 'OFFLINE', createdAt: NOW, updatedAt: NOW },
 ];
 
+// ─── F3: Second branch ────────────────────────────────────────────────────────
+
+const branch2: Branch = {
+  id: BRANCH_ID_2,
+  tenantId: TENANT_ID,
+  name: 'Unidade Shopping',
+  address: 'Av. Principal, 456 — Shopping Center',
+  serviceType: 'KIOSK_SELF_SERVICE',
+  queueEnabled: true,
+  queueMessage: 'Retire seu pedido no balcão!',
+  serviceFeeRate: 0.0,
+  currency: 'BRL',
+  createdAt: NOW,
+  updatedAt: NOW,
+};
+
+// ─── F1: Modifier groups ──────────────────────────────────────────────────────
+
+const modifierGroups: ModifierGroup[] = [
+  {
+    id: 'mg-burger-size',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    productId: 'prod-carne-de-sol',
+    name: 'Tamanho da porção',
+    required: true,
+    min: 1,
+    max: 1,
+    options: [
+      { id: 'mg-bs-1', name: 'Individual', priceModifier: 0, available: true },
+      { id: 'mg-bs-2', name: 'Para 2 pessoas', priceModifier: 30, available: true },
+      { id: 'mg-bs-3', name: 'Família (4+)', priceModifier: 55, available: true },
+    ],
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+  {
+    id: 'mg-bebida-temp',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    productId: 'prod-coca-zero',
+    name: 'Temperatura',
+    required: true,
+    min: 1,
+    max: 1,
+    options: [
+      { id: 'mg-bt-1', name: 'Gelada', priceModifier: 0, available: true },
+      { id: 'mg-bt-2', name: 'Natural', priceModifier: 0, available: true },
+    ],
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+  {
+    id: 'mg-cafe-leite',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    productId: 'prod-cafe-com-leite',
+    name: 'Tipo de leite',
+    required: false,
+    min: 0,
+    max: 1,
+    options: [
+      { id: 'mg-cl-1', name: 'Integral', priceModifier: 0, available: true },
+      { id: 'mg-cl-2', name: 'Desnatado', priceModifier: 0, available: true },
+      { id: 'mg-cl-3', name: 'Sem lactose', priceModifier: 2, available: true },
+      { id: 'mg-cl-4', name: 'Vegetal (aveia)', priceModifier: 3, available: true },
+    ],
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+  {
+    id: 'mg-sobremesa-topping',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    productId: 'prod-helado',
+    name: 'Coberturas (até 2)',
+    required: false,
+    min: 0,
+    max: 2,
+    options: [
+      { id: 'mg-st-1', name: 'Calda de chocolate', priceModifier: 3, available: true },
+      { id: 'mg-st-2', name: 'Granulado', priceModifier: 2, available: true },
+      { id: 'mg-st-3', name: 'Castanha triturada', priceModifier: 4, available: true },
+      { id: 'mg-st-4', name: 'Frutas vermelhas', priceModifier: 5, available: true },
+    ],
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+];
+
+// ─── F2: Mock users ───────────────────────────────────────────────────────────
+
+const mockUsers: MockUser[] = [
+  { id: 'user-owner', name: 'Carlos Dono', email: 'owner@pertinho.com', role: 'OWNER', branchId: null, tenantId: TENANT_ID },
+  { id: 'user-manager', name: 'Ana Gerente', email: 'manager@pertinho.com', role: 'MANAGER', branchId: BRANCH_ID, tenantId: TENANT_ID },
+  { id: 'user-cashier', name: 'Marcos Caixa', email: 'caixa@pertinho.com', role: 'CASHIER', branchId: BRANCH_ID, tenantId: TENANT_ID },
+  { id: 'user-waiter', name: 'Julia Garçom', email: 'waiter@pertinho.com', role: 'WAITER', branchId: BRANCH_ID, tenantId: TENANT_ID },
+  { id: 'user-kitchen', name: 'Pedro Cozinha', email: 'kitchen@pertinho.com', role: 'KITCHEN', branchId: BRANCH_ID, tenantId: TENANT_ID },
+];
+
+// ─── F4: Loyalty cards ────────────────────────────────────────────────────────
+
+const loyaltyCards: LoyaltyCard[] = [
+  {
+    id: 'lc-1',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    customerPhone: '+55 81 99999-1234',
+    customerName: 'Fernanda Ribeiro',
+    stamps: 7,
+    totalStampsEarned: 17,
+    discountsUsed: 1,
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+];
+
+// ─── F9: Reservations ────────────────────────────────────────────────────────
+
+const reservations: Reservation[] = [
+  {
+    id: 'res-1',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    tableId: 'table-4',
+    customerName: 'Roberto Alves',
+    customerPhone: '+55 81 98888-4321',
+    partySize: 4,
+    date: new Date().toISOString().slice(0, 10),
+    time: '19:30',
+    notes: 'Aniversário — bolo surpresa',
+    status: 'CONFIRMED',
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+  {
+    id: 'res-2',
+    tenantId: TENANT_ID,
+    branchId: BRANCH_ID,
+    customerName: 'Beatriz Santos',
+    customerPhone: '+55 81 97777-9999',
+    partySize: 2,
+    date: new Date().toISOString().slice(0, 10),
+    time: '20:00',
+    status: 'PENDING',
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+];
+
+// ─── F10: Aggregator settings ─────────────────────────────────────────────────
+
+const aggregatorSettings: AggregatorSettings[] = [
+  { id: 'agg-1', tenantId: TENANT_ID, branchId: BRANCH_ID, platform: 'IFOOD', active: true, externalId: 'if-99887766', autoAccept: false, createdAt: NOW, updatedAt: NOW },
+  { id: 'agg-2', tenantId: TENANT_ID, branchId: BRANCH_ID, platform: 'RAPPI', active: false, autoAccept: false, createdAt: NOW, updatedAt: NOW },
+];
+
 export function seedDb(): void {
   if (isSeeded()) return;
 
   setCollection('tenants', [tenant]);
-  setCollection('branches', [branch]);
+  setCollection('branches', [branch, branch2]);
   setCollection('tables', tables);
   setCollection('categories', categories);
   setCollection('products', products);
@@ -209,6 +373,13 @@ export function seedDb(): void {
   setCollection('receipts', []);
   setCollection('cashierSessions', []);
   setCollection('kioskDevices', kioskDevices);
+  setCollection('modifierGroups', modifierGroups);
+  setCollection('mockUsers', mockUsers);
+  setCollection('loyaltyCards', loyaltyCards);
+  setCollection('reservations', reservations);
+  setCollection('aggregatorSettings', aggregatorSettings);
+  setCollection('fiscalNotes', []);
+  setCollection('deliveryOrders', []);
 
   markSeeded();
 }

@@ -11,7 +11,10 @@ import {
 } from '@/lib/services/adminService';
 import { getCollection } from '@/lib/mock-db';
 import { useNotify } from '@/lib/notifications';
-import type { DbCategory, DbProduct, DbTable, DbOrder, Branch, Tenant, KioskDevice } from '@/lib/types';
+import type { DbCategory, DbProduct, DbTable, DbOrder, Branch, Tenant, KioskDevice, LoyaltyCard, AggregatorSettings, KitchenStation } from '@/lib/types';
+import { loyaltyService } from '@/lib/services/loyaltyService';
+import { aggregatorService } from '@/lib/services/aggregatorService';
+import { STAMPS_PER_REWARD } from '@/lib/types';
 
 type AdminSection =
   | 'dashboard'
@@ -22,7 +25,9 @@ type AdminSection =
   | 'orders'
   | 'kiosks'
   | 'queue'
-  | 'settings';
+  | 'settings'
+  | 'loyalty'
+  | 'aggregator';
 
 const NAV: { section: AdminSection; label: string; icon: string }[] = [
   { section: 'dashboard', label: 'Dashboard', icon: 'bi-grid-1x2' },
@@ -30,6 +35,8 @@ const NAV: { section: AdminSection; label: string; icon: string }[] = [
   { section: 'categories', label: 'Categorias', icon: 'bi-tags' },
   { section: 'tables', label: 'Mesas', icon: 'bi-table' },
   { section: 'orders', label: 'Pedidos', icon: 'bi-receipt' },
+  { section: 'loyalty', label: 'Fidelidade', icon: 'bi-star' },
+  { section: 'aggregator', label: 'Agregadores', icon: 'bi-phone' },
   { section: 'branches', label: 'Filiais', icon: 'bi-shop' },
   { section: 'kiosks', label: 'Kiosks', icon: 'bi-display' },
   { section: 'queue', label: 'Fila', icon: 'bi-people' },
@@ -98,7 +105,7 @@ function Products() {
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DbProduct | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', price: '', imageUrl: '', categoryId: '', available: true, featured: false });
+  const [form, setForm] = useState({ name: '', description: '', price: '', imageUrl: '', categoryId: '', available: true, featured: false, station: 'GENERAL' });
   const notify = useNotify();
 
   async function load() {
@@ -111,18 +118,18 @@ function Products() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: '', description: '', price: '', imageUrl: '', categoryId: categories[0]?.id ?? '', available: true, featured: false });
+    setForm({ name: '', description: '', price: '', imageUrl: '', categoryId: categories[0]?.id ?? '', available: true, featured: false, station: 'GENERAL' });
     setShowModal(true);
   }
 
   function openEdit(p: DbProduct) {
     setEditing(p);
-    setForm({ name: p.name, description: p.description ?? '', price: String(p.price), imageUrl: p.imageUrl, categoryId: p.categoryId, available: p.available, featured: p.featured ?? false });
+    setForm({ name: p.name, description: p.description ?? '', price: String(p.price), imageUrl: p.imageUrl, categoryId: p.categoryId, available: p.available, featured: p.featured ?? false, station: p.station ?? 'GENERAL' });
     setShowModal(true);
   }
 
   async function handleSave() {
-    const data = { name: form.name, description: form.description, price: parseFloat(form.price), imageUrl: form.imageUrl, categoryId: form.categoryId, available: form.available, featured: form.featured };
+    const data = { name: form.name, description: form.description, price: parseFloat(form.price), imageUrl: form.imageUrl, categoryId: form.categoryId, available: form.available, featured: form.featured, station: form.station as KitchenStation };
     if (editing) { await productService.update(editing.id, data); notify('Produto atualizado'); }
     else { await productService.create(data); notify('Produto criado'); }
     setShowModal(false);
@@ -178,6 +185,17 @@ function Products() {
               <label style={{ fontSize: 13, fontWeight: 600 }}>Categoria</label>
               <select className="form-select form-select-sm" value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600 }}>Estação da cozinha (F8)</label>
+              <select className="form-select form-select-sm" value={form.station} onChange={(e) => setForm((f) => ({ ...f, station: e.target.value }))}>
+                <option value="GENERAL">Geral</option>
+                <option value="GRILL">Churrasqueira / Grill</option>
+                <option value="BAR">Bar / Bebidas</option>
+                <option value="SALAD">Frios / Saladas</option>
+                <option value="DESSERT">Sobremesas</option>
+                <option value="FRYER">Frituras</option>
               </select>
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
@@ -520,8 +538,96 @@ function RestaurantSettings() {
   );
 }
 
-// Keep alias so existing references compile
-const BranchSettings = RestaurantSettings;
+// ─── F4: Loyalty ──────────────────────────────────────────────────────────────
+
+function LoyaltySection() {
+  const [cards, setCards] = useState<LoyaltyCard[]>([]);
+  useEffect(() => { loyaltyService.listAll().then(setCards); }, []);
+
+  return (
+    <div className="ff-data-card">
+      <div className="ff-data-card-header">
+        Cartões fidelidade
+        <span className="badge bg-primary">{cards.length}</span>
+      </div>
+      {cards.length === 0 && <div className="text-center text-muted py-4">Nenhum cliente cadastrado ainda.</div>}
+      <table className="table table-hover mb-0">
+        <thead><tr><th>Cliente</th><th>Telefone</th><th>Selos</th><th>Total ganho</th><th>Descontos usados</th></tr></thead>
+        <tbody>
+          {cards.map((c) => (
+            <tr key={c.id}>
+              <td><strong>{c.customerName}</strong></td>
+              <td>{c.customerPhone}</td>
+              <td>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {Array.from({ length: STAMPS_PER_REWARD }).map((_, i) => (
+                    <span key={i} style={{ fontSize: 16 }}>{i < c.stamps ? '⭐' : '○'}</span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: '#6b7280' }}>{c.stamps}/{STAMPS_PER_REWARD}</div>
+              </td>
+              <td>{c.totalStampsEarned}</td>
+              <td>{c.discountsUsed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── F10: Aggregator settings ─────────────────────────────────────────────────
+
+function AggregatorSection() {
+  const [settings, setSettings] = useState<AggregatorSettings[]>([]);
+  const notify = useNotify();
+
+  useEffect(() => { aggregatorService.listSettings().then(setSettings); }, []);
+
+  async function handleToggle(s: AggregatorSettings) {
+    await aggregatorService.updateSettings(s.id, { active: !s.active });
+    notify(`${aggregatorService.getPlatformName(s.platform)} ${!s.active ? 'ativado' : 'desativado'}`);
+    aggregatorService.listSettings().then(setSettings);
+  }
+
+  async function handleSimulate(s: AggregatorSettings) {
+    await aggregatorService.simulateIncomingOrder(s.platform);
+    notify(`Pedido simulado de ${aggregatorService.getPlatformName(s.platform)} enviado à cozinha`);
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 500 }}>
+      {settings.map((s) => (
+        <div key={s.id} className="ff-data-card">
+          <div className="ff-data-card-header">
+            <span>
+              <span
+                className="ff-platform-badge me-2"
+                style={{ background: aggregatorService.getPlatformColor(s.platform) }}
+              >
+                {aggregatorService.getPlatformName(s.platform)}
+              </span>
+              {s.externalId && <span style={{ fontSize: 12, color: '#9ca3af' }}>ID: {s.externalId}</span>}
+            </span>
+            <span className={`badge ${s.active ? 'bg-success' : 'bg-secondary'}`}>
+              {s.active ? 'Ativo' : 'Inativo'}
+            </span>
+          </div>
+          <div style={{ padding: '12px 20px', display: 'flex', gap: 8 }}>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => handleToggle(s)}>
+              {s.active ? 'Desativar' : 'Ativar'}
+            </button>
+            {s.active && (
+              <button className="btn btn-sm btn-primary" onClick={() => handleSimulate(s)}>
+                <i className="bi bi-lightning me-1" />Simular pedido
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ─── Kiosks ───────────────────────────────────────────────────────────────────
 
@@ -589,10 +695,12 @@ export function AdminPage() {
           {section === 'categories' && <Categories />}
           {section === 'tables' && <Tables />}
           {section === 'orders' && <Orders />}
-          {section === 'branches' && <BranchSettings />}
-          {section === 'settings' && <BranchSettings />}
+          {section === 'branches' && <RestaurantSettings />}
+          {section === 'settings' && <RestaurantSettings />}
           {section === 'kiosks' && <Kiosks />}
-          {section === 'queue' && <BranchSettings />}
+          {section === 'queue' && <RestaurantSettings />}
+          {section === 'loyalty' && <LoyaltySection />}
+          {section === 'aggregator' && <AggregatorSection />}
         </div>
       </div>
     </div>

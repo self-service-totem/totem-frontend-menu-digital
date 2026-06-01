@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { kitchenService } from '@/lib/services/kitchenService';
-import type { KitchenTicket, KitchenTicketStatus } from '@/lib/types';
+import type { KitchenTicket, KitchenTicketStatus, AggregatorPlatform, DbOrder } from '@/lib/types';
+import { aggregatorService } from '@/lib/services/aggregatorService';
+import { findById } from '@/lib/mock-db';
 import { useNotify } from '@/lib/notifications';
 
 /** Play a short double-beep using the Web Audio API (no external file needed). */
@@ -74,10 +76,23 @@ function TicketCard({ ticket, onStatusChange }: TicketCardProps) {
     CANCELED: '',
   };
 
+  const dbOrder = findById<DbOrder>('orders', ticket.orderId);
+  const platform: AggregatorPlatform | undefined = dbOrder?.platform;
+
   return (
     <div className={`ff-kitchen-ticket ${isUrgent(ticket.createdAt) ? 'urgent' : ''}`}>
       <div className="ff-kitchen-ticket-header">
-        <span className="ff-kitchen-ticket-number">{ticket.orderNumber}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="ff-kitchen-ticket-number">{ticket.orderNumber}</span>
+          {platform && platform !== 'DIRECT' && (
+            <span
+              className="ff-platform-badge"
+              style={{ background: aggregatorService.getPlatformColor(platform), fontSize: 10 }}
+            >
+              {aggregatorService.getPlatformName(platform)}
+            </span>
+          )}
+        </div>
         <span className={`ff-kitchen-ticket-time ${isUrgent(ticket.createdAt) ? 'text-danger' : ''}`}>
           <i className="bi bi-clock me-1" />{time}
         </span>
@@ -85,6 +100,11 @@ function TicketCard({ ticket, onStatusChange }: TicketCardProps) {
       {ticket.tableNumber && (
         <div className="ff-kitchen-ticket-table">
           <i className="bi bi-geo-alt me-1" />Mesa {ticket.tableNumber}
+        </div>
+      )}
+      {dbOrder?.deliveryAddress && (
+        <div className="ff-delivery-badge">
+          <i className="bi bi-bicycle" />Delivery
         </div>
       )}
       <div className="ff-kitchen-ticket-items">

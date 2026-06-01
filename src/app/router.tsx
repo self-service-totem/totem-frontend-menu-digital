@@ -16,6 +16,10 @@ import { WaiterTableDetailPage } from './waiter-staff/WaiterTableDetailPage';
 import { CashierPage } from './cashier/CashierPage';
 import { AdminPage } from './admin/AdminPage';
 import { KioskWelcomePage, KioskMenuPage, KioskCartPage, KioskPaymentPage } from './kiosk/KioskApp';
+import { LoginPage } from './login/LoginPage';
+import { ReportsPage } from './reports/ReportsPage';
+import { ReservationsPage } from './reservations/ReservationsPage';
+import { DeliveryPage } from './delivery/DeliveryPage';
 
 export const router = createBrowserRouter([
   // ─── Hub ──────────────────────────────────────────────────────────────────
@@ -78,4 +82,10 @@ export const router = createBrowserRouter([
   { path: '/kiosk/menu', element: <KioskMenuPage /> },
   { path: '/kiosk/cart', element: <KioskCartPage /> },
   { path: '/kiosk/payment', element: <KioskPaymentPage /> },
+
+  // ─── New features ─────────────────────────────────────────────────────────
+  { path: '/login', element: <LoginPage /> },
+  { path: '/reports', element: <ReportsPage /> },
+  { path: '/reservations', element: <ReservationsPage /> },
+  { path: '/delivery', element: <DeliveryPage /> },
 ]);

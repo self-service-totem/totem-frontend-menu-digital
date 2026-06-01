@@ -6,6 +6,7 @@ import { I18nProvider } from '@/i18n/I18nContext';
 import { resolveLanguage } from '@/i18n/labels';
 import { NotificationProvider } from '@/lib/notifications';
 import { seedDb } from '@/lib/mock-db';
+import { RoleProvider } from './RoleContext';
 import type { ReactNode } from 'react';
 
 // Seed the shared mock-db on startup (idempotent)
@@ -20,13 +21,15 @@ function I18nFromMenuContext({ children }: { children: ReactNode }) {
 export function App() {
   return (
     <NotificationProvider>
-      <SessionProvider>
-        <I18nFromMenuContext>
-          <CartProvider>
-            <RouterProvider router={router} />
-          </CartProvider>
-        </I18nFromMenuContext>
-      </SessionProvider>
+      <RoleProvider>
+        <SessionProvider>
+          <I18nFromMenuContext>
+            <CartProvider>
+              <RouterProvider router={router} />
+            </CartProvider>
+          </I18nFromMenuContext>
+        </SessionProvider>
+      </RoleProvider>
     </NotificationProvider>
   );
 }
