@@ -37,6 +37,8 @@ claude-personal:
 claude-work:
 	@echo "Switching back to WORK Claude settings..."
 	@cp $(CLAUDE_WORK) $(CLAUDE_SETTINGS)
+	@claude auth logout || true
+	@claude auth status --text
 	@echo "Work settings restored. Reload VS Code window."
 
 claude-status:
