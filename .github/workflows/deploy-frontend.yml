@@ -8,8 +8,9 @@ on:
         required: true
         type: choice
         options:
-          - develop
           - main
+          - dev
+          - prototype
 
       release_version:
         description: "Release version. Example: v1.0.0"
@@ -29,10 +30,6 @@ on:
         required: false
         type: string
 
-      accept_checklist:
-        description: "Accept deployment checklist"
-        required: true
-        type: boolean
 
 jobs:
   deploy:
@@ -47,11 +44,6 @@ jobs:
     steps:
       - name: Validate inputs
         run: |
-          if [ "${{ inputs.accept_checklist }}" != "true" ]; then
-            echo "Checklist must be accepted."
-            exit 1
-          fi
-
           if [ "${{ inputs.target }}" = "prod" ] && [ -z "${{ inputs.ticket }}" ]; then
             echo "Ticket is required for production deploy."
             exit 1

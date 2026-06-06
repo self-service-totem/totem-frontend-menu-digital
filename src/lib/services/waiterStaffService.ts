@@ -12,6 +12,8 @@ export interface FloorTable extends DbTable {
   pendingCallCount: number;
   hasReadyOrders: boolean;
   customerNames: string[];
+  oldestCallAt?: string;       // ISO — oldest pending waiter call (for aging badge)
+  oldestReadyOrderAt?: string; // ISO — oldest READY order (food-going-cold SLA)
 }
 
 export const waiterStaffService = {
@@ -32,9 +34,9 @@ export const waiterStaffService = {
       const activeOrders = allOrders.filter(
         (o) => o.tableId === table.id && o.status !== 'DELIVERED' && o.status !== 'CLOSED',
       );
-      const pendingCalls = allCalls.filter(
-        (c) => c.tableId === table.id && (c.status === 'PENDING' || c.status === 'ACKNOWLEDGED'),
-      );
+      const pendingCalls = allCalls
+        .filter((c) => c.tableId === table.id && (c.status === 'PENDING' || c.status === 'ACKNOWLEDGED'))
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
       const unpaidOrders = allOrders.filter(
         (o) => o.tableId === table.id && o.paymentStatus !== 'PAID',
       );
@@ -42,13 +44,19 @@ export const waiterStaffService = {
         (o) => o.tableId === table.id && o.status !== 'CLOSED' && o.status !== 'CANCELED',
       );
 
+      const readyOrders = activeOrders
+        .filter((o) => o.status === 'READY')
+        .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+
       return {
         ...table,
         activeOrderCount: activeOrders.length,
         unpaidAmount: unpaidOrders.reduce((s, o) => s + (o.total - o.paidAmount), 0),
         pendingCallCount: pendingCalls.length,
-        hasReadyOrders: activeOrders.some((o) => o.status === 'READY'),
+        hasReadyOrders: readyOrders.length > 0,
         customerNames: [...new Set(sessionOrders.map((o) => o.customerName))],
+        oldestCallAt: pendingCalls[0]?.createdAt,
+        oldestReadyOrderAt: readyOrders[0]?.updatedAt,
       };
     });
 

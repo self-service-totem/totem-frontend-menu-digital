@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { waiterStaffService, type FloorTable } from '@/lib/services/waiterStaffService';
 import { useNotify } from '@/lib/notifications';
 import { getTableStatusUI } from '@/lib/utils/tableStatusUI';
+import { useElapsed, elapsedMins, fmtElapsed, ageSeverity, SEVERITY_STYLE } from '@/lib/utils/useElapsed';
 import type { WaiterCall, MockUser } from '@/lib/types';
 
 const CALL_REASON_LABEL: Record<string, string> = {
@@ -120,11 +121,21 @@ function TableCard({
             {ui.label}
           </span>
 
-          {/* "Ação necessária" — for all high-priority states */}
+          {/* "Ação necessária" + status age */}
           {(ui.priority === 'high' || hasCall) && (
             <div style={{ marginTop: 4, fontSize: '0.72rem', color: hasCall ? '#dc2626' : '#b45309', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
               <i className="bi bi-lightning-charge-fill" />
               Ação necessária
+              {!hasCall && !table.hasReadyOrders && (() => {
+                const mins = elapsedMins(table.updatedAt);
+                const sev = ageSeverity(mins, 15, 30);
+                const s = SEVERITY_STYLE[sev];
+                return (
+                  <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0 6px', fontSize: '0.67rem', fontWeight: 800 }}>
+                    {fmtElapsed(mins)}
+                  </span>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -182,52 +193,46 @@ function TableCard({
 
         {/* Alert chips — separate from the status badge */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: (table.pendingCallCount > 0 || table.hasReadyOrders) ? 8 : 0 }}>
-          {table.pendingCallCount > 0 && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                background: callUI.color,
-                color: '#fff',
-                borderRadius: 6,
-                padding: '4px 10px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'default',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <i className={`bi ${callUI.icon}`} style={{ fontSize: '0.82rem' }} />
-              {table.pendingCallCount === 1 ? 'Chamando garçom' : `${table.pendingCallCount}× chamado`}
-              {table.pendingCallCount > 1 && (
-                <span style={{ background: '#fff', color: callUI.color, borderRadius: 8, padding: '0 5px', fontSize: '0.68rem', fontWeight: 900 }}>
-                  URGENTE
-                </span>
-              )}
-            </span>
-          )}
-          {table.hasReadyOrders && !hasCall && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                background: '#f0fdf4',
-                color: '#15803d',
-                border: '1px solid #86efac',
-                borderRadius: 6,
-                padding: '4px 10px',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                cursor: 'default',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <i className="bi bi-check-circle-fill" style={{ fontSize: '0.82rem' }} />
-              Pronto para servir
-            </span>
-          )}
+          {table.pendingCallCount > 0 && (() => {
+            const mins = table.oldestCallAt ? elapsedMins(table.oldestCallAt) : 0;
+            const sev = ageSeverity(mins, 3, 7);
+            return (
+              <span
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: callUI.color, color: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: '0.78rem', fontWeight: 700, cursor: 'default' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <i className={`bi ${callUI.icon}`} style={{ fontSize: '0.82rem' }} />
+                {table.pendingCallCount === 1 ? 'Chamando garçom' : `${table.pendingCallCount}× chamado`}
+                {table.pendingCallCount > 1 && (
+                  <span style={{ background: '#fff', color: callUI.color, borderRadius: 8, padding: '0 5px', fontSize: '0.68rem', fontWeight: 900 }}>URGENTE</span>
+                )}
+                {table.oldestCallAt && (
+                  <span style={{ background: sev === 'critical' ? '#7f1d1d' : '#991b1b', color: '#fecaca', borderRadius: 8, padding: '0 6px', fontSize: '0.68rem', fontWeight: 800 }}>
+                    {fmtElapsed(mins)}
+                  </span>
+                )}
+              </span>
+            );
+          })()}
+          {table.hasReadyOrders && !hasCall && (() => {
+            const mins = table.oldestReadyOrderAt ? elapsedMins(table.oldestReadyOrderAt) : 0;
+            const sev = ageSeverity(mins, 5, 12);
+            const style = SEVERITY_STYLE[sev];
+            return (
+              <span
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: style.bg, color: style.color, border: `1px solid ${style.border}`, borderRadius: 6, padding: '4px 10px', fontSize: '0.78rem', fontWeight: 700, cursor: 'default' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <i className="bi bi-check-circle-fill" style={{ fontSize: '0.82rem' }} />
+                Pronto para servir
+                {table.oldestReadyOrderAt && (
+                  <span style={{ background: style.border, color: style.color, borderRadius: 8, padding: '0 6px', fontSize: '0.68rem', fontWeight: 800 }}>
+                    {fmtElapsed(mins)}
+                  </span>
+                )}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -460,6 +465,7 @@ export function WaiterTablesPage() {
   const [reassignTarget, setReassignTarget] = useState<FloorTable | null>(null);
   const notify = useNotify();
   const navigate = useNavigate();
+  useElapsed(30_000); // re-render every 30 s to keep age badges current
 
   async function load() {
     const [ft, c] = await Promise.all([

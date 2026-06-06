@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { cashierService } from '@/lib/services/cashierService';
 import type { TableGroup, CustomerGroup } from '@/lib/services/cashierService';
 import { useNotify } from '@/lib/notifications';
+import { useElapsed, elapsedMins, fmtElapsed, ageSeverity, SEVERITY_STYLE } from '@/lib/utils/useElapsed';
 import type { Payment, PaymentMethod, Receipt, Invoice, DbTable } from '@/lib/types';
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -322,6 +323,17 @@ function TableGroupCard({
         <span style={{ fontSize: 12, color: '#6b7280', background: '#f3f4f6', borderRadius: 6, padding: '2px 8px' }}>
           {TABLE_STATUS_LABEL[group.table.status] ?? group.table.status}
         </span>
+        {group.table.updatedAt && group.paymentStatus !== 'PAID' && (() => {
+          const mins = elapsedMins(group.table.updatedAt);
+          const sev = ageSeverity(mins, 15, 30);
+          const s = SEVERITY_STYLE[sev];
+          return (
+            <span style={{ fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 8, padding: '1px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i className="bi bi-clock" style={{ fontSize: 10 }} />
+              {fmtElapsed(mins)}
+            </span>
+          );
+        })()}
         {group.paymentStatus === 'PARTIALLY_PAID' && (
           <span className="badge bg-warning text-dark" style={{ fontSize: 11 }}>Parcialmente pago</span>
         )}
@@ -435,6 +447,7 @@ export function CashierPage() {
   const [tableSearch, setTableSearch] = useState('');
   const notify = useNotify();
   const navigate = useNavigate();
+  useElapsed(30_000);
 
   useEffect(() => {
     setTab(tabFromPath(location.pathname));
