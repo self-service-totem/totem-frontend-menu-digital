@@ -58,7 +58,7 @@ function TableCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const ui = getTableStatusUI(table.status);
   const isEmpty = table.status === 'EMPTY' || table.status === 'CLOSED';
-  const priority = alertPriority(table);
+
 
   // Derived attention state overrides ring + badge when a call is pending
   const hasCall = table.pendingCallCount > 0;

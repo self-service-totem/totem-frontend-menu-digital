@@ -1074,7 +1074,7 @@ function OcupacaoView({ tables, settings }: OcupacaoViewProps) {
               tags: form.tags.length > 0 ? form.tags : undefined,
             });
             setQuickReserve(null);
-            notify('success', 'Reserva criada com sucesso');
+            notify('Reserva criada com sucesso', 'success');
             reservationService.listAll().then(setOccReservations);
           }}
           onClose={() => setQuickReserve(null)}

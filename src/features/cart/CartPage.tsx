@@ -11,8 +11,8 @@ import { orderService } from '@/services';
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { items, subtotal, setQuantity, remove, clear } = useCart();
-  const { customer, menuContext, tableId, setCustomerName, setCustomerPhone } = useSession();
+  const { items, setQuantity, remove, clear } = useCart();
+  const { customer, tableId, setCustomerName, setCustomerPhone } = useSession();
   const { t } = useLabels();
 
   const [editOpen, setEditOpen] = useState(false);
