@@ -418,7 +418,7 @@ function Orders() {
 function RestaurantSettings() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [branch, setBranch] = useState<Branch | null>(null);
-  const [tenantForm, setTenantForm] = useState({ name: '', logoUrl: '' });
+  const [tenantForm, setTenantForm] = useState({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' as 'es' | 'pt-BR' | 'en' });
   const [branchForm, setBranchForm] = useState({
     name: '', address: '', serviceType: 'TABLE_SERVICE',
     queueEnabled: true, queueMessage: '',
@@ -428,7 +428,7 @@ function RestaurantSettings() {
 
   useEffect(() => {
     Promise.all([tenantService.get(), branchService.get()]).then(([t, b]) => {
-      if (t) { setTenant(t); setTenantForm({ name: t.name, logoUrl: t.logoUrl ?? '' }); }
+      if (t) { setTenant(t); setTenantForm({ name: t.name, logoUrl: t.logoUrl ?? '', defaultLanguage: t.defaultLanguage ?? 'pt-BR' }); }
       if (b) {
         setBranch(b);
         setBranchForm({
@@ -444,7 +444,11 @@ function RestaurantSettings() {
 
   async function handleSaveTenant() {
     if (!tenant) return;
-    await tenantService.update({ name: tenantForm.name.trim(), logoUrl: tenantForm.logoUrl.trim() || undefined });
+    await tenantService.update({
+      name: tenantForm.name.trim(),
+      logoUrl: tenantForm.logoUrl.trim() || undefined,
+      defaultLanguage: tenantForm.defaultLanguage,
+    });
     notify('Restaurante atualizado — nome refletido no Menu e Kiosk');
   }
 
@@ -480,6 +484,21 @@ function RestaurantSettings() {
           {tenantForm.logoUrl && (
             <img src={tenantForm.logoUrl} alt="Logo preview" style={{ height: 48, objectFit: 'contain', borderRadius: 6 }} />
           )}
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Idioma padrão</label>
+            <select
+              className="form-select form-select-sm"
+              value={tenantForm.defaultLanguage}
+              onChange={(e) => setTenantForm((f) => ({ ...f, defaultLanguage: e.target.value as 'es' | 'pt-BR' | 'en' }))}
+            >
+              <option value="pt-BR">🇧🇷 Português</option>
+              <option value="es">🇦🇷 Español</option>
+              <option value="en">🇺🇸 English</option>
+            </select>
+            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+              Idioma inicial para o Menu Digital e Kiosk deste tenant.
+            </div>
+          </div>
           <button className="btn btn-primary" onClick={handleSaveTenant}>Salvar restaurante</button>
         </div>
       </div>

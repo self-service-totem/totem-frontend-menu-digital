@@ -60,6 +60,7 @@ export interface Bill {
 export interface WaiterCallRequest {
   customerName: string;
   phone: string;
+  reason?: string;
 }
 
 // Payload de POST /api/tables/{tableId}/orders

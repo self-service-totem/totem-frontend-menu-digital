@@ -6,10 +6,14 @@ export type LanguageCode = 'pt-BR' | 'es' | 'en';
 
 export type LabelKey =
   | 'nav.waiter'
-  | 'nav.rating'
+  | 'nav.language'
   | 'nav.order'
   | 'nav.cashback'
   | 'nav.bill'
+  | 'lang.es'
+  | 'lang.pt'
+  | 'lang.en'
+  | 'lang.selector'
   | 'menu.searchPlaceholder'
   | 'menu.allCategories'
   | 'menu.featured'
@@ -88,8 +92,12 @@ type LabelMap = Record<LabelKey, string>;
 
 const ptBR: LabelMap = {
   'nav.waiter': 'Garçom',
-  'nav.rating': 'Avaliar',
+  'nav.language': 'Idioma',
   'nav.order': 'Pedir',
+  'lang.es': 'Español',
+  'lang.pt': 'Português',
+  'lang.en': 'English',
+  'lang.selector': 'Idioma',
   'nav.cashback': 'Cashback',
   'nav.bill': 'Conta',
   'menu.searchPlaceholder': 'Buscar produto',
@@ -169,8 +177,12 @@ const ptBR: LabelMap = {
 
 const es: LabelMap = {
   'nav.waiter': 'Mozo',
-  'nav.rating': 'Evaluar',
+  'nav.language': 'Idioma',
   'nav.order': 'Pedir',
+  'lang.es': 'Español',
+  'lang.pt': 'Português',
+  'lang.en': 'English',
+  'lang.selector': 'Idioma',
   'nav.cashback': 'Cashback',
   'nav.bill': 'Cuenta',
   'menu.searchPlaceholder': 'Buscar producto',
@@ -251,14 +263,75 @@ const es: LabelMap = {
 const en: LabelMap = {
   ...es,
   'nav.waiter': 'Waiter',
-  'nav.rating': 'Rate',
+  'nav.language': 'Language',
   'nav.order': 'Order',
   'nav.bill': 'Bill',
+  'lang.selector': 'Language',
   'menu.searchPlaceholder': 'Search product',
+  'menu.allCategories': 'All',
+  'menu.featured': 'Featured',
+  'menu.empty': 'No results',
+  'menu.emptyDesc': 'Try a different search or category.',
+  'menu.greeting': 'Hello',
   'product.add': 'Add',
+  'product.notes': 'Notes',
+  'product.notesPlaceholder': 'E.g.: No onions',
+  'cart.title': 'Cart',
+  'cart.empty': 'Your cart is empty',
+  'cart.emptyDesc': 'Go back to the menu and pick your favorites.',
+  'cart.viewMenu': 'View menu',
+  'cart.name': 'Name',
+  'cart.namePlaceholder': 'Your name',
+  'cart.changeName': 'Change',
+  'cart.addMore': 'Add more items',
   'cart.placeOrder': 'Place order',
+  'cart.placingOrder': 'Sending...',
+  'cart.namePromptTitle': 'Before continuing',
+  'cart.namePromptDesc': 'Enter your name to identify your order at the table.',
+  'cart.confirmName': 'Continue',
+  'summary.serviceFee': 'Service fee',
+  'bill.title': 'Bill',
+  'bill.tabTable': 'Table',
+  'bill.tabIndividual': 'My Bill',
+  'bill.closeTable': 'Request table bill',
+  'bill.closeMine': 'Request my bill',
+  'bill.empty': 'No orders yet at this table.',
+  'bill.requestSent': 'Close request sent to the waiter.',
   'waiter.title': 'Waiter',
   'waiter.help': 'Need help?',
+  'waiter.helpDesc': 'Tap an option and a waiter will come to your table.',
+  'waiter.formTitle': 'Call the waiter',
+  'waiter.formDesc': 'Enter your details to help us assist you.',
+  'waiter.name': 'Name',
+  'waiter.namePlaceholder': 'Your name',
+  'waiter.cancel': 'Cancel',
+  'waiter.send': 'Continue',
+  'waiter.sent': 'Request sent. A waiter is on the way.',
+  'rating.title': 'Rate',
+  'rating.question': 'How was your experience?',
+  'rating.tapStars': 'Tap the stars to rate.',
+  'rating.commentPlaceholder': 'Leave a comment (optional)',
+  'rating.send': 'Send rating',
+  'rating.thanks': 'Thank you for your rating!',
+  'rating.thanksDesc': 'Your feedback helps us improve.',
+  'cashback.title': 'Cashback',
+  'cashback.balance': 'Available balance',
+  'cashback.note': 'Earn {rate}% back on every order.',
+  'cashback.history': 'History',
+  'cashback.signup': 'Sign up for cashback',
+  'common.back': 'Back',
+  'common.close': 'Close',
+  'common.loading': 'Loading...',
+  'common.required': 'Required',
+  'common.optional': 'Optional',
+  'confirmation.title': 'Order confirmed!',
+  'confirmation.subtitle': 'Your order was sent to the kitchen.',
+  'confirmation.orderNumber': 'Order number',
+  'confirmation.customer': 'Name',
+  'confirmation.table': 'Table',
+  'confirmation.items': 'Items',
+  'confirmation.note': 'Track the status on the board or wait to be called.',
+  'confirmation.backToMenu': 'Back to menu',
 };
 
 export const labels: Record<LanguageCode, LabelMap> = {

@@ -25,6 +25,8 @@ CLAUDE_PERSONAL := $(CLAUDE_DIR)/settings.personal.json
 CLAUDE_WORK := $(CLAUDE_DIR)/settings.work.json
 
 claude-personal:
+	@echo "Backing up current settings to settings.work.json..."
+	@cp $(CLAUDE_SETTINGS) $(CLAUDE_WORK)
 	@echo "Switching to PERSONAL Claude settings..."
 	@cp $(CLAUDE_PERSONAL) $(CLAUDE_SETTINGS)
 	@claude auth logout || true
@@ -35,6 +37,8 @@ claude-personal:
 	@claude auth status --text
 
 claude-work:
+	@echo "Backing up current settings to settings.personal.json..."
+	@cp $(CLAUDE_SETTINGS) $(CLAUDE_PERSONAL)
 	@echo "Switching back to WORK Claude settings..."
 	@cp $(CLAUDE_WORK) $(CLAUDE_SETTINGS)
 	@claude auth logout || true

@@ -3,14 +3,14 @@ import type { Bill, TableAccount } from '@/types';
 export function buildMockBill(tableId: string): Bill {
   const customers = [
     {
-      customerName: 'Fernanda Ribeiro',
+      customerName: 'Fernando',
       items: [
         {
-          productId: 'prod-isquinha-frango',
-          productName: 'Isquinha de Frango Kids',
+          productId: 'prod-hamburguer',
+          productName: 'Hambúrguer Artesanal',
           quantity: 1,
-          unitPrice: 29.9,
-          total: 29.9,
+          unitPrice: 35.9,
+          total: 35.9,
         },
         {
           productId: 'prod-coca-zero',
@@ -20,20 +20,33 @@ export function buildMockBill(tableId: string): Bill {
           total: 8.9,
         },
       ],
-      subtotal: 38.8,
+      subtotal: 44.8,
     },
     {
-      customerName: 'Júnior',
+      customerName: 'Pepe',
       items: [
         {
-          productId: 'prod-carne-de-sol',
-          productName: 'Carne de sol c/ aipim',
+          productId: 'prod-pizza-mussarela',
+          productName: 'Pizza Mussarela',
           quantity: 1,
-          unitPrice: 98.9,
-          total: 98.9,
+          unitPrice: 62.9,
+          total: 62.9,
         },
       ],
-      subtotal: 98.9,
+      subtotal: 62.9,
+    },
+    {
+      customerName: 'Juan',
+      items: [
+        {
+          productId: 'prod-pasta-bolonhesa',
+          productName: 'Pasta Bolonhesa',
+          quantity: 1,
+          unitPrice: 48.9,
+          total: 48.9,
+        },
+      ],
+      subtotal: 48.9,
     },
   ];
   const subtotal = +customers.reduce((acc, c) => acc + c.subtotal, 0).toFixed(2);

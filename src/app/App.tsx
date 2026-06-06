@@ -13,9 +13,10 @@ import type { ReactNode } from 'react';
 seedDb();
 
 function I18nFromMenuContext({ children }: { children: ReactNode }) {
-  const { menuContext } = useSession();
-  const language = resolveLanguage(menuContext?.language);
-  return <I18nProvider language={language}>{children}</I18nProvider>;
+  const { menuContext, language } = useSession();
+  // User's explicit choice takes priority; fall back to tenant default from menuContext
+  const resolved = language ?? resolveLanguage(menuContext?.language);
+  return <I18nProvider language={resolved}>{children}</I18nProvider>;
 }
 
 export function App() {

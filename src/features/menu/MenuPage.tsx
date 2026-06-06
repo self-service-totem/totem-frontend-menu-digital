@@ -14,7 +14,6 @@ import { ProductDetailModal } from '@/features/product-detail/ProductDetailModal
 
 export function MenuPage() {
   const params = useParams();
-  // Supports both /menu/:tableId (legacy) and /menu/:branchId/table/:tableId (new)
   const tableIdParam = params.tableId ?? params.branchId;
   const [searchParams, setSearchParams] = useSearchParams();
   const { menuContext, tableId, customer, setTableId, loading } = useSession();
@@ -24,10 +23,10 @@ export function MenuPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  // Which category is currently expanded (null = all collapsed)
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  // Sincroniza el tableId del QR/URL con la sesión.
   useEffect(() => {
     if (tableIdParam && tableIdParam !== tableId) setTableId(tableIdParam);
   }, [tableIdParam, tableId, setTableId]);
@@ -41,44 +40,37 @@ export function MenuPage() {
     );
   }, []);
 
-  const handleOpenProduct = (product: Product) => {
-    setSearchParams({ product: product.id });
-  };
+  const handleOpenProduct = (product: Product) => setSearchParams({ product: product.id });
+  const handleCloseProduct = () => setSearchParams({});
 
-  const handleCloseProduct = () => {
-    setSearchParams({});
-  };
-
-  const filtered = useMemo(() => {
-    let list = products.filter((p) => p.available);
-    if (activeCategory) list = list.filter((p) => p.categoryId === activeCategory);
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          (p.description?.toLowerCase().includes(q) ?? false),
-      );
-    }
-    return list;
-  }, [products, activeCategory, search]);
-
-  const featured = useMemo(
-    () => filtered.filter((p) => p.featured).slice(0, 4),
-    [filtered],
-  );
-
-  const grouped = useMemo(() => {
+  // Products indexed by category for O(1) lookup
+  const productsByCategory = useMemo(() => {
     const map = new Map<string, Product[]>();
-    for (const p of filtered) {
+    for (const p of products) {
+      if (!p.available) continue;
       const arr = map.get(p.categoryId) ?? [];
       arr.push(p);
       map.set(p.categoryId, arr);
     }
-    return categories
-      .filter((c) => map.has(c.id))
-      .map((c) => ({ category: c, products: map.get(c.id)! }));
-  }, [filtered, categories]);
+    return map;
+  }, [products]);
+
+  // Flat search results (when search query is active)
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return null;
+    return products.filter(
+      (p) =>
+        p.available &&
+        (p.name.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase().includes(q) ?? false)),
+    );
+  }, [products, search]);
+
+  // Toggle accordion — clicking an already-open banner collapses it
+  const handleToggle = (categoryId: string) => {
+    setActiveCategory((prev) => (prev === categoryId ? null : categoryId));
+  };
 
   if (loading || !menuContext) {
     return (
@@ -98,51 +90,52 @@ export function MenuPage() {
         tableName={menuContext.tableName}
         customerName={customer?.name}
       />
+
       <SearchBar
         value={search}
-        onChange={setSearch}
+        onChange={(v) => {
+          setSearch(v);
+          if (v) setActiveCategory(null); // clear accordion when searching
+        }}
         placeholder={t('menu.searchPlaceholder')}
       />
 
-      <CategoryCarousel
-        categories={categories}
-        activeId={activeCategory}
-        onSelect={setActiveCategory}
-      />
-
-      {/* Promotions: loaded from promotionService when available */}
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon="bi-search"
-          title={t('menu.empty')}
-          description={t('menu.emptyDesc')}
+      {/* Category circles — clicking selects/expands that category */}
+      {!search && (
+        <CategoryCarousel
+          categories={categories}
+          activeId={activeCategory}
+          onSelect={(id) => setActiveCategory(id)}
         />
-      ) : search ? (
-        <ProductSection
-          title={`${t('menu.results')} (${filtered.length})`}
-          products={filtered}
-          onOpen={handleOpenProduct}
-        />
+      )}
+
+      {searchResults ? (
+        // Search mode: flat results list
+        searchResults.length === 0 ? (
+          <EmptyState icon="bi-search" title={t('menu.empty')} description={t('menu.emptyDesc')} />
+        ) : (
+          <ProductSection
+            title={`${t('menu.results')} (${searchResults.length})`}
+            products={searchResults}
+            onOpen={handleOpenProduct}
+            isExpanded
+          />
+        )
       ) : (
-        <>
-          {!activeCategory && featured.length > 0 && (
+        // Accordion mode: all category banners; only active one shows products
+        <div className="ff-accordion">
+          {categories.map((cat) => (
             <ProductSection
-              title={t('menu.featured')}
-              products={featured}
+              key={cat.id}
+              title={cat.name}
+              imageUrl={cat.imageUrl}
+              products={productsByCategory.get(cat.id) ?? []}
+              isExpanded={activeCategory === cat.id}
+              onToggle={() => handleToggle(cat.id)}
               onOpen={handleOpenProduct}
-                  featured
             />
-          )}
-          {grouped.map(({ category, products: prods }) => (
-            <ProductSection
-              key={category.id}
-              title={category.name}
-              products={prods}
-              onOpen={handleOpenProduct}
-                />
           ))}
-        </>
+        </div>
       )}
 
       {openProductId && (

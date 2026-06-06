@@ -2,16 +2,10 @@ import type { Category } from '@/types';
 
 export const mockCategories: Category[] = [
   {
-    id: 'cat-couvert',
-    name: 'Couvert',
-    imageUrl: 'https://images.unsplash.com/photo-1604908554027-9d1620270b41?w=200&q=70',
-    order: 1,
-  },
-  {
     id: 'cat-entradas',
     name: 'Entradas',
     imageUrl: 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=200&q=70',
-    order: 2,
+    order: 1,
   },
   {
     id: 'cat-bebidas',

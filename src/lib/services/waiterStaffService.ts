@@ -1,9 +1,17 @@
 import { getCollection, updateOne, insertOne } from '@/lib/mock-db';
 import { BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
-import type { DbTable, WaiterCall, DbOrder, Payment } from '@/lib/types';
+import type { DbTable, WaiterCall, DbOrder, Payment, MockUser } from '@/lib/types';
 
 function delay<T>(val: T, ms = 200): Promise<T> {
   return new Promise((res) => setTimeout(() => res(val), ms));
+}
+
+export interface FloorTable extends DbTable {
+  activeOrderCount: number;
+  unpaidAmount: number;
+  pendingCallCount: number;
+  hasReadyOrders: boolean;
+  customerNames: string[];
 }
 
 export const waiterStaffService = {
@@ -15,17 +23,60 @@ export const waiterStaffService = {
     );
   },
 
-  async getTableOrders(tableId: string): Promise<DbOrder[]> {
-    const orders = getCollection<DbOrder>('orders').filter(
-      (o) => o.tableId === tableId && o.status !== 'CANCELED' && o.status !== 'DELIVERED',
+  async getFloorState(): Promise<FloorTable[]> {
+    const tables = getCollection<DbTable>('tables').filter((t) => t.active);
+    const allOrders = getCollection<DbOrder>('orders').filter((o) => o.status !== 'CANCELED');
+    const allCalls = getCollection<WaiterCall>('waiterCalls');
+
+    const enriched: FloorTable[] = tables.map((table) => {
+      const activeOrders = allOrders.filter(
+        (o) => o.tableId === table.id && o.status !== 'DELIVERED' && o.status !== 'CLOSED',
+      );
+      const pendingCalls = allCalls.filter(
+        (c) => c.tableId === table.id && (c.status === 'PENDING' || c.status === 'ACKNOWLEDGED'),
+      );
+      const unpaidOrders = allOrders.filter(
+        (o) => o.tableId === table.id && o.paymentStatus !== 'PAID',
+      );
+      const sessionOrders = allOrders.filter(
+        (o) => o.tableId === table.id && o.status !== 'CLOSED' && o.status !== 'CANCELED',
+      );
+
+      return {
+        ...table,
+        activeOrderCount: activeOrders.length,
+        unpaidAmount: unpaidOrders.reduce((s, o) => s + (o.total - o.paidAmount), 0),
+        pendingCallCount: pendingCalls.length,
+        hasReadyOrders: activeOrders.some((o) => o.status === 'READY'),
+        customerNames: [...new Set(sessionOrders.map((o) => o.customerName))],
+      };
+    });
+
+    return delay(
+      enriched.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })),
     );
-    return delay(orders);
+  },
+
+  async getTableOrders(tableId: string): Promise<DbOrder[]> {
+    return delay(
+      getCollection<DbOrder>('orders').filter(
+        (o) => o.tableId === tableId && o.status !== 'CANCELED' && o.status !== 'DELIVERED',
+      ),
+    );
   },
 
   async listCalls(): Promise<WaiterCall[]> {
     return delay(
       getCollection<WaiterCall>('waiterCalls').sort((a, b) =>
         b.createdAt.localeCompare(a.createdAt),
+      ),
+    );
+  },
+
+  async listWaiters(): Promise<MockUser[]> {
+    return delay(
+      getCollection<MockUser>('mockUsers').filter(
+        (u) => u.role === 'WAITER' && (u.branchId === BRANCH_ID || u.branchId === null),
       ),
     );
   },
@@ -42,7 +93,6 @@ export const waiterStaffService = {
     const table = getCollection<DbTable>('tables').find((t) => t.id === tableId);
     if (!table) return delay(undefined as unknown as void);
 
-    // Find open orders for this table
     const orders = getCollection<DbOrder>('orders').filter(
       (o) => o.tableId === tableId && o.paymentStatus === 'UNPAID',
     );
@@ -70,7 +120,48 @@ export const waiterStaffService = {
       }
     }
 
-    updateOne<DbTable>('tables', tableId, { status: 'WAITING_FOR_PAYMENT' });
+    updateOne<DbTable>('tables', tableId, { status: 'WAITING_FOR_PAYMENT', updatedAt: now });
+    return delay(undefined as unknown as void);
+  },
+
+  async assignWaiter(tableId: string, waiterName: string): Promise<void> {
+    updateOne<DbTable>('tables', tableId, {
+      assignedWaiterName: waiterName,
+      updatedAt: new Date().toISOString(),
+    });
+    return delay(undefined as unknown as void);
+  },
+
+  async setGuestCount(tableId: string, count: number): Promise<void> {
+    updateOne<DbTable>('tables', tableId, {
+      guestCount: count,
+      updatedAt: new Date().toISOString(),
+    });
+    return delay(undefined as unknown as void);
+  },
+
+  async openTable(tableId: string): Promise<void> {
+    updateOne<DbTable>('tables', tableId, {
+      status: 'OCCUPIED',
+      updatedAt: new Date().toISOString(),
+    });
+    return delay(undefined as unknown as void);
+  },
+
+  async markServed(tableId: string): Promise<void> {
+    updateOne<DbTable>('tables', tableId, {
+      status: 'ORDER_IN_PROGRESS',
+      updatedAt: new Date().toISOString(),
+    });
+    return delay(undefined as unknown as void);
+  },
+
+  async closeTable(tableId: string): Promise<void> {
+    updateOne<DbTable>('tables', tableId, {
+      status: 'EMPTY',
+      guestCount: 0,
+      updatedAt: new Date().toISOString(),
+    });
     return delay(undefined as unknown as void);
   },
 };

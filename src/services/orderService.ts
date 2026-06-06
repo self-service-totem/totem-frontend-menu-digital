@@ -156,12 +156,39 @@ export const orderService = {
       customerMap.set(order.customerName, existing);
     }
 
-    const customers: BillCustomer[] = [...customerMap.entries()].map(([name, items]) => ({
+    const realCustomers: BillCustomer[] = [...customerMap.entries()].map(([name, items]) => ({
       customerName: name,
       items,
       subtotal: +items.reduce((s, i) => s + i.total, 0).toFixed(2),
     }));
 
+    // Demo padding: when there is only 1 real customer (or none), add placeholder
+    // tablemates so the Mesa tab always shows a realistic multi-person scenario.
+    // localStorage is per-browser; a real backend would remove the need for this.
+    const realNames = new Set(realCustomers.map((c) => c.customerName));
+    const DEMO_TABLEMATES: BillCustomer[] = [
+      {
+        customerName: 'Pepe',
+        items: [
+          { productId: 'prod-entrada-mirante', productName: 'Entrada Mirante', quantity: 1, unitPrice: 42.0, total: 42.0 },
+          { productId: 'prod-suco-laranja', productName: 'Suco de laranja', quantity: 1, unitPrice: 12.0, total: 12.0 },
+        ],
+        subtotal: 54.0,
+      },
+      {
+        customerName: 'Juan',
+        items: [
+          { productId: 'prod-carne-de-sol', productName: 'Carne de sol c/ aipim', quantity: 1, unitPrice: 78.9, total: 78.9 },
+        ],
+        subtotal: 78.9,
+      },
+    ];
+
+    const demoToAdd = realCustomers.length <= 1
+      ? DEMO_TABLEMATES.filter((d) => !realNames.has(d.customerName))
+      : [];
+
+    const customers = [...realCustomers, ...demoToAdd];
     const subtotal = +customers.reduce((s, c) => s + c.subtotal, 0).toFixed(2);
     const serviceFee = +(subtotal * 0.1).toFixed(2);
 

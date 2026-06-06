@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { kioskService } from '@/lib/services/kioskService';
 import { useNotify } from '@/lib/notifications';
+import { useSession } from '@/app/SessionContext';
+import { LanguageSelector } from '@/components/common/LanguageSelector';
 import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder } from '@/lib/types';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60 s of no interaction → reset to welcome
@@ -33,9 +35,19 @@ function useKioskIdleTimeout(enabled = true) {
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
 
+const KIOSK_WELCOME: Record<string, { title: string; subtitle: string; eatIn: string; takeaway: string }> = {
+  'pt-BR': { title: 'Bem-vindo!', subtitle: 'Como você deseja pedir?', eatIn: 'Comer aqui', takeaway: 'Para levar' },
+  es:      { title: '¡Bienvenido!', subtitle: '¿Cómo querés pedir?', eatIn: 'Comer acá', takeaway: 'Para llevar' },
+  en:      { title: 'Welcome!', subtitle: 'How would you like to order?', eatIn: 'Dine in', takeaway: 'Take away' },
+};
+
 export function KioskWelcomePage() {
   const navigate = useNavigate();
+  const { language } = useSession();
   useKioskIdleTimeout();
+
+  const lang = (language ?? 'pt-BR') as string;
+  const copy = KIOSK_WELCOME[lang] ?? KIOSK_WELCOME['pt-BR'];
 
   return (
     <div className="ff-kiosk-layout">
@@ -44,23 +56,23 @@ export function KioskWelcomePage() {
           <i className="bi bi-house" />
         </button>
         <span className="ff-kiosk-topbar-title">Pertinho do Ceu</span>
-        <div style={{ width: 36 }} />
+        <LanguageSelector variant="pills" className="ff-kiosk-lang-pills" />
       </div>
 
       <div className="ff-kiosk-content">
         <div className="ff-kiosk-welcome">
           <div>
             <div style={{ fontSize: 56, marginBottom: 8 }}>🍽</div>
-            <div className="ff-kiosk-welcome-title">Bem-vindo!</div>
-            <div style={{ fontSize: 18, color: '#6b7280', marginTop: 8 }}>Como você deseja pedir?</div>
+            <div className="ff-kiosk-welcome-title">{copy.title}</div>
+            <div style={{ fontSize: 18, color: '#6b7280', marginTop: 8 }}>{copy.subtitle}</div>
           </div>
 
           <div className="ff-kiosk-service-options">
             <button className="ff-kiosk-service-btn" onClick={() => navigate('/kiosk/menu?service=EAT_IN')}>
-              <i className="bi bi-table" />Comer aqui
+              <i className="bi bi-table" />{copy.eatIn}
             </button>
             <button className="ff-kiosk-service-btn" onClick={() => navigate('/kiosk/menu?service=TAKEAWAY')}>
-              <i className="bi bi-bag" />Para levar
+              <i className="bi bi-bag" />{copy.takeaway}
             </button>
           </div>
         </div>

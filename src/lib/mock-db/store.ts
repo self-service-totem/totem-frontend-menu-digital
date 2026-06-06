@@ -49,12 +49,14 @@ export function clearCollection(key: string): void {
   localStorage.removeItem(PREFIX + key);
 }
 
+const SEED_VERSION = 'v8';
+
 export function isSeeded(): boolean {
-  return localStorage.getItem(PREFIX + '__seeded') === '1';
+  return localStorage.getItem(PREFIX + '__seeded') === SEED_VERSION;
 }
 
 export function markSeeded(): void {
-  localStorage.setItem(PREFIX + '__seeded', '1');
+  localStorage.setItem(PREFIX + '__seeded', SEED_VERSION);
 }
 
 export function resetDb(): void {

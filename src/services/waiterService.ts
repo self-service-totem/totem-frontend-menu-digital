@@ -1,6 +1,6 @@
 import type { WaiterCallRequest } from '@/types';
 import { delay } from './api';
-import { insertOne, getCollection, BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
+import { insertOne, getCollection, updateOne, BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
 import type { WaiterCall } from '@/lib/types';
 
 export interface WaiterCallResponse {
@@ -8,11 +8,6 @@ export interface WaiterCallResponse {
   ticketId: string;
 }
 
-// Cuando exista el backend:
-// return request<WaiterCallResponse>(
-//   `/tables/${encodeURIComponent(tableId)}/waiter-call`,
-//   { method: 'POST', body: JSON.stringify(payload) }
-// );
 export const waiterService = {
   async callWaiter(tableId: string, payload: WaiterCallRequest): Promise<WaiterCallResponse> {
     if (!payload.phone.trim()) {
@@ -30,6 +25,7 @@ export const waiterService = {
       tableNumber: table?.number ?? tableId,
       customerName: payload.customerName,
       phone: payload.phone,
+      reason: payload.reason,
       status: 'PENDING',
       createdAt: now,
       updatedAt: now,
@@ -40,5 +36,24 @@ export const waiterService = {
       console.info('[waiterService.callWaiter]', tableId, payload);
     }
     return delay({ ok: true as const, ticketId }, 350);
+  },
+
+  async getCallsForTable(tableId: string): Promise<WaiterCall[]> {
+    const tables = getCollection<{ id: string; number: string }>('tables');
+    const table = tables.find((t) => t.id === tableId || t.number === tableId);
+    const resolvedId = table?.id ?? tableId;
+    return delay(
+      getCollection<WaiterCall>('waiterCalls')
+        .filter((c) => c.tableId === resolvedId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    );
+  },
+
+  async cancelCall(id: string): Promise<WaiterCall | null> {
+    return delay(updateOne<WaiterCall>('waiterCalls', id, { status: 'CANCELED' }));
+  },
+
+  async resolveCall(id: string): Promise<WaiterCall | null> {
+    return delay(updateOne<WaiterCall>('waiterCalls', id, { status: 'RESOLVED' }));
   },
 };

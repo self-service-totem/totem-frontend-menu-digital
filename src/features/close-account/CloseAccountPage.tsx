@@ -3,7 +3,6 @@ import type { Bill } from '@/types';
 import { orderService } from '@/services';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
-import { TopBar } from '@/components/layout/TopBar';
 import { AccountTabs, type AccountTab } from '@/components/account/AccountTabs';
 import { OrderSummary } from '@/components/account/OrderSummary';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
@@ -41,7 +40,12 @@ export function CloseAccountPage() {
   if (!bill) {
     return (
       <div className="ff-page">
-        <TopBar title={t('bill.title')} />
+        <div className="ff-bill-header">
+          <h1 className="ff-bill-header__title">Fechar Conta</h1>
+          <button type="button" className="ff-bill-header__back" onClick={() => window.history.back()}>
+            <i className="bi bi-chevron-left" /> Voltar
+          </button>
+        </div>
         <div className="ff-empty">
           <i className="bi bi-arrow-repeat" />
           <p>{t('common.loading')}</p>
@@ -56,7 +60,13 @@ export function CloseAccountPage() {
 
   return (
     <div className="ff-page">
-      <TopBar title={bill.tableName} />
+      {/* Header matching reference */}
+      <div className="ff-bill-header">
+        <h1 className="ff-bill-header__title">Fechar Conta</h1>
+        <button type="button" className="ff-bill-header__back" onClick={() => window.history.back()}>
+          <i className="bi bi-chevron-left" /> Voltar
+        </button>
+      </div>
       <AccountTabs active={tab} onChange={setTab} />
 
       {confirmation && (

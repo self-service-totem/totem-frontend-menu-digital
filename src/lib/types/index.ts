@@ -61,6 +61,7 @@ export interface Tenant {
   slug: string;
   logoUrl?: string;
   currency: string;
+  defaultLanguage?: 'es' | 'pt-BR' | 'en';
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +88,9 @@ export interface DbTable {
   number: string;
   active: boolean;
   validationCode: string;
+  zoneName?: string;
+  assignedWaiterName?: string;
+  guestCount?: number;
   status:
     | 'EMPTY'
     | 'OCCUPIED'
@@ -195,6 +199,7 @@ export interface WaiterCall {
   tableNumber: string;
   customerName: string;
   phone?: string;
+  reason?: string;
   status: WaiterCallStatus;
   createdAt: string;
   updatedAt: string;
@@ -409,18 +414,59 @@ export type KitchenStation = 'GRILL' | 'BAR' | 'SALAD' | 'DESSERT' | 'FRYER' | '
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'SEATED' | 'COMPLETED' | 'CANCELED' | 'NO_SHOW';
 
+export type ReservationTag = 'BIRTHDAY' | 'VIP' | 'ALLERGY' | 'ANNIVERSARY' | 'LATE';
+
+export type ReservationSource = 'PHONE' | 'WALK_IN' | 'ONLINE';
+
 export interface Reservation {
   id: string;
   tenantId: string;
   branchId: string;
   tableId?: string;
+  tableNumber?: string;
   customerName: string;
   customerPhone: string;
   partySize: number;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
   notes?: string;
+  tags?: ReservationTag[];
+  duration?: number; // minutes
+  source?: ReservationSource;
   status: ReservationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type WalkInStatus = 'WAITING' | 'SEATED' | 'CANCELED';
+
+export interface WalkIn {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  tableId?: string;
+  tableNumber?: string;
+  customerName: string;
+  customerPhone?: string;
+  partySize: number;
+  estimatedWaitMinutes?: number;
+  status: WalkInStatus;
+  arrivedAt: string;
+  seatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReservationSettings {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  defaultDurationMinutes: number;
+  lateToleranceMinutes: number;
+  openingTime: string; // HH:MM
+  closingTime: string; // HH:MM
+  slotIntervalMinutes: number;
+  maxPartySize: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -150,6 +150,16 @@ export function WaiterTableDetailPage() {
             >
               {TABLE_STATUS_LABEL[table.status] ?? table.status}
             </span>
+            {table.zoneName && (
+              <span className="ms-2 badge bg-light text-secondary" style={{ fontSize: 12 }}>
+                <i className="bi bi-geo-alt me-1" />{table.zoneName}
+              </span>
+            )}
+            {table.assignedWaiterName && (
+              <span className="ms-2 badge bg-light text-secondary" style={{ fontSize: 12 }}>
+                <i className="bi bi-person-badge me-1" />{table.assignedWaiterName}
+              </span>
+            )}
           </div>
           <div className="ms-auto d-flex gap-2">
             <button className="btn btn-sm btn-outline-secondary" onClick={load}>
@@ -204,7 +214,7 @@ export function WaiterTableDetailPage() {
           )}
 
           {/* Orders summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 14 }}>
             <div className="ff-metric-card">
               <div className="ff-metric-card-label">Pedidos ativos</div>
               <div className="ff-metric-card-value">{orders.length}</div>
@@ -221,6 +231,12 @@ export function WaiterTableDetailPage() {
                 {calls.length}
               </div>
             </div>
+            {(table.guestCount ?? 0) > 0 && (
+              <div className="ff-metric-card">
+                <div className="ff-metric-card-label">Pessoas</div>
+                <div className="ff-metric-card-value">{table.guestCount}</div>
+              </div>
+            )}
           </div>
 
           {/* Orders list */}
