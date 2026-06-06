@@ -81,7 +81,6 @@ function TableCard({
         borderRadius: 10,
         border: `1.5px solid ${ringColor ?? '#e5e7eb'}`,
         boxShadow: ringColor ? `0 0 0 3px ${ringColor}28` : undefined,
-        overflow: 'hidden',
         background: '#fff',
         display: 'flex',
         flexDirection: 'column',
@@ -90,8 +89,8 @@ function TableCard({
       }}
       onClick={() => onDetail(table)}
     >
-      {/* Status color strip — thicker for high-priority tables */}
-      <div style={{ height: stripHeight, background: hasCall ? callUI.color : ui.color, flexShrink: 0 }} />
+      {/* Status color strip — rounded top corners match card; no overflow:hidden needed */}
+      <div style={{ height: stripHeight, background: hasCall ? callUI.color : ui.color, flexShrink: 0, borderTopLeftRadius: 8, borderTopRightRadius: 8 }} />
 
       {/* Body */}
       <div style={{ padding: '12px 14px', flex: 1 }}>

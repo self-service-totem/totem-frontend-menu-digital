@@ -49,7 +49,7 @@ export function clearCollection(key: string): void {
   localStorage.removeItem(PREFIX + key);
 }
 
-const SEED_VERSION = 'v8';
+const SEED_VERSION = 'v9';
 
 export function isSeeded(): boolean {
   return localStorage.getItem(PREFIX + '__seeded') === SEED_VERSION;

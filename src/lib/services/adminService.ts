@@ -1,5 +1,5 @@
 import { getCollection, setCollection, insertOne, updateOne, findById } from '@/lib/mock-db';
-import type { DbCategory, DbProduct, DbTable, Branch, Tenant, KioskDevice, DbOrder } from '@/lib/types';
+import type { DbCategory, DbProduct, DbTable, Zone, Branch, Tenant, KioskDevice, DbOrder, MockUser } from '@/lib/types';
 import { BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
 
 function delay<T>(val: T, ms = 150): Promise<T> {
@@ -95,6 +95,48 @@ export const tableService = {
   async regenerateCode(id: string): Promise<DbTable | null> {
     const code = Math.random().toString(36).slice(2, 6).toUpperCase();
     return delay(updateOne<DbTable>('tables', id, { validationCode: code }));
+  },
+};
+
+// ─── Zones ───────────────────────────────────────────────────────────────────
+
+export const zoneService = {
+  async list(): Promise<Zone[]> {
+    return delay(
+      getCollection<Zone>('zones')
+        .filter((z) => z.branchId === BRANCH_ID)
+        .sort((a, b) => a.order - b.order),
+    );
+  },
+  async create(name: string): Promise<Zone> {
+    const existing = getCollection<Zone>('zones').filter((z) => z.branchId === BRANCH_ID);
+    const zone: Zone = {
+      id: `zone-${Date.now()}`,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_ID,
+      name,
+      order: existing.length + 1,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    return delay(insertOne('zones', zone));
+  },
+  async remove(id: string): Promise<void> {
+    const zones = getCollection<Zone>('zones').filter((z) => z.id !== id);
+    setCollection('zones', zones);
+    return delay(undefined as unknown as void);
+  },
+};
+
+// ─── Mock users ───────────────────────────────────────────────────────────────
+
+export const mockUserService = {
+  async listWaiters(): Promise<MockUser[]> {
+    return delay(
+      getCollection<MockUser>('mockUsers').filter(
+        (u) => u.role === 'WAITER' && (u.branchId === BRANCH_ID || u.branchId === null),
+      ),
+    );
   },
 };
 

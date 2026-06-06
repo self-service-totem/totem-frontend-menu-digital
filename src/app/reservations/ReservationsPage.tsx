@@ -56,7 +56,7 @@ const SOURCE_ICON: Record<ReservationSource, string> = {
   ONLINE: 'bi-globe',
 };
 
-type Tab = 'today' | 'all' | 'walkin' | 'settings';
+type Tab = 'today' | 'all' | 'walkin' | 'occupancy' | 'settings';
 
 const EMPTY_FORM = {
   customerName: '',
@@ -669,6 +669,421 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
   );
 }
 
+// ─── Occupancy view ───────────────────────────────────────────────────────────
+
+function toMins(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function addDaysStr(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function getMonday(): string {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return d.toISOString().slice(0, 10);
+}
+
+function generateSlots(opening: string, closing: string, intervalMin: number): string[] {
+  const slots: string[] = [];
+  let cur = toMins(opening);
+  const end = toMins(closing);
+  while (cur < end) {
+    slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+    cur += intervalMin;
+  }
+  return slots;
+}
+
+const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+function fmtShortDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  return `${WEEKDAY_SHORT[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function occColor(pct: number): { bg: string; text: string } {
+  if (pct === 0) return { bg: '#f9fafb', text: '#9ca3af' };
+  if (pct < 35) return { bg: '#dcfce7', text: '#15803d' };
+  if (pct < 65) return { bg: '#fef9c3', text: '#a16207' };
+  if (pct < 90) return { bg: '#fed7aa', text: '#c2410c' };
+  return { bg: '#fee2e2', text: '#dc2626' };
+}
+
+interface OcupacaoViewProps {
+  tables: DbTable[];
+  settings: ReservationSettings | null;
+}
+
+function OcupacaoView({ tables, settings }: OcupacaoViewProps) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [mode, setMode] = useState<'week' | 'day'>('week');
+  const [weekStart, setWeekStart] = useState(() => getMonday());
+  const [selectedDay, setSelectedDay] = useState(today);
+  const [selectedSlot, setSelectedSlot] = useState<{ date: string; time: string } | null>(null);
+  const [occReservations, setOccReservations] = useState<Reservation[]>([]);
+  const [quickReserve, setQuickReserve] = useState<{ tableId: string; tableNumber: string } | null>(null);
+  const notify = useNotify();
+
+  useEffect(() => {
+    reservationService.listAll().then(setOccReservations);
+  }, []);
+
+  const activeTables = tables.filter((t) => t.active);
+  const opening = settings?.openingTime ?? '11:00';
+  const closing = settings?.closingTime ?? '23:00';
+  const interval = settings?.slotIntervalMinutes ?? 30;
+  const defaultDuration = settings?.defaultDurationMinutes ?? 90;
+  const slots = generateSlots(opening, closing, interval);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDaysStr(weekStart, i));
+
+  function getOccupancy(date: string, time: string) {
+    const slotStart = toMins(time);
+    const occupied = activeTables.filter((t) =>
+      occReservations.some((r) => {
+        if (r.date !== date) return false;
+        if (r.tableId !== t.id && r.tableNumber !== t.number) return false;
+        if (r.status === 'CANCELED' || r.status === 'NO_SHOW' || r.status === 'COMPLETED') return false;
+        const rStart = toMins(r.time);
+        const rEnd = rStart + (r.duration ?? defaultDuration);
+        return slotStart >= rStart && slotStart < rEnd;
+      })
+    );
+    const total = activeTables.length;
+    const pct = total > 0 ? Math.round((occupied.length / total) * 100) : 0;
+    return { occupied, available: activeTables.filter((t) => !occupied.includes(t)), total, pct };
+  }
+
+  function tableRes(tableId: string, tableNum: string) {
+    if (!selectedSlot) return undefined;
+    const slotStart = toMins(selectedSlot.time);
+    return occReservations.find((r) => {
+      if (r.date !== selectedSlot.date) return false;
+      if (r.tableId !== tableId && r.tableNumber !== tableNum) return false;
+      if (r.status === 'CANCELED' || r.status === 'NO_SHOW' || r.status === 'COMPLETED') return false;
+      const rStart = toMins(r.time);
+      const rEnd = rStart + (r.duration ?? defaultDuration);
+      return slotStart >= rStart && slotStart < rEnd;
+    });
+  }
+
+  function selectSlot(date: string, time: string) {
+    setSelectedSlot((prev) =>
+      prev?.date === date && prev?.time === time ? null : { date, time }
+    );
+  }
+
+  const detailOcc = selectedSlot ? getOccupancy(selectedSlot.date, selectedSlot.time) : null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: 8, padding: 3, gap: 2 }}>
+          {(['week', 'day'] as const).map((m) => (
+            <button
+              key={m}
+              style={{
+                background: mode === m ? '#fff' : 'transparent', border: 'none', borderRadius: 6,
+                padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                color: mode === m ? '#111827' : '#6b7280',
+                boxShadow: mode === m ? '0 1px 2px rgba(0,0,0,.08)' : 'none',
+              }}
+              onClick={() => setMode(m)}
+            >
+              <i className={`bi ${m === 'week' ? 'bi-calendar-week' : 'bi-calendar-day'} me-1`} />
+              {m === 'week' ? 'Semana' : 'Dia'}
+            </button>
+          ))}
+        </div>
+
+        {mode === 'week' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button className="btn btn-sm btn-outline-secondary" style={{ padding: '3px 8px' }} onClick={() => setWeekStart(addDaysStr(weekStart, -7))}>
+              <i className="bi bi-chevron-left" />
+            </button>
+            <span style={{ fontSize: 13, fontWeight: 600, minWidth: 210, textAlign: 'center' }}>
+              {fmtShortDate(weekStart)} — {fmtShortDate(addDaysStr(weekStart, 6))}
+            </span>
+            <button className="btn btn-sm btn-outline-secondary" style={{ padding: '3px 8px' }} onClick={() => setWeekStart(addDaysStr(weekStart, 7))}>
+              <i className="bi bi-chevron-right" />
+            </button>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setWeekStart(getMonday())}>Hoje</button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button className="btn btn-sm btn-outline-secondary" style={{ padding: '3px 8px' }} onClick={() => setSelectedDay(addDaysStr(selectedDay, -1))}>
+              <i className="bi bi-chevron-left" />
+            </button>
+            <input
+              type="date" className="form-control form-control-sm" style={{ width: 150 }}
+              value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)}
+            />
+            <button className="btn btn-sm btn-outline-secondary" style={{ padding: '3px 8px' }} onClick={() => setSelectedDay(addDaysStr(selectedDay, 1))}>
+              <i className="bi bi-chevron-right" />
+            </button>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedDay(today)}>Hoje</button>
+          </div>
+        )}
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {([
+            { bg: '#dcfce7', label: '< 35%' },
+            { bg: '#fef9c3', label: '35–65%' },
+            { bg: '#fed7aa', label: '65–90%' },
+            { bg: '#fee2e2', label: '> 90%' },
+          ] as const).map((l) => (
+            <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7280' }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: l.bg, border: '1px solid #e5e7eb', flexShrink: 0 }} />
+              {l.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Main area */}
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+        {/* Week grid */}
+        {mode === 'week' && (
+          <div style={{ flex: 1, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 1, fontSize: 12, background: '#e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 48, background: '#f9fafb', padding: 6 }} />
+                  {weekDays.map((d) => {
+                    const isToday = d === today;
+                    return (
+                      <th
+                        key={d}
+                        style={{ background: isToday ? '#eff6ff' : '#f9fafb', padding: '7px 4px', textAlign: 'center', cursor: 'pointer', fontWeight: 700, fontSize: 11, color: isToday ? '#1d4ed8' : '#374151', whiteSpace: 'nowrap' }}
+                        onClick={() => { setSelectedDay(d); setMode('day'); setSelectedSlot(null); }}
+                        title="Ver detalhes do dia"
+                      >
+                        {fmtShortDate(d)}
+                        {isToday && <span style={{ display: 'block', width: 5, height: 5, borderRadius: '50%', background: '#1d4ed8', margin: '2px auto 0' }} />}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {slots.map((slot) => (
+                  <tr key={slot}>
+                    <td style={{ background: '#f9fafb', textAlign: 'right', paddingRight: 6, fontSize: 10, color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                      {slot}
+                    </td>
+                    {weekDays.map((d) => {
+                      const occ = getOccupancy(d, slot);
+                      const { bg, text } = occColor(occ.pct);
+                      const isSelected = selectedSlot?.date === d && selectedSlot?.time === slot;
+                      return (
+                        <td
+                          key={d}
+                          style={{
+                            background: isSelected ? '#dbeafe' : bg,
+                            padding: '5px 4px', cursor: 'pointer', textAlign: 'center', verticalAlign: 'middle',
+                            outline: isSelected ? '2px solid #2563eb' : 'none', outlineOffset: -2, minWidth: 80,
+                          }}
+                          onClick={() => selectSlot(d, slot)}
+                        >
+                          {occ.occupied.length > 0 && (
+                            <>
+                              <span style={{ fontWeight: 700, color: isSelected ? '#1d4ed8' : text, fontSize: 11, display: 'block' }}>{occ.pct}%</span>
+                              <span style={{ color: '#9ca3af', fontSize: 9 }}>{occ.occupied.length}/{occ.total}</span>
+                            </>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Day view */}
+        {mode === 'day' && (
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="bi bi-calendar3" style={{ color: '#1d4ed8' }} />
+              {fmtShortDate(selectedDay)}
+              {selectedDay === today && (
+                <span style={{ fontSize: 11, background: '#dbeafe', color: '#1d4ed8', borderRadius: 6, padding: '1px 8px', fontWeight: 700 }}>Hoje</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {slots.map((slot) => {
+                const occ = getOccupancy(selectedDay, slot);
+                const { bg, text } = occColor(occ.pct);
+                const isSelected = selectedSlot?.date === selectedDay && selectedSlot?.time === slot;
+                return (
+                  <div
+                    key={slot}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '52px 1fr 160px', alignItems: 'center', gap: 12,
+                      padding: '8px 14px', borderRadius: 8,
+                      background: isSelected ? '#dbeafe' : bg,
+                      border: `1px solid ${isSelected ? '#93c5fd' : 'transparent'}`,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => selectSlot(selectedDay, slot)}
+                  >
+                    <span style={{ fontWeight: 700, fontSize: 13, color: '#374151' }}>{slot}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, height: 8, background: '#e5e7eb', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${occ.pct}%`, background: text, borderRadius: 4 }} />
+                      </div>
+                      <span style={{ fontWeight: 700, fontSize: 12, color: isSelected ? '#1d4ed8' : text, width: 34, textAlign: 'right' }}>{occ.pct}%</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#6b7280', textAlign: 'right' }}>
+                      <span style={{ color: '#dc2626', fontWeight: 600 }}>{occ.occupied.length} ocup.</span>
+                      {' · '}
+                      <span style={{ color: '#059669', fontWeight: 600 }}>{occ.available.length} livres</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Detail panel */}
+        {selectedSlot && detailOcc && (
+          <div style={{ width: 280, flexShrink: 0 }}>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', position: 'sticky', top: 0 }}>
+              <div style={{ padding: '12px 14px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{fmtShortDate(selectedSlot.date)}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>{selectedSlot.time}</div>
+                </div>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }} onClick={() => setSelectedSlot(null)}>
+                  <i className="bi bi-x-lg" style={{ fontSize: 14 }} />
+                </button>
+              </div>
+              <div style={{ padding: '8px 14px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: 14, fontSize: 12 }}>
+                <span><span style={{ color: '#dc2626', fontWeight: 700 }}>{detailOcc.occupied.length}</span> <span style={{ color: '#6b7280' }}>ocup.</span></span>
+                <span><span style={{ color: '#059669', fontWeight: 700 }}>{detailOcc.available.length}</span> <span style={{ color: '#6b7280' }}>livres</span></span>
+                <span><span style={{ color: '#1d4ed8', fontWeight: 700 }}>{detailOcc.pct}%</span> <span style={{ color: '#6b7280' }}>taxa</span></span>
+              </div>
+              <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 480, overflowY: 'auto' }}>
+                {activeTables.length === 0 && (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 12, padding: 12 }}>Nenhuma mesa ativa.</div>
+                )}
+                {activeTables.map((t) => {
+                  const res = tableRes(t.id, t.number);
+                  const occupied = !!res;
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8,
+                        background: occupied ? '#fff1f2' : '#f0fdf4',
+                        border: `1px solid ${occupied ? '#fca5a5' : '#bbf7d0'}`,
+                      }}
+                    >
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 8,
+                        background: occupied ? '#dc2626' : '#059669',
+                        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 800, fontSize: 12, flexShrink: 0,
+                      }}>
+                        {t.number}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {t.zoneName && (
+                          <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', lineHeight: 1.2 }}>
+                            {t.zoneName}
+                          </div>
+                        )}
+                        {occupied && res ? (
+                          <>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: '#991b1b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {res.customerName}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#9ca3af' }}>
+                              {res.time} · {res.partySize}/{t.capacity ?? '?'} pax{res.duration ? ` · ${res.duration}min` : ''}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>Disponível</div>
+                            <div style={{ fontSize: 10, color: '#9ca3af' }}>{t.capacity ? `${t.capacity} lugares` : 'Cap. não definida'}</div>
+                          </>
+                        )}
+                      </div>
+                      {occupied && res ? (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+                          background: '#dc2626', color: '#fff', flexShrink: 0,
+                        }}>
+                          {STATUS_LABEL[res.status]}
+                        </span>
+                      ) : (
+                        <button
+                          style={{
+                            fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 8, flexShrink: 0,
+                            background: '#1d4ed8', color: '#fff', border: 'none', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 4,
+                          }}
+                          onClick={(e) => { e.stopPropagation(); setQuickReserve({ tableId: t.id, tableNumber: t.number }); }}
+                        >
+                          <i className="bi bi-calendar-plus" style={{ fontSize: 11 }} />
+                          Reservar
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Quick reserve modal */}
+      {quickReserve && selectedSlot && (
+        <ReservationModal
+          title={`Nova reserva — Mesa ${quickReserve.tableNumber}`}
+          initial={{
+            ...EMPTY_FORM,
+            date: selectedSlot.date,
+            time: selectedSlot.time,
+            tableId: quickReserve.tableId,
+          }}
+          tables={tables}
+          onConfirm={async (form) => {
+            const table = tables.find((t) => t.id === form.tableId);
+            await reservationService.create({
+              customerName: form.customerName,
+              customerPhone: form.customerPhone,
+              partySize: parseInt(form.partySize) || 2,
+              date: form.date,
+              time: form.time,
+              notes: form.notes || undefined,
+              tableId: form.tableId || undefined,
+              tableNumber: table?.number,
+              source: form.source,
+              duration: parseInt(form.duration) || undefined,
+              tags: form.tags.length > 0 ? form.tags : undefined,
+            });
+            setQuickReserve(null);
+            notify('success', 'Reserva criada com sucesso');
+            reservationService.listAll().then(setOccReservations);
+          }}
+          onClose={() => setQuickReserve(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function ReservationsPage() {
@@ -813,6 +1228,7 @@ export function ReservationsPage() {
     { id: 'today', label: 'Por data', icon: 'bi-calendar3' },
     { id: 'all', label: 'Lista completa', icon: 'bi-list-ul' },
     { id: 'walkin', label: 'Fila de espera', icon: 'bi-people', badge: waitingCount || undefined },
+    { id: 'occupancy', label: 'Ocupação', icon: 'bi-grid-1x2' },
     { id: 'settings', label: 'Configurações', icon: 'bi-gear' },
   ];
 
@@ -849,6 +1265,7 @@ export function ReservationsPage() {
             {tab === 'today' && 'Reservas do dia'}
             {tab === 'all' && 'Todas as reservas'}
             {tab === 'walkin' && 'Fila de espera'}
+            {tab === 'occupancy' && 'Mapa de ocupação'}
             {tab === 'settings' && 'Configurações'}
           </span>
 
@@ -990,6 +1407,11 @@ export function ReservationsPage() {
               onCancel={handleWalkInCancel}
               onAdd={() => setShowWalkInModal(true)}
             />
+          )}
+
+          {/* ── Occupancy tab ── */}
+          {tab === 'occupancy' && (
+            <OcupacaoView tables={tables} settings={settings} />
           )}
 
           {/* ── Settings tab ── */}

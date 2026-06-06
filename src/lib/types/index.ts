@@ -91,6 +91,8 @@ export interface DbTable {
   zoneName?: string;
   assignedWaiterName?: string;
   guestCount?: number;
+  capacity?: number;
+  notes?: string;
   status:
     | 'EMPTY'
     | 'OCCUPIED'
@@ -99,6 +101,16 @@ export interface DbTable {
     | 'READY_TO_SERVE'
     | 'WAITING_FOR_PAYMENT'
     | 'CLOSED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Zone {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  name: string;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }

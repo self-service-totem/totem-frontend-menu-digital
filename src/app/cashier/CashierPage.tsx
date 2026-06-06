@@ -280,6 +280,8 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface TableGroupCardProps {
   group: TableGroup;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   expandedCustomers: Set<string>;
   onToggleCustomer: (key: string) => void;
   onPayTable: () => void;
@@ -290,6 +292,8 @@ interface TableGroupCardProps {
 
 function TableGroupCard({
   group,
+  collapsed,
+  onToggleCollapse,
   expandedCustomers,
   onToggleCustomer,
   onPayTable,
@@ -304,7 +308,17 @@ function TableGroupCard({
     <div className="ff-data-card" style={{ borderLeft: `4px solid ${borderColor}`, padding: 0, overflow: 'hidden' }}>
       {/* Table header */}
       <div style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: '#fafafa', borderBottom: '1px solid #e5e7eb' }}>
-        <span style={{ fontWeight: 700, fontSize: 16 }}>Mesa {group.table.number}</span>
+        {/* Collapse toggle */}
+        <button
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center' }}
+          onClick={onToggleCollapse}
+          title={collapsed ? 'Expandir mesa' : 'Recolher mesa'}
+        >
+          <i className={`bi bi-chevron-${collapsed ? 'right' : 'down'}`} style={{ fontSize: 13 }} />
+        </button>
+        <span style={{ fontWeight: 700, fontSize: 16, cursor: 'pointer' }} onClick={onToggleCollapse}>
+          Mesa {group.table.number}
+        </span>
         <span style={{ fontSize: 12, color: '#6b7280', background: '#f3f4f6', borderRadius: 6, padding: '2px 8px' }}>
           {TABLE_STATUS_LABEL[group.table.status] ?? group.table.status}
         </span>
@@ -313,6 +327,12 @@ function TableGroupCard({
         )}
         {group.paymentStatus === 'PAID' && (
           <span className="badge bg-success" style={{ fontSize: 11 }}>Pago</span>
+        )}
+        {/* When collapsed, show remaining inline so the cashier can scan at a glance */}
+        {collapsed && group.remaining > 0 && (
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#e11d2a', marginLeft: 4 }}>
+            {formatBRL(group.remaining)}
+          </span>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           {group.paymentStatus !== 'PAID' && (
@@ -328,45 +348,49 @@ function TableGroupCard({
         </div>
       </div>
 
-      {/* Table totals */}
-      <div style={{ padding: '8px 16px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', flexWrap: 'wrap', gap: 20, fontSize: 13 }}>
-        <span>
-          <span style={{ color: '#6b7280' }}>Clientes: </span>
-          <strong>{group.customers.length}</strong>
-          <span style={{ color: '#6b7280', marginLeft: 12 }}>Pedidos: </span>
-          <strong>{group.activeOrdersCount}</strong>
-        </span>
-        <span style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
-          <span style={{ color: '#6b7280' }}>Total: <strong style={{ color: '#111' }}>{formatBRL(group.totalDue)}</strong></span>
-          {group.totalPaid > 0 && (
-            <span style={{ color: '#059669' }}>Pago: <strong>{formatBRL(group.totalPaid)}</strong></span>
+      {!collapsed && (
+        <>
+          {/* Table totals */}
+          <div style={{ padding: '8px 16px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', flexWrap: 'wrap', gap: 20, fontSize: 13 }}>
+            <span>
+              <span style={{ color: '#6b7280' }}>Clientes: </span>
+              <strong>{group.customers.length}</strong>
+              <span style={{ color: '#6b7280', marginLeft: 12 }}>Pedidos: </span>
+              <strong>{group.activeOrdersCount}</strong>
+            </span>
+            <span style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
+              <span style={{ color: '#6b7280' }}>Total: <strong style={{ color: '#111' }}>{formatBRL(group.totalDue)}</strong></span>
+              {group.totalPaid > 0 && (
+                <span style={{ color: '#059669' }}>Pago: <strong>{formatBRL(group.totalPaid)}</strong></span>
+              )}
+              <span style={{ color: group.remaining > 0 ? '#e11d2a' : '#059669', fontWeight: 700 }}>
+                Restante: {formatBRL(group.remaining)}
+              </span>
+            </span>
+          </div>
+
+          {/* Customer sections */}
+          {group.customers.map((customer) => {
+            const key = `${group.table.id}::${customer.name}`;
+            return (
+              <CustomerSection
+                key={key}
+                customer={customer}
+                tableId={group.table.id}
+                expanded={expandedCustomers.has(key)}
+                onToggle={() => onToggleCustomer(key)}
+                onPayCustomer={() => onPayCustomer(customer.name)}
+                onPayPartial={() => onPayCustomerPartial(customer.name)}
+              />
+            );
+          })}
+
+          {unpaidCustomers.length === 0 && group.remaining <= 0 && (
+            <div style={{ padding: '10px 16px', fontSize: 13, color: '#059669', fontWeight: 600 }}>
+              <i className="bi bi-check-circle-fill me-1" />Mesa totalmente paga
+            </div>
           )}
-          <span style={{ color: group.remaining > 0 ? '#e11d2a' : '#059669', fontWeight: 700 }}>
-            Restante: {formatBRL(group.remaining)}
-          </span>
-        </span>
-      </div>
-
-      {/* Customer sections */}
-      {group.customers.map((customer) => {
-        const key = `${group.table.id}::${customer.name}`;
-        return (
-          <CustomerSection
-            key={key}
-            customer={customer}
-            tableId={group.table.id}
-            expanded={expandedCustomers.has(key)}
-            onToggle={() => onToggleCustomer(key)}
-            onPayCustomer={() => onPayCustomer(customer.name)}
-            onPayPartial={() => onPayCustomerPartial(customer.name)}
-          />
-        );
-      })}
-
-      {unpaidCustomers.length === 0 && group.remaining <= 0 && (
-        <div style={{ padding: '10px 16px', fontSize: 13, color: '#059669', fontWeight: 600 }}>
-          <i className="bi bi-check-circle-fill me-1" />Mesa totalmente paga
-        </div>
+        </>
       )}
     </div>
   );
@@ -407,6 +431,8 @@ export function CashierPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   // Customers expanded by default — collapse manually
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set());
+  const [collapsedTables, setCollapsedTables] = useState<Set<string>>(new Set());
+  const [tableSearch, setTableSearch] = useState('');
   const notify = useNotify();
   const navigate = useNavigate();
 
@@ -453,6 +479,23 @@ export function CashierPage() {
       else next.add(key);
       return next;
     });
+  }
+
+  function toggleTableCollapse(tableId: string) {
+    setCollapsedTables((prev) => {
+      const next = new Set(prev);
+      if (next.has(tableId)) next.delete(tableId);
+      else next.add(tableId);
+      return next;
+    });
+  }
+
+  function collapseAll() {
+    setCollapsedTables(new Set(tableGroups.map((g) => g.table.id)));
+  }
+
+  function expandAll() {
+    setCollapsedTables(new Set());
   }
 
   // ── Payment handlers ────────────────────────────────────────────────────────
@@ -566,66 +609,101 @@ export function CashierPage() {
 
           {/* ── Grouped table view (main) ────────────────────────────────────── */}
           {tab === 'orders' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {tableGroups.length === 0 && (
-                <div className="text-muted text-center py-5">
-                  <i className="bi bi-check2-circle" style={{ fontSize: 32, display: 'block', marginBottom: 8 }} />
-                  Nenhuma mesa aguardando pagamento.
+            <>
+              {/* Search + collapse controls */}
+              {tableGroups.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flex: '0 0 200px' }}>
+                    <i className="bi bi-search" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '0.8rem', pointerEvents: 'none' }} />
+                    <input
+                      className="form-control form-control-sm"
+                      style={{ paddingLeft: 30 }}
+                      placeholder="Buscar mesa..."
+                      value={tableSearch}
+                      onChange={(e) => setTableSearch(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={collapseAll} title="Recolher todas">
+                      <i className="bi bi-arrows-collapse me-1" />Recolher
+                    </button>
+                    <button className="btn btn-sm btn-outline-secondary" onClick={expandAll} title="Expandir todas">
+                      <i className="bi bi-arrows-expand me-1" />Expandir
+                    </button>
+                  </div>
                 </div>
               )}
-              {tableGroups.map((group) => (
-                <TableGroupCard
-                  key={group.table.id}
-                  group={group}
-                  expandedCustomers={expandedCustomers}
-                  onToggleCustomer={toggleCustomer}
-                  onPayTable={() =>
-                    setPayContext({
-                      kind: 'table',
-                      tableId: group.table.id,
-                      tableNumber: group.table.number,
-                      remaining: group.remaining,
-                      totalDue: group.totalDue,
-                      totalPaid: group.totalPaid,
-                    })
-                  }
-                  onPayTablePartial={() =>
-                    setPayContext({
-                      kind: 'table',
-                      tableId: group.table.id,
-                      tableNumber: group.table.number,
-                      remaining: group.remaining,
-                      totalDue: group.totalDue,
-                      totalPaid: group.totalPaid,
-                    })
-                  }
-                  onPayCustomer={(name) => {
-                    const c = group.customers.find((x) => x.name === name)!;
-                    setPayContext({
-                      kind: 'customer',
-                      tableId: group.table.id,
-                      tableNumber: group.table.number,
-                      customerName: name,
-                      remaining: c.remaining,
-                      totalDue: c.totalDue,
-                      totalPaid: c.totalPaid,
-                    });
-                  }}
-                  onPayCustomerPartial={(name) => {
-                    const c = group.customers.find((x) => x.name === name)!;
-                    setPayContext({
-                      kind: 'customer',
-                      tableId: group.table.id,
-                      tableNumber: group.table.number,
-                      customerName: name,
-                      remaining: c.remaining,
-                      totalDue: c.totalDue,
-                      totalPaid: c.totalPaid,
-                    });
-                  }}
-                />
-              ))}
-            </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {tableGroups.length === 0 && (
+                  <div className="text-muted text-center py-5">
+                    <i className="bi bi-check2-circle" style={{ fontSize: 32, display: 'block', marginBottom: 8 }} />
+                    Nenhuma mesa aguardando pagamento.
+                  </div>
+                )}
+                {tableGroups
+                  .filter((g) => !tableSearch || g.table.number.includes(tableSearch))
+                  .map((group) => (
+                    <TableGroupCard
+                      key={group.table.id}
+                      group={group}
+                      collapsed={collapsedTables.has(group.table.id)}
+                      onToggleCollapse={() => toggleTableCollapse(group.table.id)}
+                      expandedCustomers={expandedCustomers}
+                      onToggleCustomer={toggleCustomer}
+                      onPayTable={() =>
+                        setPayContext({
+                          kind: 'table',
+                          tableId: group.table.id,
+                          tableNumber: group.table.number,
+                          remaining: group.remaining,
+                          totalDue: group.totalDue,
+                          totalPaid: group.totalPaid,
+                        })
+                      }
+                      onPayTablePartial={() =>
+                        setPayContext({
+                          kind: 'table',
+                          tableId: group.table.id,
+                          tableNumber: group.table.number,
+                          remaining: group.remaining,
+                          totalDue: group.totalDue,
+                          totalPaid: group.totalPaid,
+                        })
+                      }
+                      onPayCustomer={(name) => {
+                        const c = group.customers.find((x) => x.name === name)!;
+                        setPayContext({
+                          kind: 'customer',
+                          tableId: group.table.id,
+                          tableNumber: group.table.number,
+                          customerName: name,
+                          remaining: c.remaining,
+                          totalDue: c.totalDue,
+                          totalPaid: c.totalPaid,
+                        });
+                      }}
+                      onPayCustomerPartial={(name) => {
+                        const c = group.customers.find((x) => x.name === name)!;
+                        setPayContext({
+                          kind: 'customer',
+                          tableId: group.table.id,
+                          tableNumber: group.table.number,
+                          customerName: name,
+                          remaining: c.remaining,
+                          totalDue: c.totalDue,
+                          totalPaid: c.totalPaid,
+                        });
+                      }}
+                    />
+                  ))}
+                {tableSearch && tableGroups.filter((g) => g.table.number.includes(tableSearch)).length === 0 && (
+                  <div className="text-muted text-center py-4">
+                    Nenhuma mesa encontrada para "{tableSearch}"
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* ── Payment history ───────────────────────────────────────────────── */}
