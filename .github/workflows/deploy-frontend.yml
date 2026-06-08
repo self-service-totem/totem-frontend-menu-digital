@@ -1,5 +1,5 @@
 name: Deploy Frontend
-run-name: Deploy Frontend · ${{ github.ref_name }} · @${{ github.actor }}
+run-name: Deploy Frontend · ${{ inputs.release_version }} → ${{ inputs.target }} · @${{ github.actor }}
 
 on:
   workflow_dispatch:
