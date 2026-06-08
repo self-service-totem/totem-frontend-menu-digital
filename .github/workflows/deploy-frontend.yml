@@ -1,4 +1,5 @@
 name: Deploy Frontend
+run-name: Deploy Frontend · ${{ github.ref_name }} · @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -25,12 +26,6 @@ on:
           - dev
           - prod
 
-      ticket:
-        description: "Ticket (required for prod)"
-        required: false
-        type: string
-
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -44,11 +39,6 @@ jobs:
     steps:
       - name: Validate inputs
         run: |
-          if [ "${{ inputs.target }}" = "prod" ] && [ -z "${{ inputs.ticket }}" ]; then
-            echo "Ticket is required for production deploy."
-            exit 1
-          fi
-
           if [ "${{ inputs.target }}" = "prod" ] && [ "${{ inputs.source_branch }}" != "main" ]; then
             echo "Production deployments must come from main."
             exit 1
