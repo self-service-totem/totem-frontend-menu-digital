@@ -397,18 +397,29 @@
 /* ─── Welcome page ───────────────────────────────────────────────────────── */
 .ff-kiosk-welcome-header {
   background: var(--ff-primary);
-  padding: 28px 36px;
+  padding: 26px 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   flex-shrink: 0;
 }
 
 .ff-kiosk-welcome-brand {
-  font-size: 38px;
+  font-size: 40px;
   font-weight: 900;
   color: #fff;
   letter-spacing: -0.02em;
+  text-align: center;
+}
+
+/* Language selector bar — prominent section below header */
+.ff-kiosk-welcome-lang-bar {
+  background: #fff;
+  border-bottom: 1.5px solid #e5e7eb;
+  padding: 14px 24px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .ff-kiosk-welcome-body {
@@ -417,12 +428,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 48px;
-  padding: 40px 32px;
+  gap: 40px;
+  padding: 32px 28px;
   overflow-y: auto;
 }
 
-.ff-kiosk-welcome-emoji { font-size: 104px; line-height: 1; }
+/* Hero — icon/image + title + subtitle */
+.ff-kiosk-welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.ff-kiosk-welcome-emoji { font-size: 108px; line-height: 1; }
+
+.ff-kiosk-welcome-hero-img {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+  border-radius: 28px;
+}
 
 .ff-kiosk-welcome-title {
   font-size: 68px;
@@ -430,13 +457,13 @@
   color: #1a1a1a;
   letter-spacing: -0.03em;
   line-height: 1;
+  margin-top: 8px;
 }
 
 .ff-kiosk-welcome-subtitle {
-  font-size: 28px;
+  font-size: 26px;
   color: #6b7280;
   font-weight: 500;
-  margin-top: 12px;
 }
 
 .ff-kiosk-service-options {
@@ -451,11 +478,11 @@
   background: #f9fafb;
   border: 2.5px solid #e5e7eb;
   border-radius: 28px;
-  padding: 52px 24px;
+  padding: 48px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: 20px;
   cursor: pointer;
   transition: all .18s;
   font-size: 26px;
@@ -473,7 +500,7 @@
 
 .ff-kiosk-lang-pills {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ff-kiosk-welcome-footer {

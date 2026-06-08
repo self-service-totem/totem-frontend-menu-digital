@@ -1632,27 +1632,35 @@ img {
 
 /* ─── Kiosk language pills ───────────────────────────────────────────────────── */
 
+/* Welcome page language bar — large, touch-friendly buttons on white background */
+.ff-kiosk-welcome-lang-pills {
+  gap: 14px;
+}
+
+.ff-kiosk-welcome-lang-pills .ff-lang-pill {
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 16px 28px;
+  min-height: 64px;
+  border-radius: 16px;
+  border: 2px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  gap: 10px;
+  transition: all .15s;
+}
+
+.ff-kiosk-welcome-lang-pills .ff-lang-pill--active {
+  border-color: var(--ff-primary);
+  background: var(--ff-primary-soft);
+  color: var(--ff-primary);
+  box-shadow: 0 2px 8px rgba(225,29,42,.18);
+}
+
+/* Legacy alias — kept for any other usage */
 .ff-kiosk-lang-pills {
   display: flex;
   gap: 10px;
-}
-
-.ff-kiosk-lang-pills .ff-lang-pill {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  padding: 12px 20px;
-  min-height: 52px;
-  border-radius: 14px;
-  gap: 8px;
-}
-
-.ff-kiosk-lang-pills .ff-lang-pill--active {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--ff-primary);
 }
 
 /* AppHeader: kept in the primary definition above (display:flex; space-between; align-items:center) */

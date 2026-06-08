@@ -96,16 +96,29 @@ export function KioskWelcomePage() {
   const lang = (language ?? 'pt-BR') as string;
   const copy = KIOSK_WELCOME[lang] ?? KIOSK_WELCOME['pt-BR'];
 
+  // Future: replace with branch.heroImageUrl from admin config
+  const heroImageUrl: string | null = null;
+
   return (
     <div className="ff-kiosk-layout">
+      {/* Header — brand name only, centered */}
       <div className="ff-kiosk-welcome-header">
         <span className="ff-kiosk-welcome-brand">Pertinho do Céu</span>
-        <LanguageSelector variant="pills" className="ff-kiosk-lang-pills" />
       </div>
 
+      {/* Language selector — prominent bar below header */}
+      <div className="ff-kiosk-welcome-lang-bar">
+        <LanguageSelector variant="pills" className="ff-kiosk-welcome-lang-pills" />
+      </div>
+
+      {/* Body — hero + service buttons */}
       <div className="ff-kiosk-welcome-body">
-        <div style={{ textAlign: 'center' }}>
-          <div className="ff-kiosk-welcome-emoji">🍽</div>
+        <div className="ff-kiosk-welcome-hero">
+          {heroImageUrl ? (
+            <img src={heroImageUrl} alt="Restaurant" className="ff-kiosk-welcome-hero-img" />
+          ) : (
+            <div className="ff-kiosk-welcome-emoji">🍽️</div>
+          )}
           <div className="ff-kiosk-welcome-title">{copy.title}</div>
           <div className="ff-kiosk-welcome-subtitle">{copy.subtitle}</div>
         </div>
@@ -128,15 +141,6 @@ export function KioskWelcomePage() {
         </div>
       </div>
 
-      <div className="ff-kiosk-welcome-footer">
-        <button
-          className="ff-kiosk-admin-btn"
-          onClick={() => navigate('/')}
-          title="Acesso administrativo"
-        >
-          <i className="bi bi-gear" />
-        </button>
-      </div>
     </div>
   );
 }
