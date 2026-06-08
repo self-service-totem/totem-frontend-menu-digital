@@ -6,9 +6,8 @@ import { useSession } from '@/app/SessionContext';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
 import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder } from '@/lib/types';
 
-const IDLE_TIMEOUT_MS = 60_000; // 60 s of no interaction → reset to welcome
+const IDLE_TIMEOUT_MS = 60_000;
 
-/** Resets the kiosk to the welcome screen after IDLE_TIMEOUT_MS of inactivity. */
 function useKioskIdleTimeout(enabled = true) {
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -25,12 +24,16 @@ function useKioskIdleTimeout(enabled = true) {
     if (!enabled) return;
     const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
     events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
-    reset(); // start the timer
+    reset();
     return () => {
       events.forEach((e) => window.removeEventListener(e, reset));
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [enabled, reset]);
+}
+
+function formatBRL(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
@@ -51,41 +54,50 @@ export function KioskWelcomePage() {
 
   return (
     <div className="ff-kiosk-layout">
-      <div className="ff-kiosk-topbar">
-        <button className="btn btn-sm btn-outline-light" onClick={() => navigate('/')}>
-          <i className="bi bi-house" />
-        </button>
-        <span className="ff-kiosk-topbar-title">Pertinho do Ceu</span>
+      <div className="ff-kiosk-welcome-header">
+        <span className="ff-kiosk-welcome-brand">Pertinho do Céu</span>
         <LanguageSelector variant="pills" className="ff-kiosk-lang-pills" />
       </div>
 
-      <div className="ff-kiosk-content">
-        <div className="ff-kiosk-welcome">
-          <div>
-            <div style={{ fontSize: 56, marginBottom: 8 }}>🍽</div>
-            <div className="ff-kiosk-welcome-title">{copy.title}</div>
-            <div style={{ fontSize: 18, color: '#6b7280', marginTop: 8 }}>{copy.subtitle}</div>
-          </div>
-
-          <div className="ff-kiosk-service-options">
-            <button className="ff-kiosk-service-btn" onClick={() => navigate('/kiosk/menu?service=EAT_IN')}>
-              <i className="bi bi-table" />{copy.eatIn}
-            </button>
-            <button className="ff-kiosk-service-btn" onClick={() => navigate('/kiosk/menu?service=TAKEAWAY')}>
-              <i className="bi bi-bag" />{copy.takeaway}
-            </button>
-          </div>
+      <div className="ff-kiosk-welcome-body">
+        <div style={{ textAlign: 'center' }}>
+          <div className="ff-kiosk-welcome-emoji">🍽</div>
+          <div className="ff-kiosk-welcome-title">{copy.title}</div>
+          <div className="ff-kiosk-welcome-subtitle">{copy.subtitle}</div>
         </div>
+
+        <div className="ff-kiosk-service-options">
+          <button
+            className="ff-kiosk-service-btn"
+            onClick={() => navigate('/kiosk/menu?service=EAT_IN')}
+          >
+            <i className="bi bi-door-open" />
+            <span>{copy.eatIn}</span>
+          </button>
+          <button
+            className="ff-kiosk-service-btn"
+            onClick={() => navigate('/kiosk/menu?service=TAKEAWAY')}
+          >
+            <i className="bi bi-bag" />
+            <span>{copy.takeaway}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="ff-kiosk-welcome-footer">
+        <button
+          className="ff-kiosk-admin-btn"
+          onClick={() => navigate('/')}
+          title="Acesso administrativo"
+        >
+          <i className="bi bi-gear" />
+        </button>
       </div>
     </div>
   );
 }
 
 // ─── Menu ─────────────────────────────────────────────────────────────────────
-
-function formatBRL(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 function useKioskMenu() {
   const [categories, setCategories] = useState<DbCategory[]>([]);
@@ -116,6 +128,7 @@ export function KioskMenuPage() {
 
   const displayed = activeCat ? products.filter((p) => p.categoryId === activeCat) : products;
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+  const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const serviceParam = new URLSearchParams(window.location.search).get('service') ?? 'EAT_IN';
 
   function addToCart(prod: DbProduct) {
@@ -140,71 +153,115 @@ export function KioskMenuPage() {
   }
 
   if (!loaded) return (
-    <div className="ff-kiosk-layout">
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, minHeight: '100vh' }}>
-        <div className="spinner-border text-primary" />
-      </div>
+    <div className="ff-kiosk-layout ff-kiosk-loading">
+      <div className="spinner-border text-primary" style={{ width: 56, height: 56 }} />
     </div>
   );
 
   return (
     <div className="ff-kiosk-layout">
+      {/* Top bar */}
       <div className="ff-kiosk-topbar">
-        <button className="btn btn-sm btn-outline-light" onClick={() => navigate('/kiosk/start')}>
+        <button className="ff-kiosk-topbar-back" onClick={() => navigate('/kiosk/start')}>
           <i className="bi bi-arrow-left" />
         </button>
-        <span className="ff-kiosk-topbar-title">Cardápio</span>
-        <button
-          className="btn btn-sm btn-light position-relative"
-          onClick={toCart}
-          disabled={cartCount === 0}
-        >
-          <i className="bi bi-cart3 me-1" />Ver carrinho
-          {cartCount > 0 && (
-            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: 11 }}>
-              {cartCount}
-            </span>
-          )}
-        </button>
+        <span className="ff-kiosk-topbar-title">Pertinho do Céu</span>
+        <div style={{ width: 52 }} />
       </div>
 
-      <div className="ff-kiosk-content">
-        <div className="ff-kiosk-category-bar">
+      {/* Sidebar + grid */}
+      <div className="ff-kiosk-body">
+        <nav className="ff-kiosk-sidebar">
           <button
-            className={`ff-kiosk-category-btn ${!activeCat ? 'active' : ''}`}
+            className={`ff-kiosk-cat-item${!activeCat ? ' active' : ''}`}
             onClick={() => setActiveCat(null)}
           >
-            Todos
+            <i className="bi bi-grid-fill" />
+            <span>Todos</span>
           </button>
           {categories.map((c) => (
             <button
               key={c.id}
-              className={`ff-kiosk-category-btn ${activeCat === c.id ? 'active' : ''}`}
+              className={`ff-kiosk-cat-item${activeCat === c.id ? ' active' : ''}`}
               onClick={() => setActiveCat(c.id)}
             >
-              {c.name}
+              {(c as DbCategory & { imageUrl?: string }).imageUrl ? (
+                <img
+                  src={(c as DbCategory & { imageUrl?: string }).imageUrl}
+                  alt={c.name}
+                  className="ff-kiosk-cat-img"
+                />
+              ) : (
+                <i className="bi bi-tag-fill" />
+              )}
+              <span>{c.name}</span>
             </button>
           ))}
-        </div>
+        </nav>
 
-        <div className="ff-kiosk-product-grid">
-          {displayed.map((prod) => {
-            const inCart = cart.find((i) => i.productId === prod.id);
-            return (
-              <div key={prod.id} className="ff-kiosk-product-card">
-                <img src={prod.imageUrl} alt={prod.name} className="ff-kiosk-product-img" loading="lazy" />
-                <div className="ff-kiosk-product-body">
-                  <div className="ff-kiosk-product-name">{prod.name}</div>
-                  {prod.description && <div style={{ fontSize: 12, color: '#6b7280' }}>{prod.description}</div>}
-                  <div className="ff-kiosk-product-price">{formatBRL(prod.price)}</div>
-                </div>
-                <button className="ff-kiosk-add-btn" onClick={() => addToCart(prod)}>
-                  {inCart ? `Adicionar mais (${inCart.quantity} no carr.)` : 'Adicionar'}
-                </button>
-              </div>
-            );
-          })}
+        <div className="ff-kiosk-main">
+          {displayed.length === 0 ? (
+            <div className="ff-kiosk-empty">
+              <i className="bi bi-inbox" />
+              <span>Nenhum produto nesta categoria</span>
+            </div>
+          ) : (
+            <div className="ff-kiosk-grid-2col">
+              {displayed.map((prod) => {
+                const inCart = cart.find((i) => i.productId === prod.id);
+                return (
+                  <div
+                    key={prod.id}
+                    className="ff-kiosk-card-v2"
+                    onClick={() => addToCart(prod)}
+                  >
+                    <div className="ff-kiosk-card-img-wrap">
+                      <img
+                        src={prod.imageUrl}
+                        alt={prod.name}
+                        className="ff-kiosk-card-img"
+                        loading="lazy"
+                      />
+                      {inCart && (
+                        <div className="ff-kiosk-card-qty-badge">{inCart.quantity}</div>
+                      )}
+                    </div>
+                    <div className="ff-kiosk-card-body">
+                      <div className="ff-kiosk-card-name">{prod.name}</div>
+                      <div className="ff-kiosk-card-price">{formatBRL(prod.price)}</div>
+                    </div>
+                    <div className="ff-kiosk-card-add">
+                      <i className="bi bi-plus-lg" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Sticky bottom bar */}
+      <div className="ff-kiosk-bottom-bar">
+        <div className="ff-kiosk-bottom-info">
+          {cartCount > 0 ? (
+            <>
+              <span className="ff-kiosk-bottom-count">
+                {cartCount} {cartCount === 1 ? 'item' : 'itens'}
+              </span>
+              <span className="ff-kiosk-bottom-total">{formatBRL(cartTotal)}</span>
+            </>
+          ) : (
+            <span className="ff-kiosk-bottom-empty">Adicione itens ao carrinho</span>
+          )}
+        </div>
+        <button
+          className="ff-kiosk-checkout-btn"
+          onClick={toCart}
+          disabled={cartCount === 0}
+        >
+          Ver carrinho <i className="bi bi-arrow-right" />
+        </button>
       </div>
     </div>
   );
@@ -216,6 +273,9 @@ export function KioskCartPage() {
   const [cart, setCart] = useState<CartItem[]>(() => {
     try { return JSON.parse(sessionStorage.getItem('ff_kiosk_cart') ?? '[]'); } catch { return []; }
   });
+  const [serviceType, setServiceType] = useState<'EAT_IN' | 'TAKEAWAY'>(
+    () => (sessionStorage.getItem('ff_kiosk_service') ?? 'EAT_IN') as 'EAT_IN' | 'TAKEAWAY',
+  );
   const navigate = useNavigate();
   useKioskIdleTimeout();
 
@@ -233,65 +293,110 @@ export function KioskCartPage() {
 
   function proceed() {
     sessionStorage.setItem('ff_kiosk_cart', JSON.stringify(cart));
+    sessionStorage.setItem('ff_kiosk_service', serviceType);
     navigate('/kiosk/payment');
   }
 
   return (
     <div className="ff-kiosk-layout">
-      <div className="ff-kiosk-topbar">
-        <button className="btn btn-sm btn-outline-light" onClick={() => navigate(-1)}>
-          <i className="bi bi-arrow-left" />
-        </button>
-        <span className="ff-kiosk-topbar-title">Seu pedido</span>
-        <div style={{ width: 36 }} />
+      {/* Header */}
+      <div className="ff-kiosk-cart-header">
+        <span className="ff-kiosk-cart-header-title">CARRINHO</span>
       </div>
 
-      <div className="ff-kiosk-content">
-        {cart.length === 0 && (
-          <div className="text-center py-5 text-muted">
-            <i className="bi bi-cart-x" style={{ fontSize: 48 }} />
-            <div className="mt-2">Carrinho vazio</div>
-            <button className="btn btn-primary mt-3" onClick={() => navigate(-1)}>Voltar ao cardápio</button>
-          </div>
-        )}
+      {/* Service toggle */}
+      <div className="ff-kiosk-service-toggle-wrap">
+        <button
+          className={`ff-kiosk-toggle-btn${serviceType === 'TAKEAWAY' ? ' active' : ''}`}
+          onClick={() => setServiceType('TAKEAWAY')}
+        >
+          <i className="bi bi-bag" /> Para Levar
+        </button>
+        <button
+          className={`ff-kiosk-toggle-btn${serviceType === 'EAT_IN' ? ' active' : ''}`}
+          onClick={() => setServiceType('EAT_IN')}
+        >
+          <i className="bi bi-door-open" /> Comer Aqui
+        </button>
+      </div>
 
-        {cart.map((item) => (
-          <div key={item.productId} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #e5e7eb' }}>
-            <img src={item.imageUrl} alt={item.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{item.name}</div>
-              <div style={{ color: '#e11d2a', fontWeight: 700 }}>{formatBRL(item.unitPrice)}</div>
+      {/* Items */}
+      <div className="ff-kiosk-cart-scroll">
+        {cart.length === 0 ? (
+          <div className="ff-kiosk-empty" style={{ padding: '80px 20px' }}>
+            <i className="bi bi-cart-x" />
+            <span>Carrinho vazio</span>
+          </div>
+        ) : cart.map((item) => (
+          <div key={item.productId} className="ff-kiosk-cart-row-v2">
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              className="ff-kiosk-cart-row-img"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            <div className="ff-kiosk-cart-row-info">
+              <div className="ff-kiosk-cart-row-name">{item.name}</div>
+              <div className="ff-kiosk-cart-row-price">{formatBRL(item.unitPrice)}</div>
+              <button
+                className="ff-kiosk-cart-delete-btn"
+                onClick={() => setQty(item.productId, 0)}
+              >
+                <i className="bi bi-trash3" /> REMOVER
+              </button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button className="btn btn-sm btn-outline-secondary" onClick={() => setQty(item.productId, item.quantity - 1)}>−</button>
-              <span style={{ fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{item.quantity}</span>
-              <button className="btn btn-sm btn-outline-secondary" onClick={() => setQty(item.productId, item.quantity + 1)}>+</button>
+            <div className="ff-kiosk-qty-group">
+              <button
+                className="ff-kiosk-qty-btn"
+                onClick={() => setQty(item.productId, item.quantity - 1)}
+              >
+                −
+              </button>
+              <span className="ff-kiosk-qty-val">{item.quantity}</span>
+              <button
+                className="ff-kiosk-qty-btn"
+                onClick={() => setQty(item.productId, item.quantity + 1)}
+              >
+                +
+              </button>
             </div>
           </div>
         ))}
+      </div>
 
-        {cart.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: '#6b7280' }}>
-              <span>Subtotal</span><span>{formatBRL(subtotal)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: '#6b7280' }}>
-              <span>Taxa de serviço (10%)</span><span>{formatBRL(serviceFee)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 20, marginBottom: 24 }}>
-              <span>Total</span><span style={{ color: '#e11d2a' }}>{formatBRL(total)}</span>
-            </div>
-            <button className="btn btn-primary btn-lg w-100" onClick={proceed}>
-              Ir para pagamento →
-            </button>
+      {/* Summary */}
+      {cart.length > 0 && (
+        <div className="ff-kiosk-cart-summary">
+          <div className="ff-kiosk-summary-row">
+            <span>Subtotal</span><span>{formatBRL(subtotal)}</span>
           </div>
-        )}
+          <div className="ff-kiosk-summary-row">
+            <span>Taxa de serviço (10%)</span><span>{formatBRL(serviceFee)}</span>
+          </div>
+          <div className="ff-kiosk-summary-row ff-kiosk-summary-total">
+            <span>TOTAL</span><span>{formatBRL(total)}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom bar */}
+      <div className="ff-kiosk-cart-bottom">
+        <button className="ff-kiosk-add-more-btn" onClick={() => navigate(-1)}>
+          <i className="bi bi-arrow-left" /> Adicionar mais
+        </button>
+        <button
+          className="ff-kiosk-pay-btn"
+          onClick={proceed}
+          disabled={cart.length === 0}
+        >
+          {cart.length > 0 ? `PAGAR ${formatBRL(total)}` : 'PAGAR'}
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── Confirmation + print modal ───────────────────────────────────────────────
+// ─── Confirmation ─────────────────────────────────────────────────────────────
 
 function KioskConfirmationScreen({
   order,
@@ -302,80 +407,41 @@ function KioskConfirmationScreen({
   queueTicket: QueueTicket;
   onReset: () => void;
 }) {
-  const [showPrint, setShowPrint] = useState(false);
+  const [countdown, setCountdown] = useState(15);
+
+  // Auto-redirect countdown
+  useEffect(() => {
+    if (countdown <= 0) { onReset(); return; }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, onReset]);
 
   return (
     <div className="ff-kiosk-layout">
-      <div
-        className="ff-kiosk-content"
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', gap: 24, textAlign: 'center' }}
-      >
-        <div style={{ fontSize: 64 }}>✅</div>
-        <div style={{ fontSize: 28, fontWeight: 700 }}>Pedido confirmado!</div>
+      <div className="ff-kiosk-confirm-body">
+        <div className="ff-kiosk-confirm-icon">
+          <i className="bi bi-check-circle-fill" />
+        </div>
+        <div className="ff-kiosk-confirm-title">Pedido confirmado!</div>
+        <div className="ff-kiosk-confirm-subtitle">Guarde o número abaixo para retirar seu pedido</div>
 
-        <div style={{ background: '#f9fafb', borderRadius: 16, padding: '24px 40px', minWidth: 240 }}>
-          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Seu número de senha</div>
-          <div style={{ fontSize: 64, fontWeight: 900, color: '#e11d2a', lineHeight: 1 }}>{queueTicket.ticketNumber}</div>
-          <div style={{ fontSize: 14, color: '#6b7280', marginTop: 6 }}>{order.orderNumber}</div>
+        <div className="ff-kiosk-ticket-box">
+          <div className="ff-kiosk-ticket-label">Sua senha</div>
+          <div className="ff-kiosk-ticket-number">{queueTicket.ticketNumber}</div>
+          <div className="ff-kiosk-ticket-order">{order.orderNumber}</div>
         </div>
 
-        <div style={{ color: '#6b7280', fontSize: 14, maxWidth: 280 }}>
-          Acompanhe pelo painel de fila ou aguarde ser chamado pelo número acima.
-        </div>
-
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn-outline-secondary btn-lg" onClick={() => setShowPrint(true)}>
-            <i className="bi bi-printer me-2" />Imprimir comprovante
-          </button>
-          <button className="btn btn-primary btn-lg" onClick={onReset}>
-            Novo pedido
-          </button>
+        <div className="ff-kiosk-confirm-hint">
+          Aguarde ser chamado pelo número acima no painel de fila
         </div>
       </div>
 
-      {/* Print mock modal */}
-      {showPrint && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setShowPrint(false)}
-        >
-          <div
-            style={{ background: '#fff', borderRadius: 12, padding: 28, width: 320, fontFamily: 'monospace', fontSize: 13 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>COMPROVANTE DE PEDIDO</div>
-              <div style={{ color: '#6b7280', fontSize: 12 }}>{new Date().toLocaleString('pt-BR')}</div>
-            </div>
-            <hr />
-            <div style={{ textAlign: 'center', margin: '16px 0' }}>
-              <div style={{ fontSize: 12, color: '#6b7280' }}>SENHA</div>
-              <div style={{ fontSize: 56, fontWeight: 900, color: '#e11d2a', lineHeight: 1 }}>{queueTicket.ticketNumber}</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>{order.orderNumber}</div>
-            </div>
-            <hr />
-            {order.items.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>{item.quantity}× {item.name}</span>
-                <span>{(item.unitPrice * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-              </div>
-            ))}
-            <hr />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-              <span>TOTAL PAGO</span>
-              <span>{order.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-              <button className="btn btn-sm btn-primary flex-1" onClick={() => window.print()}>
-                <i className="bi bi-printer me-1" />Imprimir
-              </button>
-              <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowPrint(false)}>
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="ff-kiosk-bottom-bar" style={{ justifyContent: 'space-between' }}>
+        <span className="ff-kiosk-countdown">Reiniciando em {countdown}s…</span>
+        <button className="ff-kiosk-checkout-btn" onClick={onReset}>
+          Novo pedido
+        </button>
+      </div>
     </div>
   );
 }
@@ -383,6 +449,12 @@ function KioskConfirmationScreen({
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
 type PaymentStep = 'select' | 'processing' | 'result';
+
+const PAYMENT_METHODS = [
+  { id: 'CARD' as const, icon: 'bi-credit-card-2-front', label: 'Cartão', desc: 'Débito ou crédito' },
+  { id: 'PIX'  as const, icon: 'bi-qr-code-scan',        label: 'PIX',    desc: 'Escaneie o QR Code' },
+  { id: 'CASH' as const, icon: 'bi-cash-stack',           label: 'Dinheiro', desc: 'Pague no caixa' },
+];
 
 export function KioskPaymentPage() {
   const [step, setStep] = useState<PaymentStep>('select');
@@ -404,7 +476,6 @@ export function KioskPaymentPage() {
     setStep('processing');
     await new Promise((r) => setTimeout(r, 2000));
 
-    // 90% approval rate
     const approved = Math.random() > 0.1;
     if (approved) {
       const { order: o, queueTicket: qt } = await kioskService.placeOrder('Cliente Totem', cart, serviceType);
@@ -420,11 +491,9 @@ export function KioskPaymentPage() {
 
   if (step === 'processing') {
     return (
-      <div className="ff-kiosk-layout" style={{ justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div className="text-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-          <div className="spinner-border text-primary" style={{ width: 56, height: 56 }} />
-          <div style={{ fontSize: 20, fontWeight: 600 }}>Processando pagamento...</div>
-        </div>
+      <div className="ff-kiosk-layout ff-kiosk-loading">
+        <div className="spinner-border text-primary" style={{ width: 64, height: 64 }} />
+        <div className="ff-kiosk-processing-text">Processando pagamento…</div>
       </div>
     );
   }
@@ -445,12 +514,16 @@ export function KioskPaymentPage() {
 
   if (step === 'result' && result === 'rejected') {
     return (
-      <div className="ff-kiosk-layout">
-        <div className="ff-kiosk-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', gap: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 64 }}>❌</div>
-          <div style={{ fontSize: 28, fontWeight: 700 }}>Pagamento recusado</div>
-          <div style={{ color: '#6b7280' }}>Por favor, tente outro método de pagamento.</div>
-          <button className="btn btn-primary" onClick={() => setStep('select')}>Tentar novamente</button>
+      <div className="ff-kiosk-layout ff-kiosk-loading">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 80, color: 'var(--ff-primary)', marginBottom: 16, lineHeight: 1 }}>✕</div>
+          <div style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>Pagamento recusado</div>
+          <div style={{ color: '#6b7280', marginBottom: 32, fontSize: 17 }}>
+            Por favor, tente outro método de pagamento.
+          </div>
+          <button className="ff-kiosk-checkout-btn" onClick={() => setStep('select')}>
+            Tentar novamente
+          </button>
         </div>
       </div>
     );
@@ -459,40 +532,46 @@ export function KioskPaymentPage() {
   return (
     <div className="ff-kiosk-layout">
       <div className="ff-kiosk-topbar">
-        <button className="btn btn-sm btn-outline-light" onClick={() => navigate(-1)}>
+        <button className="ff-kiosk-topbar-back" onClick={() => navigate(-1)}>
           <i className="bi bi-arrow-left" />
         </button>
         <span className="ff-kiosk-topbar-title">Pagamento</span>
-        <div style={{ width: 36 }} />
+        <div style={{ width: 52 }} />
       </div>
 
-      <div className="ff-kiosk-content" style={{ maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 16, color: '#6b7280', marginBottom: 4 }}>Total a pagar</div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: '#e11d2a' }}>
-            {formatBRL(total)}
-          </div>
+      <div className="ff-kiosk-payment-body">
+        <div className="ff-kiosk-payment-total-box">
+          <div className="ff-kiosk-payment-total-label">Total a pagar</div>
+          <div className="ff-kiosk-payment-total-amount">{formatBRL(total)}</div>
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>Escolha a forma de pagamento</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {([['CARD', 'bi-credit-card', 'Cartão de débito/crédito'], ['PIX', 'bi-qr-code', 'PIX'], ['CASH', 'bi-cash', 'Dinheiro (no caixa)']] as const).map(([m, icon, label]) => (
-              <button
-                key={m}
-                className={`ff-kiosk-service-btn ${method === m ? 'selected' : ''}`}
-                style={{ flexDirection: 'row', justifyContent: 'flex-start', padding: '16px 20px', gap: 16 }}
-                onClick={() => setMethod(m)}
-              >
-                <i className={`bi ${icon}`} style={{ fontSize: 24 }} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="ff-kiosk-payment-label">Como deseja pagar?</div>
 
-        <button className="btn btn-primary btn-lg w-100" onClick={simulatePay}>
-          Pagar {formatBRL(total)}
+        <div className="ff-kiosk-payment-options">
+          {PAYMENT_METHODS.map(({ id, icon, label, desc }) => (
+            <button
+              key={id}
+              className={`ff-kiosk-payment-option${method === id ? ' selected' : ''}`}
+              onClick={() => setMethod(id)}
+            >
+              <i className={`bi ${icon} ff-kiosk-payment-option-icon`} />
+              <div className="ff-kiosk-payment-option-text">
+                <div className="ff-kiosk-payment-option-label">{label}</div>
+                <div className="ff-kiosk-payment-option-desc">{desc}</div>
+              </div>
+              {method === id && <i className="bi bi-check-circle-fill ff-kiosk-payment-check" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="ff-kiosk-bottom-bar" style={{ justifyContent: 'flex-end' }}>
+        <button
+          className="ff-kiosk-checkout-btn"
+          onClick={simulatePay}
+          style={{ minWidth: 280 }}
+        >
+          Confirmar pagamento <i className="bi bi-arrow-right" />
         </button>
       </div>
     </div>
