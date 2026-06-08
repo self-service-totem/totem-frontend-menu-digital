@@ -55,22 +55,23 @@ function getCategoryIcon(name: string): string {
 
 const STEP_LABELS = ['Cardápio', 'Revisão', 'Pagamento', 'Confirmação'];
 
-function KioskSteps({ current }: { current: 1 | 2 | 3 | 4 }) {
+function KioskSteps({ current, allDone = false }: { current: 1 | 2 | 3 | 4; allDone?: boolean }) {
   return (
     <div className="ff-kiosk-steps">
       {STEP_LABELS.map((label, i) => {
         const n = i + 1;
-        const state = current === n ? 'active' : current > n ? 'done' : '';
+        const state = allDone ? 'done' : current === n ? 'active' : current > n ? 'done' : '';
+        const showCheck = allDone || current > n;
         return (
           <React.Fragment key={n}>
             <div className={`ff-kiosk-step${state ? ` ${state}` : ''}`}>
               <div className="ff-kiosk-step-dot">
-                {current > n ? <i className="bi bi-check" /> : n}
+                {showCheck ? <i className="bi bi-check" /> : n}
               </div>
               <span className="ff-kiosk-step-label">{label}</span>
             </div>
             {i < STEP_LABELS.length - 1 && (
-              <div className={`ff-kiosk-step-line${current > n ? ' done' : ''}`} />
+              <div className={`ff-kiosk-step-line${allDone || current > n ? ' done' : ''}`} />
             )}
           </React.Fragment>
         );
@@ -475,7 +476,7 @@ function KioskConfirmationScreen({
   return (
     <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
       {/* Step 4 done — no red topbar on confirmation */}
-      <KioskSteps current={4} />
+      <KioskSteps current={4} allDone />
 
       <div className="ff-kiosk-confirm-body">
         <div className="ff-kiosk-confirm-icon">
