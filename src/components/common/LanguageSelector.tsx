@@ -1,27 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
+import { FlagIcon } from '@/components/common/FlagIcon';
 import type { LanguageCode } from '@/i18n/labels';
 
 interface Option {
   code: LanguageCode;
-  flag: string;
   labelKey: 'lang.es' | 'lang.pt' | 'lang.en';
 }
 
 const OPTIONS: Option[] = [
-  { code: 'es', flag: '🇦🇷', labelKey: 'lang.es' },
-  { code: 'pt-BR', flag: '🇧🇷', labelKey: 'lang.pt' },
-  { code: 'en', flag: '🇺🇸', labelKey: 'lang.en' },
+  { code: 'es', labelKey: 'lang.es' },
+  { code: 'pt-BR', labelKey: 'lang.pt' },
+  { code: 'en', labelKey: 'lang.en' },
 ];
 
 interface LanguageSelectorProps {
   /** Render as a floating row of pills instead of a dropdown */
   variant?: 'dropdown' | 'pills';
+  /** Hide the language name and show only the flag (compact pills, e.g. kiosk topbar) */
+  showLabels?: boolean;
   className?: string;
 }
 
-export function LanguageSelector({ variant = 'dropdown', className }: LanguageSelectorProps) {
+export function LanguageSelector({ variant = 'dropdown', showLabels = true, className }: LanguageSelectorProps) {
   const { language, setLanguage } = useSession();
   const { t } = useLabels();
   const [open, setOpen] = useState(false);
@@ -47,9 +49,10 @@ export function LanguageSelector({ variant = 'dropdown', className }: LanguageSe
             type="button"
             className={`ff-lang-pill ${language === o.code ? 'ff-lang-pill--active' : ''}`}
             onClick={() => setLanguage(o.code)}
+            aria-label={t(o.labelKey)}
           >
-            <span>{o.flag}</span>
-            <span>{t(o.labelKey)}</span>
+            <FlagIcon code={o.code} />
+            {showLabels && <span>{t(o.labelKey)}</span>}
           </button>
         ))}
       </div>
@@ -65,7 +68,7 @@ export function LanguageSelector({ variant = 'dropdown', className }: LanguageSe
         aria-expanded={open}
         aria-label={t('lang.selector')}
       >
-        <span>{current.flag}</span>
+        <FlagIcon code={current.code} />
         <i className={`bi bi-chevron-${open ? 'up' : 'down'}`} />
       </button>
       {open && (
@@ -80,7 +83,7 @@ export function LanguageSelector({ variant = 'dropdown', className }: LanguageSe
                   setOpen(false);
                 }}
               >
-                <span>{o.flag}</span>
+                <FlagIcon code={o.code} />
                 <span>{t(o.labelKey)}</span>
               </button>
             </li>

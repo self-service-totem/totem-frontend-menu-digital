@@ -86,7 +86,57 @@ export type LabelKey =
   | 'confirmation.table'
   | 'confirmation.items'
   | 'confirmation.note'
-  | 'confirmation.backToMenu';
+  | 'confirmation.backToMenu'
+  | 'kiosk.welcome.title'
+  | 'kiosk.welcome.subtitle'
+  | 'kiosk.welcome.eatIn'
+  | 'kiosk.welcome.takeaway'
+  | 'kiosk.steps.menu'
+  | 'kiosk.steps.review'
+  | 'kiosk.steps.payment'
+  | 'kiosk.steps.done'
+  | 'kiosk.menu.all'
+  | 'kiosk.menu.emptyCategory'
+  | 'kiosk.order.label'
+  | 'kiosk.order.item'
+  | 'kiosk.order.items'
+  | 'kiosk.order.tax'
+  | 'kiosk.order.emptyHint'
+  | 'kiosk.order.review'
+  | 'kiosk.cart.title'
+  | 'kiosk.cart.empty'
+  | 'kiosk.cart.remove'
+  | 'kiosk.cart.serviceFee'
+  | 'kiosk.cart.addMore'
+  | 'kiosk.cart.confirmPay'
+  | 'kiosk.payment.title'
+  | 'kiosk.payment.totalLabel'
+  | 'kiosk.payment.how'
+  | 'kiosk.payment.card'
+  | 'kiosk.payment.cardDesc'
+  | 'kiosk.payment.pix'
+  | 'kiosk.payment.pixDesc'
+  | 'kiosk.payment.cash'
+  | 'kiosk.payment.cashDesc'
+  | 'kiosk.payment.confirm'
+  | 'kiosk.payment.processing'
+  | 'kiosk.payment.approved'
+  | 'kiosk.payment.rejected'
+  | 'kiosk.payment.rejectedDesc'
+  | 'kiosk.payment.retry'
+  | 'kiosk.confirm.title'
+  | 'kiosk.confirm.subtitle'
+  | 'kiosk.confirm.ticketLabel'
+  | 'kiosk.confirm.hint'
+  | 'kiosk.confirm.restarting'
+  | 'kiosk.confirm.newOrder'
+  | 'kiosk.menu.categories'
+  | 'kiosk.menu.added'
+  | 'kiosk.idle.title'
+  | 'kiosk.idle.subtitle'
+  | 'kiosk.idle.continue'
+  | 'kiosk.idle.restart'
+  | 'kiosk.a11y.label';
 
 type LabelMap = Record<LabelKey, string>;
 
@@ -173,6 +223,56 @@ const ptBR: LabelMap = {
   'confirmation.items': 'Itens',
   'confirmation.note': 'Acompanhe o status pelo painel ou aguarde ser chamado.',
   'confirmation.backToMenu': 'Voltar ao menu',
+  'kiosk.welcome.title': 'Bem-vindo!',
+  'kiosk.welcome.subtitle': 'Como você deseja pedir?',
+  'kiosk.welcome.eatIn': 'Comer aqui',
+  'kiosk.welcome.takeaway': 'Para levar',
+  'kiosk.steps.menu': 'Cardápio',
+  'kiosk.steps.review': 'Revisão',
+  'kiosk.steps.payment': 'Pagamento',
+  'kiosk.steps.done': 'Confirmação',
+  'kiosk.menu.all': 'Todos',
+  'kiosk.menu.emptyCategory': 'Nenhum produto nesta categoria',
+  'kiosk.order.label': 'Meu pedido',
+  'kiosk.order.item': 'item',
+  'kiosk.order.items': 'itens',
+  'kiosk.order.tax': 'Taxa',
+  'kiosk.order.emptyHint': 'Adicione itens ao carrinho para continuar',
+  'kiosk.order.review': 'Revisar pedido',
+  'kiosk.cart.title': 'Revisão do pedido',
+  'kiosk.cart.empty': 'Carrinho vazio',
+  'kiosk.cart.remove': 'Remover',
+  'kiosk.cart.serviceFee': 'Taxa de serviço (10%)',
+  'kiosk.cart.addMore': 'Adicionar mais',
+  'kiosk.cart.confirmPay': 'Confirmar e pagar',
+  'kiosk.payment.title': 'Pagamento',
+  'kiosk.payment.totalLabel': 'Total a pagar',
+  'kiosk.payment.how': 'Como deseja pagar?',
+  'kiosk.payment.card': 'Cartão',
+  'kiosk.payment.cardDesc': 'Débito ou crédito',
+  'kiosk.payment.pix': 'PIX',
+  'kiosk.payment.pixDesc': 'Escaneie o QR Code',
+  'kiosk.payment.cash': 'Dinheiro',
+  'kiosk.payment.cashDesc': 'Pague no caixa',
+  'kiosk.payment.confirm': 'Confirmar pagamento',
+  'kiosk.payment.processing': 'Processando pagamento…',
+  'kiosk.payment.approved': 'Pagamento aprovado!',
+  'kiosk.payment.rejected': 'Pagamento recusado',
+  'kiosk.payment.rejectedDesc': 'Por favor, tente outro método de pagamento.',
+  'kiosk.payment.retry': 'Tentar novamente',
+  'kiosk.confirm.title': 'Pedido confirmado!',
+  'kiosk.confirm.subtitle': 'Guarde o número abaixo e aguarde ser chamado',
+  'kiosk.confirm.ticketLabel': 'Sua senha',
+  'kiosk.confirm.hint': 'Acompanhe pelo painel de fila ou aguarde ser chamado pelo número acima',
+  'kiosk.confirm.restarting': 'Reiniciando em {s}s…',
+  'kiosk.confirm.newOrder': 'Novo pedido',
+  'kiosk.menu.categories': 'Categorias',
+  'kiosk.menu.added': 'Adicionado',
+  'kiosk.idle.title': 'Você ainda está aí?',
+  'kiosk.idle.subtitle': 'Sua sessão será reiniciada em {s}s',
+  'kiosk.idle.continue': 'Sim, continuar',
+  'kiosk.idle.restart': 'Começar de novo',
+  'kiosk.a11y.label': 'Modo acessível',
 };
 
 const es: LabelMap = {
@@ -258,6 +358,56 @@ const es: LabelMap = {
   'confirmation.items': 'Ítems',
   'confirmation.note': 'Seguí el estado en el panel o esperá que te llamen.',
   'confirmation.backToMenu': 'Volver al menú',
+  'kiosk.welcome.title': '¡Bienvenido!',
+  'kiosk.welcome.subtitle': '¿Cómo querés pedir?',
+  'kiosk.welcome.eatIn': 'Comer acá',
+  'kiosk.welcome.takeaway': 'Para llevar',
+  'kiosk.steps.menu': 'Menú',
+  'kiosk.steps.review': 'Revisión',
+  'kiosk.steps.payment': 'Pago',
+  'kiosk.steps.done': 'Confirmación',
+  'kiosk.menu.all': 'Todos',
+  'kiosk.menu.emptyCategory': 'No hay productos en esta categoría',
+  'kiosk.order.label': 'Mi pedido',
+  'kiosk.order.item': 'ítem',
+  'kiosk.order.items': 'ítems',
+  'kiosk.order.tax': 'Servicio',
+  'kiosk.order.emptyHint': 'Agregá ítems al carrito para continuar',
+  'kiosk.order.review': 'Revisar pedido',
+  'kiosk.cart.title': 'Revisión del pedido',
+  'kiosk.cart.empty': 'Carrito vacío',
+  'kiosk.cart.remove': 'Quitar',
+  'kiosk.cart.serviceFee': 'Servicio (10%)',
+  'kiosk.cart.addMore': 'Agregar más',
+  'kiosk.cart.confirmPay': 'Confirmar y pagar',
+  'kiosk.payment.title': 'Pago',
+  'kiosk.payment.totalLabel': 'Total a pagar',
+  'kiosk.payment.how': '¿Cómo querés pagar?',
+  'kiosk.payment.card': 'Tarjeta',
+  'kiosk.payment.cardDesc': 'Débito o crédito',
+  'kiosk.payment.pix': 'PIX',
+  'kiosk.payment.pixDesc': 'Escaneá el código QR',
+  'kiosk.payment.cash': 'Efectivo',
+  'kiosk.payment.cashDesc': 'Pagá en la caja',
+  'kiosk.payment.confirm': 'Confirmar pago',
+  'kiosk.payment.processing': 'Procesando pago…',
+  'kiosk.payment.approved': '¡Pago aprobado!',
+  'kiosk.payment.rejected': 'Pago rechazado',
+  'kiosk.payment.rejectedDesc': 'Por favor, probá con otro método de pago.',
+  'kiosk.payment.retry': 'Intentar de nuevo',
+  'kiosk.confirm.title': '¡Pedido confirmado!',
+  'kiosk.confirm.subtitle': 'Guardá el número de abajo y esperá a que te llamen',
+  'kiosk.confirm.ticketLabel': 'Tu número',
+  'kiosk.confirm.hint': 'Seguilo en el panel de turnos o esperá a que te llamen por el número de arriba',
+  'kiosk.confirm.restarting': 'Reiniciando en {s}s…',
+  'kiosk.confirm.newOrder': 'Nuevo pedido',
+  'kiosk.menu.categories': 'Categorías',
+  'kiosk.menu.added': 'Agregado',
+  'kiosk.idle.title': '¿Seguís ahí?',
+  'kiosk.idle.subtitle': 'Tu sesión se reiniciará en {s}s',
+  'kiosk.idle.continue': 'Sí, continuar',
+  'kiosk.idle.restart': 'Empezar de nuevo',
+  'kiosk.a11y.label': 'Modo accesible',
 };
 
 const en: LabelMap = {
@@ -332,6 +482,56 @@ const en: LabelMap = {
   'confirmation.items': 'Items',
   'confirmation.note': 'Track the status on the board or wait to be called.',
   'confirmation.backToMenu': 'Back to menu',
+  'kiosk.welcome.title': 'Welcome!',
+  'kiosk.welcome.subtitle': 'How would you like to order?',
+  'kiosk.welcome.eatIn': 'Dine in',
+  'kiosk.welcome.takeaway': 'Take away',
+  'kiosk.steps.menu': 'Menu',
+  'kiosk.steps.review': 'Review',
+  'kiosk.steps.payment': 'Payment',
+  'kiosk.steps.done': 'Confirmation',
+  'kiosk.menu.all': 'All',
+  'kiosk.menu.emptyCategory': 'No products in this category',
+  'kiosk.order.label': 'My order',
+  'kiosk.order.item': 'item',
+  'kiosk.order.items': 'items',
+  'kiosk.order.tax': 'Fee',
+  'kiosk.order.emptyHint': 'Add items to your cart to continue',
+  'kiosk.order.review': 'Review order',
+  'kiosk.cart.title': 'Order review',
+  'kiosk.cart.empty': 'Cart is empty',
+  'kiosk.cart.remove': 'Remove',
+  'kiosk.cart.serviceFee': 'Service fee (10%)',
+  'kiosk.cart.addMore': 'Add more',
+  'kiosk.cart.confirmPay': 'Confirm & pay',
+  'kiosk.payment.title': 'Payment',
+  'kiosk.payment.totalLabel': 'Total to pay',
+  'kiosk.payment.how': 'How would you like to pay?',
+  'kiosk.payment.card': 'Card',
+  'kiosk.payment.cardDesc': 'Debit or credit',
+  'kiosk.payment.pix': 'PIX',
+  'kiosk.payment.pixDesc': 'Scan the QR code',
+  'kiosk.payment.cash': 'Cash',
+  'kiosk.payment.cashDesc': 'Pay at the counter',
+  'kiosk.payment.confirm': 'Confirm payment',
+  'kiosk.payment.processing': 'Processing payment…',
+  'kiosk.payment.approved': 'Payment approved!',
+  'kiosk.payment.rejected': 'Payment declined',
+  'kiosk.payment.rejectedDesc': 'Please try another payment method.',
+  'kiosk.payment.retry': 'Try again',
+  'kiosk.confirm.title': 'Order confirmed!',
+  'kiosk.confirm.subtitle': 'Keep the number below and wait to be called',
+  'kiosk.confirm.ticketLabel': 'Your number',
+  'kiosk.confirm.hint': 'Track it on the queue board or wait to be called by the number above',
+  'kiosk.confirm.restarting': 'Restarting in {s}s…',
+  'kiosk.confirm.newOrder': 'New order',
+  'kiosk.menu.categories': 'Categories',
+  'kiosk.menu.added': 'Added',
+  'kiosk.idle.title': 'Are you still there?',
+  'kiosk.idle.subtitle': 'Your session will restart in {s}s',
+  'kiosk.idle.continue': 'Yes, continue',
+  'kiosk.idle.restart': 'Start over',
+  'kiosk.a11y.label': 'Accessibility mode',
 };
 
 export const labels: Record<LanguageCode, LabelMap> = {
