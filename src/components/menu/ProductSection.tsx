@@ -1,4 +1,5 @@
 import type { Product } from '@/types';
+import { useLabels } from '@/i18n/I18nContext';
 import { ProductCard } from './ProductCard';
 
 // Gray food placeholder — never shows a broken icon
@@ -22,6 +23,7 @@ export function ProductSection({
   isExpanded = false,
   onToggle,
 }: ProductSectionProps) {
+  const { t } = useLabels();
   const isAccordion = onToggle !== undefined;
 
   return (
@@ -66,7 +68,7 @@ export function ProductSection({
       <div className={`ff-cat-content ${isExpanded ? 'ff-cat-content--open' : ''}`}>
         <div className="ff-cat-content__inner">
           {products.length === 0 ? (
-            <p className="ff-cat-empty">Nenhum produto disponível.</p>
+            <p className="ff-cat-empty">{t('menu.categoryEmpty')}</p>
           ) : (
             <div className="ff-product-list">
               {products.map((p) => (

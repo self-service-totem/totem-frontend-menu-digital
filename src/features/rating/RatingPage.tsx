@@ -2,23 +2,36 @@ import { useState } from 'react';
 import { TopBar } from '@/components/layout/TopBar';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { useLabels } from '@/i18n/I18nContext';
+import type { LabelKey } from '@/i18n/labels';
+
+const SCORE_KEYS: LabelKey[] = [
+  'rating.score1',
+  'rating.score2',
+  'rating.score3',
+  'rating.score4',
+  'rating.score5',
+];
 
 export function RatingPage() {
   const { t } = useLabels();
   const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
   const [comment, setComment] = useState('');
   const [sent, setSent] = useState(false);
+
+  // Score label reflects hover (preview) or the locked-in rating
+  const shown = hover || rating;
 
   if (sent) {
     return (
       <div className="ff-page">
         <TopBar title={t('rating.title')} />
-        <div className="ff-empty">
-          <i className="bi bi-emoji-smile" style={{ color: 'var(--ff-primary)' }} />
-          <p style={{ fontWeight: 600, color: 'var(--ff-text)', margin: '0 0 6px' }}>
-            {t('rating.thanks')}
-          </p>
-          <p style={{ margin: 0, fontSize: '0.85rem' }}>{t('rating.thanksDesc')}</p>
+        <div className="ff-rating-thanks">
+          <div className="ff-rating-thanks__icon">
+            <i className="bi bi-check-lg" />
+          </div>
+          <h2 className="ff-rating-thanks__title">{t('rating.thanks')}</h2>
+          <p className="ff-rating-thanks__desc">{t('rating.thanksDesc')}</p>
         </div>
       </div>
     );
@@ -27,30 +40,34 @@ export function RatingPage() {
   return (
     <div className="ff-page">
       <TopBar title={t('rating.title')} />
-      <div style={{ padding: '20px 16px 0', textAlign: 'center' }}>
-        <h2 style={{ margin: '0 0 6px', fontSize: '1.15rem' }}>{t('rating.question')}</h2>
-        <p style={{ margin: 0, color: 'var(--ff-text-muted)', fontSize: '0.9rem' }}>
-          {t('rating.tapStars')}
-        </p>
+      <div className="ff-rating-head">
+        <h2 className="ff-rating-head__title">{t('rating.question')}</h2>
+        <p className="ff-rating-head__sub">{t('rating.tapStars')}</p>
       </div>
 
-      <div className="ff-stars" role="radiogroup" aria-label="Estrellas">
+      <div className="ff-stars" role="radiogroup" aria-label={t('rating.title')}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
             role="radio"
             aria-checked={n <= rating}
-            className={n <= rating ? 'active' : ''}
+            className={n <= shown ? 'active' : ''}
             onClick={() => setRating(n)}
-            aria-label={`${n}`}
+            onMouseEnter={() => setHover(n)}
+            onMouseLeave={() => setHover(0)}
+            aria-label={t('rating.starLabel', { n })}
           >
-            <i className={n <= rating ? 'bi bi-star-fill' : 'bi bi-star'} />
+            <i className={n <= shown ? 'bi bi-star-fill' : 'bi bi-star'} />
           </button>
         ))}
       </div>
 
-      <div style={{ padding: '0 16px' }}>
+      <div className="ff-rating-score" aria-live="polite">
+        {shown > 0 ? t(SCORE_KEYS[shown - 1]) : ' '}
+      </div>
+
+      <div className="ff-rating-comment">
         <textarea
           className="ff-textarea"
           rows={4}

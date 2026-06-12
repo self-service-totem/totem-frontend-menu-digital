@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
-import type { Product } from '@/types';
-import type { ModifierGroup, SelectedModifier } from '@/lib/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { CartModifier, Product } from '@/types';
+import type { ModifierGroup } from '@/lib/types';
 import { menuService } from '@/services';
 import { modifierService } from '@/lib/services/modifierService';
 import { mapProductResponseToViewModel } from '@/lib/jsonapi';
 import { useCart } from '@/app/CartContext';
+import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
+import { useNotify } from '@/lib/notifications';
 import { formatMoney } from '@/utils/format';
 import { QuantitySelector } from '@/components/common/QuantitySelector';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
@@ -18,13 +20,17 @@ interface ProductDetailModalProps {
 
 export function ProductDetailModal({ productId, onClose }: ProductDetailModalProps) {
   const { add } = useCart();
+  const { menuContext } = useSession();
   const { t } = useLabels();
+  const notify = useNotify();
+  const currency = menuContext?.currency ?? 'BRL';
 
   const [product, setProduct] = useState<Product | null>(null);
   const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>([]);
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, string[]>>({}); // groupId → optionId[]
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     menuService.getProduct(productId).then((response) =>
@@ -34,6 +40,7 @@ export function ProductDetailModal({ productId, onClose }: ProductDetailModalPro
     setQuantity(1);
     setNote('');
     setSelectedModifiers({});
+    setShowErrors(false);
   }, [productId]);
 
   useEffect(() => {
@@ -65,6 +72,13 @@ export function ProductDetailModal({ productId, onClose }: ProductDetailModalPro
     });
   }
 
+  // Required groups that don't yet have the minimum selection.
+  const missingRequiredIds = useMemo(() => {
+    return modifierGroups
+      .filter((g) => g.required && (selectedModifiers[g.id]?.length ?? 0) < Math.max(1, g.min))
+      .map((g) => g.id);
+  }, [modifierGroups, selectedModifiers]);
+
   const modifierPrice = modifierGroups.reduce((sum, group) => {
     const sel = selectedModifiers[group.id] ?? [];
     return sum + group.options
@@ -74,15 +88,25 @@ export function ProductDetailModal({ productId, onClose }: ProductDetailModalPro
 
   const handleAdd = () => {
     if (!product) return;
-    const resolvedModifiers: SelectedModifier[] = modifierGroups.flatMap((group) =>
+    if (missingRequiredIds.length > 0) {
+      setShowErrors(true);
+      notify(t('product.selectRequired'), 'warning');
+      return;
+    }
+    const modifiers: CartModifier[] = modifierGroups.flatMap((group) =>
       (selectedModifiers[group.id] ?? []).map((optId) => {
         const opt = group.options.find((o) => o.id === optId)!;
-        return { groupId: group.id, groupName: group.name, optionId: opt.id, optionName: opt.name, priceModifier: opt.priceModifier };
+        return {
+          groupId: group.id,
+          groupName: group.name,
+          optionId: opt.id,
+          optionName: opt.name,
+          priceModifier: opt.priceModifier,
+        };
       }),
     );
-    const modNote = resolvedModifiers.map((m) => m.optionName).join(', ');
-    const fullNote = [modNote, note].filter(Boolean).join(' | ');
-    add({ product: { ...product, price: product.price + modifierPrice }, quantity, note: fullNote || undefined });
+    add({ product, quantity, note: note.trim() || undefined, modifiers });
+    notify(`${product.name} · ${t('menu.addedToCart')}`, 'success');
     onClose();
   };
 
@@ -124,51 +148,51 @@ export function ProductDetailModal({ productId, onClose }: ProductDetailModalPro
             </div>
 
             <div className="ff-product-modal__body">
-              <h2 className="ff-product-modal__name">{product.name}</h2>
+              <div className="ff-product-modal__head">
+                <h2 className="ff-product-modal__name">{product.name}</h2>
+                <span className="ff-product-modal__price">{formatMoney(product.price, currency)}</span>
+              </div>
               {product.description && (
                 <p className="ff-product-modal__desc">{product.description}</p>
               )}
 
-              {/* F1: Modifier groups */}
-              {modifierGroups.map((group) => (
-                <div key={group.id} style={{ marginBottom: 12 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 6 }}>
-                    {group.name}
-                    {group.required && <span style={{ color: 'var(--ff-primary)', fontSize: '0.75rem', marginLeft: 4 }}>*obrigatório</span>}
-                    {group.max > 1 && <span style={{ color: '#9ca3af', fontSize: '0.75rem', marginLeft: 4 }}>até {group.max}</span>}
+              {/* Modifier groups */}
+              {modifierGroups.map((group) => {
+                const invalid = showErrors && missingRequiredIds.includes(group.id);
+                return (
+                  <div key={group.id} className="ff-modgroup">
+                    <div className="ff-modgroup__head">
+                      <span className="ff-modgroup__name">{group.name}</span>
+                      {group.required && (
+                        <span className={`ff-modgroup__req ${invalid ? 'ff-modgroup__req--error' : ''}`}>
+                          {t('product.required')}
+                        </span>
+                      )}
+                      {group.max > 1 && (
+                        <span className="ff-modgroup__hint">{t('product.upTo', { max: group.max })}</span>
+                      )}
+                    </div>
+                    <div className="ff-modgroup__options">
+                      {group.options.filter((o) => o.available).map((opt) => {
+                        const sel = (selectedModifiers[group.id] ?? []).includes(opt.id);
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            className={`ff-modchip ${sel ? 'ff-modchip--active' : ''}`}
+                            onClick={() => toggleModifierOption(group, opt.id)}
+                          >
+                            {opt.name}
+                            {opt.priceModifier > 0 && (
+                              <span className="ff-modchip__price">+{formatMoney(opt.priceModifier, currency)}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {group.options.filter((o) => o.available).map((opt) => {
-                      const sel = (selectedModifiers[group.id] ?? []).includes(opt.id);
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => toggleModifierOption(group, opt.id)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: 20,
-                            border: `2px solid ${sel ? 'var(--ff-primary)' : 'var(--ff-border)'}`,
-                            background: sel ? 'var(--ff-primary-soft)' : '#fff',
-                            color: sel ? 'var(--ff-primary)' : 'var(--ff-text)',
-                            fontWeight: sel ? 700 : 400,
-                            fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            transition: 'all .12s',
-                          }}
-                        >
-                          {opt.name}
-                          {opt.priceModifier > 0 && (
-                            <span style={{ marginLeft: 4, fontSize: '0.75rem', color: sel ? 'var(--ff-primary)' : '#9ca3af' }}>
-                              +{formatMoney(opt.priceModifier)}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               <div className="ff-product-modal__row">
                 <span style={{ fontWeight: 600 }}>{t('product.quantity')}</span>
@@ -193,20 +217,18 @@ export function ProductDetailModal({ productId, onClose }: ProductDetailModalPro
                 />
               </div>
             </div>
+
+            <div className="ff-product-modal__cta">
+              <SecondaryButton onClick={onClose}>
+                <i className="bi bi-chevron-left" /> {t('common.back')}
+              </SecondaryButton>
+              <PrimaryButton onClick={handleAdd}>
+                {t('product.add')} {formatMoney(total, currency)}
+              </PrimaryButton>
+            </div>
           </>
         )}
       </div>
-
-      {product && (
-        <div className="ff-product-modal__cta" onClick={(e) => e.stopPropagation()}>
-          <SecondaryButton onClick={onClose}>
-            <i className="bi bi-chevron-left" /> {t('common.back')}
-          </SecondaryButton>
-          <PrimaryButton onClick={handleAdd}>
-            {t('product.add')} {formatMoney(total)}
-          </PrimaryButton>
-        </div>
-      )}
     </div>
   );
 }

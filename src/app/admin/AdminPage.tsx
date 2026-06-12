@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   categoryService,
@@ -31,19 +31,64 @@ type AdminSection =
   | 'loyalty'
   | 'aggregator';
 
-const NAV: { section: AdminSection; label: string; icon: string }[] = [
-  { section: 'dashboard', label: 'Dashboard', icon: 'bi-grid-1x2' },
-  { section: 'products', label: 'Produtos', icon: 'bi-box' },
-  { section: 'categories', label: 'Categorias', icon: 'bi-tags' },
-  { section: 'tables', label: 'Mesas', icon: 'bi-table' },
-  { section: 'orders', label: 'Pedidos', icon: 'bi-receipt' },
-  { section: 'loyalty', label: 'Fidelidade', icon: 'bi-star' },
-  { section: 'aggregator', label: 'Agregadores', icon: 'bi-phone' },
-  { section: 'branches', label: 'Filiais', icon: 'bi-shop' },
-  { section: 'kiosks', label: 'Kiosks', icon: 'bi-display' },
-  { section: 'queue', label: 'Fila', icon: 'bi-people' },
-  { section: 'settings', label: 'Configurações', icon: 'bi-gear' },
+type NavItem = { section: AdminSection; label: string; icon: string };
+type NavGroup = { label: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Operação',
+    items: [
+      { section: 'dashboard', label: 'Dashboard', icon: 'bi-grid-1x2' },
+      { section: 'orders',    label: 'Pedidos',   icon: 'bi-receipt' },
+      { section: 'queue',     label: 'Fila',      icon: 'bi-people' },
+    ],
+  },
+  {
+    label: 'Catálogo',
+    items: [
+      { section: 'products',   label: 'Produtos',   icon: 'bi-box' },
+      { section: 'categories', label: 'Categorias', icon: 'bi-tags' },
+    ],
+  },
+  {
+    label: 'Estabelecimento',
+    items: [
+      { section: 'tables',   label: 'Mesas',  icon: 'bi-table' },
+      { section: 'branches', label: 'Filiais', icon: 'bi-shop' },
+      { section: 'kiosks',   label: 'Kiosks', icon: 'bi-display' },
+    ],
+  },
+  {
+    label: 'Crescimento',
+    items: [
+      { section: 'loyalty',    label: 'Fidelidade', icon: 'bi-star' },
+      { section: 'aggregator', label: 'Agregadores', icon: 'bi-phone' },
+    ],
+  },
+  {
+    label: 'Configurações',
+    items: [
+      { section: 'settings', label: 'Configurações', icon: 'bi-gear' },
+    ],
+  },
 ];
+
+const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
+
+function AdminClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="ff-area-topbar-clock">
+      {now.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+      {' · '}
+      {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+    </span>
+  );
+}
 
 function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -51,50 +96,281 @@ function formatBRL(v: number) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-function Dashboard() {
-  const orders = getCollection<DbOrder>('orders');
-  const today = new Date().toISOString().slice(0, 10);
-  const todayOrders = orders.filter((o) => o.createdAt.startsWith(today));
-  const revenueToday = todayOrders.filter((o) => o.paymentStatus === 'PAID').reduce((s, o) => s + o.total, 0);
-  const pendingKitchen = getCollection<{ status: string }>('kitchenTickets').filter((t) => t.status === 'NEW' || t.status === 'PREPARING').length;
-  const ready = getCollection<{ status: string }>('kitchenTickets').filter((t) => t.status === 'READY').length;
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diff < 1) return 'agora';
+  if (diff < 60) return `${diff} min`;
+  return `${Math.floor(diff / 60)}h`;
+}
 
+function calcDelta(today: number, yesterday: number): { pct: number; up: boolean } | null {
+  if (yesterday === 0) return null;
+  const pct = Math.round(((today - yesterday) / yesterday) * 100);
+  return { pct: Math.abs(pct), up: pct >= 0 };
+}
+
+const STATUS_FEED_COLOR: Record<string, string> = {
+  SENT_TO_KITCHEN: '#1d4ed8',
+  PREPARING:       '#d97706',
+  READY:           '#059669',
+  DELIVERED:       '#7c3aed',
+  CLOSED:          '#374151',
+  CANCELED:        '#dc2626',
+  CREATED:         '#6b7280',
+};
+
+const STATUS_FEED_LABEL: Record<string, string> = {
+  SENT_TO_KITCHEN: 'Na cozinha',
+  PREPARING:       'Preparando',
+  READY:           'Pronto',
+  DELIVERED:       'Entregue',
+  CLOSED:          'Encerrado',
+  CANCELED:        'Cancelado',
+  CREATED:         'Criado',
+  DRAFT:           'Rascunho',
+};
+
+function DeltaBadge({ today, yesterday }: { today: number; yesterday: number }) {
+  const d = calcDelta(today, yesterday);
+  if (d === null) return null;
+  return (
+    <span className={`ff-metric-delta ${d.up ? 'up' : 'down'}`}>
+      <i className={`bi bi-arrow-${d.up ? 'up' : 'down'}`} />
+      {d.pct}%
+    </span>
+  );
+}
+
+function Dashboard() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const orders = getCollection<DbOrder>('orders');
+  const products = getCollection<DbProduct>('products');
+  const today = new Date().toISOString().slice(0, 10);
+  const yDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  const todayOrders = orders.filter((o) => o.createdAt.startsWith(today));
+  const yOrders     = orders.filter((o) => o.createdAt.startsWith(yDate));
+
+  const revenueToday = todayOrders.filter((o) => o.paymentStatus === 'PAID').reduce((s, o) => s + o.total, 0);
+  const revenueY     = yOrders.filter((o) => o.paymentStatus === 'PAID').reduce((s, o) => s + o.total, 0);
+
+  const avgTicket  = todayOrders.length > 0 ? revenueToday / todayOrders.length : 0;
+  const avgTicketY = yOrders.length > 0 ? revenueY / yOrders.length : 0;
+
+  const pendingKitchen = getCollection<{ status: string }>('kitchenTickets').filter(
+    (t) => t.status === 'NEW' || t.status === 'PREPARING',
+  ).length;
+
+  const completedToday = todayOrders.filter(
+    (o) => o.status === 'READY' || o.status === 'DELIVERED' || o.status === 'CLOSED',
+  );
+  const avgPrepMin = completedToday.length > 0
+    ? Math.round(completedToday.reduce((s, o) => s + (new Date(o.updatedAt).getTime() - new Date(o.createdAt).getTime()), 0) / completedToday.length / 60000)
+    : 0;
+
+  // Hourly chart — show hours 7–22
+  const currentHour = new Date().getHours();
+  const chartHours = Array.from({ length: 16 }, (_, i) => i + 7);
+  const hourlyMax = Math.max(
+    ...chartHours.map((h) => todayOrders.filter((o) => new Date(o.createdAt).getHours() === h).length),
+    1,
+  );
+
+  // Activity feed — last 8 orders sorted by createdAt desc
+  const feed = [...orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
+
+  // Top products with image
   const productCounts: Record<string, number> = {};
   orders.forEach((o) => o.items.forEach((i) => { productCounts[i.name] = (productCounts[i.name] ?? 0) + i.quantity; }));
-  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topProducts = Object.entries(productCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, qty]) => ({ name, qty, imageUrl: products.find((p) => p.name === name)?.imageUrl }));
+  const maxQty = topProducts[0]?.qty ?? 1;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  void tick;
 
   return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 28 }}>
-        <div className="ff-metric-card">
-          <div className="ff-metric-card-label">Pedidos hoje</div>
-          <div className="ff-metric-card-value">{todayOrders.length}</div>
+    <div className="ff-dash">
+      {/* ── Metric cards ── */}
+      <div className="ff-dash-metrics">
+        <div className="ff-metric-card-v2">
+          <div className="ff-metric-card-v2-top">
+            <div className="ff-metric-icon blue"><i className="bi bi-receipt" /></div>
+            <DeltaBadge today={todayOrders.length} yesterday={yOrders.length} />
+          </div>
+          <div>
+            <div className="ff-metric-card-v2-value">{todayOrders.length}</div>
+            <div className="ff-metric-card-v2-label">Pedidos hoje</div>
+          </div>
         </div>
-        <div className="ff-metric-card">
-          <div className="ff-metric-card-label">Receita hoje</div>
-          <div className="ff-metric-card-value" style={{ color: '#059669', fontSize: 22 }}>{formatBRL(revenueToday)}</div>
+
+        <div className="ff-metric-card-v2">
+          <div className="ff-metric-card-v2-top">
+            <div className="ff-metric-icon green"><i className="bi bi-cash-coin" /></div>
+            <DeltaBadge today={revenueToday} yesterday={revenueY} />
+          </div>
+          <div>
+            <div className="ff-metric-card-v2-value" style={{ fontSize: 22 }}>{formatBRL(revenueToday)}</div>
+            <div className="ff-metric-card-v2-label">Receita hoje</div>
+          </div>
         </div>
-        <div className="ff-metric-card">
-          <div className="ff-metric-card-label">Na cozinha</div>
-          <div className="ff-metric-card-value" style={{ color: '#d97706' }}>{pendingKitchen}</div>
+
+        <div className="ff-metric-card-v2">
+          <div className="ff-metric-card-v2-top">
+            <div className="ff-metric-icon purple"><i className="bi bi-graph-up" /></div>
+            <DeltaBadge today={avgTicket} yesterday={avgTicketY} />
+          </div>
+          <div>
+            <div className="ff-metric-card-v2-value" style={{ fontSize: 22 }}>{formatBRL(avgTicket)}</div>
+            <div className="ff-metric-card-v2-label">Ticket médio</div>
+          </div>
         </div>
-        <div className="ff-metric-card">
-          <div className="ff-metric-card-label">Prontos</div>
-          <div className="ff-metric-card-value" style={{ color: '#059669' }}>{ready}</div>
+
+        <div className="ff-metric-card-v2">
+          <div className="ff-metric-card-v2-top">
+            <div className="ff-metric-icon amber"><i className="bi bi-fire" /></div>
+          </div>
+          <div>
+            <div className="ff-metric-card-v2-value" style={{ color: '#d97706' }}>{pendingKitchen}</div>
+            <div className="ff-metric-card-v2-label">Na cozinha</div>
+          </div>
+        </div>
+
+        <div className="ff-metric-card-v2">
+          <div className="ff-metric-card-v2-top">
+            <div className="ff-metric-icon slate"><i className="bi bi-clock-history" /></div>
+          </div>
+          <div>
+            <div className="ff-metric-card-v2-value">{avgPrepMin > 0 ? `${avgPrepMin} min` : '—'}</div>
+            <div className="ff-metric-card-v2-label">Tempo médio preparo</div>
+          </div>
         </div>
       </div>
 
-      <div className="ff-data-card" style={{ maxWidth: 500 }}>
-        <div className="ff-data-card-header">Produtos mais vendidos</div>
-        {topProducts.length === 0 && <div className="text-center text-muted py-3">Nenhum pedido ainda</div>}
-        <table className="table table-hover mb-0">
-          <thead><tr><th>Produto</th><th>Qtd</th></tr></thead>
-          <tbody>
-            {topProducts.map(([name, qty]) => (
-              <tr key={name}><td>{name}</td><td><strong>{qty}</strong></td></tr>
-            ))}
-          </tbody>
-        </table>
+      {/* ── Chart + Feed ── */}
+      <div className="ff-dash-row">
+        <div className="ff-dash-chart">
+          <div className="ff-dash-chart-header">
+            <span className="ff-dash-chart-title">Pedidos por hora</span>
+            <span className="ff-dash-chart-subtitle">Hoje</span>
+          </div>
+          <div className="ff-dash-chart-bars">
+            {chartHours.map((h) => {
+              const count = todayOrders.filter((o) => new Date(o.createdAt).getHours() === h).length;
+              const heightPct = (count / hourlyMax) * 100;
+              const isCurrent = h === currentHour;
+              return (
+                <div key={h} className={`ff-dash-chart-col${isCurrent ? ' current' : ''}`}>
+                  <div
+                    className={`ff-dash-chart-bar${count > 0 ? ' has-data' : ''}`}
+                    style={{ height: `${Math.max(heightPct, 3)}%` }}
+                  >
+                    {count > 0 && <div className="ff-dash-chart-tip">{count} pedido{count !== 1 ? 's' : ''}</div>}
+                  </div>
+                  <span className="ff-dash-chart-label">{h}h</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="ff-dash-feed">
+          <div className="ff-dash-feed-header">
+            Atividade
+            <div className="ff-dash-feed-live">
+              <span className="ff-dash-feed-live-dot" />
+              ao vivo
+            </div>
+          </div>
+          {feed.length === 0 ? (
+            <div style={{ padding: '28px 20px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+              Nenhum pedido ainda
+            </div>
+          ) : (
+            feed.map((o) => (
+              <div key={o.id} className="ff-dash-feed-item">
+                <div className="ff-dash-feed-dot" style={{ background: STATUS_FEED_COLOR[o.status] ?? '#9ca3af' }} />
+                <div className="ff-dash-feed-text">
+                  <div className="ff-dash-feed-main">
+                    #{o.orderNumber}
+                    {o.tableNumber ? ` · Mesa ${o.tableNumber}` : ''}
+                    {' · '}{o.customerName}
+                  </div>
+                  <div className="ff-dash-feed-sub">
+                    {STATUS_FEED_LABEL[o.status] ?? o.status}
+                    {' · '}{o.source}
+                  </div>
+                </div>
+                <div className="ff-dash-feed-time">{timeAgo(o.createdAt)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ── Top products ── */}
+      {topProducts.length > 0 && (
+        <div className="ff-dash-top">
+          <div className="ff-dash-top-header">Produtos mais vendidos</div>
+          {topProducts.map(({ name, qty, imageUrl }, i) => (
+            <div key={name} className="ff-dash-top-item">
+              <span className={`ff-dash-top-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}`}>
+                {i + 1}
+              </span>
+              {imageUrl
+                ? <img src={imageUrl} alt="" className="ff-dash-top-img" />
+                : <div className="ff-dash-top-img-ph"><i className="bi bi-box" /></div>
+              }
+              <div className="ff-dash-top-info">
+                <div className="ff-dash-top-name">{name}</div>
+                <div className="ff-dash-top-bar-wrap">
+                  <div className="ff-dash-top-bar-fill" style={{ width: `${(qty / maxQty) * 100}%` }} />
+                </div>
+              </div>
+              <span className="ff-dash-top-qty">{qty}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Shared AdminModal ────────────────────────────────────────────────────────
+
+function AdminModal({
+  title,
+  onClose,
+  footer,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  footer: ReactNode;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="ff-admin-modal-overlay" onClick={onClose}>
+      <div className="ff-admin-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ff-admin-modal-header">
+          <span className="ff-admin-modal-title">{title}</span>
+          <button className="ff-order-drawer-close" onClick={onClose}><i className="bi bi-x" /></button>
+        </div>
+        <div className="ff-admin-modal-body">{children}</div>
+        <div className="ff-admin-modal-footer">{footer}</div>
       </div>
     </div>
   );
@@ -108,6 +384,8 @@ function Products() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [form, setForm] = useState({ name: '', description: '', price: '', imageUrl: '', categoryId: '', available: true, featured: false, station: 'GENERAL' });
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('');
   const notify = useNotify();
 
   async function load() {
@@ -144,72 +422,117 @@ function Products() {
     load();
   }
 
+  const filtered = products
+    .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((p) => !catFilter || p.categoryId === catFilter);
+
   return (
     <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" onClick={openCreate}><i className="bi bi-plus me-1" />Novo produto</button>
-      </div>
-      <div className="ff-data-card">
-        <table className="table table-hover mb-0">
-          <thead><tr><th>Imagem</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
-          <tbody>
-            {products.map((p) => {
-              const cat = categories.find((c) => c.id === p.categoryId);
-              return (
-                <tr key={p.id}>
-                  <td><img src={p.imageUrl} alt={p.name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6 }} /></td>
-                  <td><strong>{p.name}</strong>{p.featured && <span className="badge bg-warning text-dark ms-1">Destaque</span>}</td>
-                  <td>{cat?.name ?? '—'}</td>
-                  <td>{formatBRL(p.price)}</td>
-                  <td><span className={`badge ${p.available ? 'bg-success' : 'bg-secondary'}`}>{p.available ? 'Ativo' : 'Inativo'}</span></td>
-                  <td style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-sm btn-outline-secondary" onClick={() => openEdit(p)}><i className="bi bi-pencil" /></button>
-                    <button className="btn btn-sm btn-outline-secondary" onClick={() => toggleAvailable(p)}><i className={`bi ${p.available ? 'bi-eye-slash' : 'bi-eye'}`} /></button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Header bar */}
+      <div className="ff-catalog-header">
+        <div className="ff-catalog-search">
+          <i className="bi bi-search ff-catalog-search-icon" />
+          <input
+            placeholder="Buscar produto..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="ff-catalog-filters">
+          <button className={`ff-catalog-filter-btn${catFilter === '' ? ' active' : ''}`} onClick={() => setCatFilter('')}>Todos</button>
+          {categories.map((c) => (
+            <button key={c.id} className={`ff-catalog-filter-btn${catFilter === c.id ? ' active' : ''}`} onClick={() => setCatFilter(c.id)}>
+              {c.name}
+            </button>
+          ))}
+        </div>
+        <button className="btn btn-primary" style={{ marginLeft: 'auto', flexShrink: 0 }} onClick={openCreate}>
+          <i className="bi bi-plus me-1" />Novo produto
+        </button>
       </div>
 
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 440, display: 'flex', flexDirection: 'column', gap: 14 }} onClick={(e) => e.stopPropagation()}>
-            <h5 style={{ margin: 0 }}>{editing ? 'Editar produto' : 'Novo produto'}</h5>
-            {[['Nome', 'name', 'text'], ['Preço (R$)', 'price', 'number'], ['URL da imagem', 'imageUrl', 'url'], ['Descrição', 'description', 'text']].map(([label, field, type]) => (
-              <div key={field}>
-                <label style={{ fontSize: 13, fontWeight: 600 }}>{label}</label>
-                <input className="form-control form-control-sm" type={type} value={(form as Record<string, string | boolean>)[field] as string} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
-              </div>
-            ))}
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600 }}>Categoria</label>
-              <select className="form-select form-select-sm" value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600 }}>Estação da cozinha (F8)</label>
-              <select className="form-select form-select-sm" value={form.station} onChange={(e) => setForm((f) => ({ ...f, station: e.target.value }))}>
-                <option value="GENERAL">Geral</option>
-                <option value="GRILL">Churrasqueira / Grill</option>
-                <option value="BAR">Bar / Bebidas</option>
-                <option value="SALAD">Frios / Saladas</option>
-                <option value="DESSERT">Sobremesas</option>
-                <option value="FRYER">Frituras</option>
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <label style={{ fontSize: 13 }}><input type="checkbox" className="me-1" checked={form.available} onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))} />Disponível</label>
-              <label style={{ fontSize: 13 }}><input type="checkbox" className="me-1" checked={form.featured} onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))} />Destaque</label>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary flex-1" onClick={handleSave}>Salvar</button>
-              <button className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-            </div>
-          </div>
+      {/* Grid or empty state */}
+      {filtered.length === 0 ? (
+        <div className="ff-empty-state">
+          <i className="bi bi-box ff-empty-state-icon" />
+          <div className="ff-empty-state-title">Nenhum produto encontrado</div>
+          <div className="ff-empty-state-desc">Tente mudar os filtros ou crie um novo produto.</div>
+          <button className="btn btn-primary btn-sm mt-2" onClick={openCreate}>Criar primeiro produto</button>
         </div>
+      ) : (
+        <div className="ff-product-grid">
+          {filtered.map((p) => {
+            const cat = categories.find((c) => c.id === p.categoryId);
+            return (
+              <div key={p.id} className={`ff-product-card${p.available ? '' : ' unavailable'}`}>
+                <div className="ff-product-card-img-wrap">
+                  {p.imageUrl
+                    ? <img src={p.imageUrl} alt={p.name} className="ff-product-card-img" />
+                    : <div className="ff-product-card-img-ph"><i className="bi bi-image" /></div>
+                  }
+                  {p.featured && <span className="ff-product-card-featured">Destaque</span>}
+                </div>
+                <div className="ff-product-card-body">
+                  <div className="ff-product-card-name">{p.name}</div>
+                  <div className="ff-product-card-cat">{cat?.name ?? '—'}</div>
+                  <div className="ff-product-card-price">{formatBRL(p.price)}</div>
+                </div>
+                <div className="ff-product-card-footer">
+                  <label className="ff-toggle" onClick={(e) => { e.preventDefault(); toggleAvailable(p); }}>
+                    <div className={`ff-toggle-track${p.available ? ' on' : ''}`}>
+                      <div className="ff-toggle-thumb" />
+                    </div>
+                    <span className="ff-toggle-label">{p.available ? 'Ativo' : 'Inativo'}</span>
+                  </label>
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => openEdit(p)}>
+                    <i className="bi bi-pencil" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && (
+        <AdminModal
+          title={editing ? 'Editar produto' : 'Novo produto'}
+          onClose={() => setShowModal(false)}
+          footer={
+            <>
+              <button className="btn btn-primary flex-fill" onClick={handleSave}>Salvar</button>
+              <button className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+            </>
+          }
+        >
+          {[['Nome', 'name', 'text'], ['Preço (R$)', 'price', 'number'], ['URL da imagem', 'imageUrl', 'url'], ['Descrição', 'description', 'text']].map(([label, field, type]) => (
+            <div key={field}>
+              <label className="ff-admin-modal-label">{label}</label>
+              <input className="form-control form-control-sm" type={type} value={(form as Record<string, string | boolean>)[field] as string} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
+            </div>
+          ))}
+          <div>
+            <label className="ff-admin-modal-label">Categoria</label>
+            <select className="form-select form-select-sm" value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="ff-admin-modal-label">Estação da cozinha</label>
+            <select className="form-select form-select-sm" value={form.station} onChange={(e) => setForm((f) => ({ ...f, station: e.target.value }))}>
+              <option value="GENERAL">Geral</option>
+              <option value="GRILL">Churrasqueira / Grill</option>
+              <option value="BAR">Bar / Bebidas</option>
+              <option value="SALAD">Frios / Saladas</option>
+              <option value="DESSERT">Sobremesas</option>
+              <option value="FRYER">Frituras</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <label style={{ fontSize: 13 }}><input type="checkbox" className="me-1" checked={form.available} onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))} />Disponível</label>
+            <label style={{ fontSize: 13 }}><input type="checkbox" className="me-1" checked={form.featured} onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))} />Destaque</label>
+          </div>
+        </AdminModal>
       )}
     </div>
   );
@@ -227,6 +550,12 @@ function Categories() {
   async function load() { setCategories(await categoryService.list()); }
   useEffect(() => { load(); }, []);
 
+  function openCreate() {
+    setEditing(null);
+    setForm({ name: '', imageUrl: '', active: true });
+    setShowModal(true);
+  }
+
   async function handleSave() {
     const order = editing?.order ?? categories.length + 1;
     if (editing) { await categoryService.update(editing.id, { ...form }); notify('Categoria atualizada'); }
@@ -243,48 +572,67 @@ function Categories() {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setForm({ name: '', imageUrl: '', active: true }); setShowModal(true); }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <button className="btn btn-primary" onClick={openCreate}>
           <i className="bi bi-plus me-1" />Nova categoria
         </button>
       </div>
-      <div className="ff-data-card">
-        <table className="table table-hover mb-0">
-          <thead><tr><th>#</th><th>Imagem</th><th>Nome</th><th>Status</th><th>Ações</th></tr></thead>
-          <tbody>
-            {categories.map((c) => (
-              <tr key={c.id}>
-                <td>{c.order}</td>
-                <td><img src={c.imageUrl} alt={c.name} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6 }} /></td>
-                <td><strong>{c.name}</strong></td>
-                <td><span className={`badge ${c.active ? 'bg-success' : 'bg-secondary'}`}>{c.active ? 'Ativa' : 'Inativa'}</span></td>
-                <td style={{ display: 'flex', gap: 4 }}>
-                  <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditing(c); setForm({ name: c.name, imageUrl: c.imageUrl, active: c.active }); setShowModal(true); }}><i className="bi bi-pencil" /></button>
-                  <button className="btn btn-sm btn-outline-secondary" onClick={() => toggleActive(c)}><i className={`bi ${c.active ? 'bi-eye-slash' : 'bi-eye'}`} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+      {categories.length === 0 ? (
+        <div className="ff-empty-state">
+          <i className="bi bi-tags ff-empty-state-icon" />
+          <div className="ff-empty-state-title">Nenhuma categoria ainda</div>
+          <div className="ff-empty-state-desc">Crie categorias para organizar seu cardápio.</div>
+          <button className="btn btn-primary btn-sm mt-2" onClick={openCreate}>Criar primeira categoria</button>
+        </div>
+      ) : (
+        <div className="ff-cat-grid">
+          {categories.map((c) => (
+            <div key={c.id} className={`ff-cat-card${c.active ? '' : ' inactive'}`}>
+              {c.imageUrl
+                ? <img src={c.imageUrl} alt={c.name} className="ff-cat-card-img" />
+                : <div className="ff-cat-card-img-ph"><i className="bi bi-tags" /></div>
+              }
+              <div className="ff-cat-card-body">
+                <span className="ff-cat-card-name">{c.name}</span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <label className="ff-toggle" onClick={(e) => { e.preventDefault(); toggleActive(c); }}>
+                    <div className={`ff-toggle-track${c.active ? ' on' : ''}`}>
+                      <div className="ff-toggle-thumb" />
+                    </div>
+                  </label>
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditing(c); setForm({ name: c.name, imageUrl: c.imageUrl, active: c.active }); setShowModal(true); }}>
+                    <i className="bi bi-pencil" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 380, display: 'flex', flexDirection: 'column', gap: 14 }} onClick={(e) => e.stopPropagation()}>
-            <h5 style={{ margin: 0 }}>{editing ? 'Editar categoria' : 'Nova categoria'}</h5>
-            {[['Nome', 'name'], ['URL da imagem', 'imageUrl']].map(([label, field]) => (
-              <div key={field}>
-                <label style={{ fontSize: 13, fontWeight: 600 }}>{label}</label>
-                <input className="form-control form-control-sm" value={(form as Record<string, string | boolean>)[field] as string} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
-              </div>
-            ))}
-            <label style={{ fontSize: 13 }}><input type="checkbox" className="me-1" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />Ativa</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary flex-1" onClick={handleSave}>Salvar</button>
+        <AdminModal
+          title={editing ? 'Editar categoria' : 'Nova categoria'}
+          onClose={() => setShowModal(false)}
+          footer={
+            <>
+              <button className="btn btn-primary flex-fill" onClick={handleSave}>Salvar</button>
               <button className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+            </>
+          }
+        >
+          {[['Nome', 'name'], ['URL da imagem', 'imageUrl']].map(([label, field]) => (
+            <div key={field}>
+              <label className="ff-admin-modal-label">{label}</label>
+              <input className="form-control form-control-sm" value={(form as Record<string, string | boolean>)[field] as string} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
             </div>
-          </div>
-        </div>
+          ))}
+          <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
+            Ativa
+          </label>
+        </AdminModal>
       )}
     </div>
   );
@@ -725,44 +1073,330 @@ function Tables() {
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
+// ─── Orders helpers ───────────────────────────────────────────────────────────
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  DRAFT:           'Rascunho',
+  CREATED:         'Criado',
+  SENT_TO_KITCHEN: 'Na cozinha',
+  PREPARING:       'Preparando',
+  READY:           'Pronto',
+  DELIVERED:       'Entregue',
+  CLOSED:          'Encerrado',
+  CANCELED:        'Cancelado',
+};
+
+const ORDER_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  DRAFT:           { bg: '#f3f4f6', color: '#9ca3af' },
+  CREATED:         { bg: '#f3f4f6', color: '#6b7280' },
+  SENT_TO_KITCHEN: { bg: 'var(--ff-status-new-soft)',        color: 'var(--ff-status-new)' },
+  PREPARING:       { bg: 'var(--ff-status-preparing-soft)',  color: 'var(--ff-status-preparing)' },
+  READY:           { bg: 'var(--ff-status-ready-soft)',      color: 'var(--ff-status-ready)' },
+  DELIVERED:       { bg: 'var(--ff-status-delivered-soft)',  color: 'var(--ff-status-delivered)' },
+  CLOSED:          { bg: 'var(--ff-status-paid-soft)',       color: 'var(--ff-status-paid)' },
+  CANCELED:        { bg: 'var(--ff-status-cancelled-soft)',  color: 'var(--ff-status-cancelled)' },
+};
+
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  UNPAID:          'Não pago',
+  PARTIALLY_PAID:  'Parcial',
+  PAID:            'Pago',
+  REFUNDED:        'Reembolsado',
+};
+
+const PAYMENT_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  UNPAID:         { bg: '#f3f4f6', color: '#9ca3af' },
+  PARTIALLY_PAID: { bg: '#fffbeb', color: '#d97706' },
+  PAID:           { bg: '#ecfdf5', color: '#059669' },
+  REFUNDED:       { bg: '#f5f3ff', color: '#7c3aed' },
+};
+
+const STATUS_ADVANCE: Record<string, string> = {
+  CREATED:         'SENT_TO_KITCHEN',
+  SENT_TO_KITCHEN: 'PREPARING',
+  PREPARING:       'READY',
+  READY:           'DELIVERED',
+  DELIVERED:       'CLOSED',
+};
+
+const STATUS_ADVANCE_LABEL: Record<string, string> = {
+  CREATED:         'Enviar p/ cozinha',
+  SENT_TO_KITCHEN: 'Marcar como preparando',
+  PREPARING:       'Marcar como pronto',
+  READY:           'Marcar como entregue',
+  DELIVERED:       'Encerrar pedido',
+};
+
+const TIMELINE_STEPS = [
+  { key: 'CREATED',         icon: 'bi-plus-circle' },
+  { key: 'SENT_TO_KITCHEN', icon: 'bi-fire' },
+  { key: 'PREPARING',       icon: 'bi-hourglass-split' },
+  { key: 'READY',           icon: 'bi-check-circle' },
+  { key: 'DELIVERED',       icon: 'bi-bag-check' },
+  { key: 'CLOSED',          icon: 'bi-lock' },
+];
+
+const STATUS_ORDER = ['CREATED', 'SENT_TO_KITCHEN', 'PREPARING', 'READY', 'DELIVERED', 'CLOSED', 'CANCELED'];
+
+const FILTER_TABS = [
+  { key: '',               label: 'Todos' },
+  { key: 'SENT_TO_KITCHEN', label: 'Na cozinha' },
+  { key: 'PREPARING',      label: 'Preparando' },
+  { key: 'READY',          label: 'Prontos' },
+  { key: 'DELIVERED',      label: 'Entregues' },
+  { key: 'PAID',           label: 'Pagos' },
+];
+
+function StatusPill({ status, map }: { status: string; map: Record<string, { bg: string; color: string }> }) {
+  const style = map[status] ?? { bg: '#f3f4f6', color: '#6b7280' };
+  const label = ORDER_STATUS_LABEL[status] ?? PAYMENT_STATUS_LABEL[status] ?? status;
+  return (
+    <span className="ff-status-pill" style={{ background: style.bg, color: style.color }}>
+      {label}
+    </span>
+  );
+}
+
+function OrderDrawer({
+  order,
+  onClose,
+  onAdvance,
+}: {
+  order: DbOrder;
+  onClose: () => void;
+  onAdvance: (id: string, status: string) => void;
+}) {
+  const nextStatus = STATUS_ADVANCE[order.status];
+  const currentIdx = STATUS_ORDER.indexOf(order.status);
+
+  return (
+    <div className="ff-order-drawer">
+      <div className="ff-order-drawer-header">
+        <span className="ff-order-drawer-title">#{order.orderNumber}</span>
+        <button className="ff-order-drawer-close" onClick={onClose}>
+          <i className="bi bi-x" />
+        </button>
+      </div>
+
+      <div className="ff-order-drawer-body">
+        {/* Meta */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <StatusPill status={order.status} map={ORDER_STATUS_STYLE} />
+          <StatusPill status={order.paymentStatus} map={PAYMENT_STATUS_STYLE} />
+          <span className="ff-status-pill" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+            {order.source}
+          </span>
+          {order.tableNumber && (
+            <span className="ff-status-pill" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+              <i className="bi bi-table" /> Mesa {order.tableNumber}
+            </span>
+          )}
+        </div>
+
+        {/* Customer */}
+        <div>
+          <div className="ff-order-drawer-section-label">Cliente</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{order.customerName}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+            {new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+          </div>
+        </div>
+
+        {/* Items */}
+        <div>
+          <div className="ff-order-drawer-section-label">Itens</div>
+          {order.items.map((item, i) => (
+            <div key={i} className="ff-order-drawer-item">
+              <div className="ff-order-drawer-item-qty">{item.quantity}</div>
+              <div style={{ flex: 1 }}>
+                <div className="ff-order-drawer-item-name">{item.name}</div>
+                {item.note && <div className="ff-order-drawer-item-note">Obs: {item.note}</div>}
+              </div>
+              <div className="ff-order-drawer-item-price">
+                {formatBRL(item.unitPrice * item.quantity)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Totals */}
+        <div className="ff-order-drawer-totals">
+          <div className="ff-order-drawer-total-row">
+            <span>Subtotal</span><span>{formatBRL(order.subtotal)}</span>
+          </div>
+          {order.serviceFee > 0 && (
+            <div className="ff-order-drawer-total-row">
+              <span>Taxa de serviço</span><span>{formatBRL(order.serviceFee)}</span>
+            </div>
+          )}
+          <div className="ff-order-drawer-total-row grand">
+            <span>Total</span><span>{formatBRL(order.total)}</span>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        <div>
+          <div className="ff-order-drawer-section-label">Histórico</div>
+          <div className="ff-order-timeline">
+            {TIMELINE_STEPS.map((step, i) => {
+              const stepIdx = STATUS_ORDER.indexOf(step.key);
+              const isDone    = stepIdx < currentIdx;
+              const isCurrent = step.key === order.status;
+              if (order.status === 'CANCELED' && !isDone && !isCurrent) return null;
+              return (
+                <div key={step.key} className="ff-order-timeline-step">
+                  <div className={`ff-order-timeline-dot ${isDone ? 'done' : isCurrent ? 'current' : ''}`}>
+                    <i className={`bi ${isDone ? 'bi-check' : step.icon}`} />
+                  </div>
+                  <div className={`ff-order-timeline-label ${isDone ? 'done' : isCurrent ? 'current' : ''}`}>
+                    {ORDER_STATUS_LABEL[step.key]}
+                  </div>
+                </div>
+              );
+            })}
+            {order.status === 'CANCELED' && (
+              <div className="ff-order-timeline-step">
+                <div className="ff-order-timeline-dot current" style={{ background: 'var(--ff-status-cancelled)', borderColor: 'var(--ff-status-cancelled)' }}>
+                  <i className="bi bi-x" />
+                </div>
+                <div className="ff-order-timeline-label current" style={{ color: 'var(--ff-status-cancelled)' }}>
+                  Cancelado
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {nextStatus && (
+        <div className="ff-order-drawer-footer">
+          <button className="ff-order-advance-btn" onClick={() => onAdvance(order.id, nextStatus)}>
+            <i className="bi bi-arrow-right-circle" />
+            {STATUS_ADVANCE_LABEL[order.status]}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Orders() {
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<DbOrder | null>(null);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const prevIdsRef = useRef<Set<string>>(new Set());
+  const notify = useNotify();
 
-  useEffect(() => { adminOrderService.list().then(setOrders); }, []);
+  async function load() {
+    const fresh = await adminOrderService.list();
+    setOrders(fresh);
+    const freshIds = new Set(fresh.map((o) => o.id));
+    const added = new Set([...freshIds].filter((id) => !prevIdsRef.current.has(id)));
+    if (added.size > 0 && prevIdsRef.current.size > 0) {
+      setNewIds(added);
+      setTimeout(() => setNewIds(new Set()), 2500);
+    }
+    prevIdsRef.current = freshIds;
+  }
+
+  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function handleAdvance(orderId: string, status: string) {
+    await adminOrderService.updateStatus(orderId, status as import('@/lib/types').FullOrderStatus);
+    notify(`Pedido atualizado → ${ORDER_STATUS_LABEL[status] ?? status}`);
+    load();
+    setSelected((prev) => prev?.id === orderId ? { ...prev, status: status as import('@/lib/types').FullOrderStatus } : prev);
+  }
 
   const filtered = filter
     ? orders.filter((o) => o.status === filter || o.paymentStatus === filter)
     : orders;
 
+  const counts: Record<string, number> = {};
+  orders.forEach((o) => {
+    counts[o.status] = (counts[o.status] ?? 0) + 1;
+    if (o.paymentStatus === 'PAID') counts['PAID'] = (counts['PAID'] ?? 0) + 1;
+  });
+
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-        {['', 'SENT_TO_KITCHEN', 'PREPARING', 'READY', 'DELIVERED', 'PAID'].map((s) => (
-          <button key={s} className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setFilter(s)}>
-            {s || 'Todos'}
-          </button>
-        ))}
-      </div>
-      <div className="ff-data-card">
-        <table className="table table-hover mb-0">
-          <thead><tr><th>Pedido</th><th>Cliente</th><th>Mesa</th><th>Total</th><th>Status</th><th>Pagamento</th><th>Origem</th><th>Data</th></tr></thead>
-          <tbody>
-            {filtered.map((o) => (
-              <tr key={o.id}>
-                <td><strong>{o.orderNumber}</strong></td>
-                <td>{o.customerName}</td>
-                <td>{o.tableNumber ?? '—'}</td>
-                <td>{formatBRL(o.total)}</td>
-                <td><span className="badge bg-secondary" style={{ fontSize: 11 }}>{o.status}</span></td>
-                <td><span className={`badge ${o.paymentStatus === 'PAID' ? 'bg-success' : o.paymentStatus === 'PARTIALLY_PAID' ? 'bg-warning text-dark' : 'bg-secondary'}`} style={{ fontSize: 11 }}>{o.paymentStatus}</span></td>
-                <td><span className="badge bg-info text-dark" style={{ fontSize: 11 }}>{o.source}</span></td>
-                <td style={{ fontSize: 12, color: '#6b7280' }}>{new Date(o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+    <div className="ff-orders-layout">
+      <div className="ff-orders-main">
+        {/* Tabs */}
+        <div className="ff-orders-tabs">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`ff-orders-tab${filter === tab.key ? ' active' : ''}`}
+              onClick={() => setFilter(tab.key)}
+            >
+              {tab.label}
+              <span className="ff-orders-tab-count">
+                {tab.key === '' ? orders.length : (counts[tab.key] ?? 0)}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Table */}
+        <div className="ff-data-card" style={{ overflow: 'hidden' }}>
+          <table className="ff-orders-table">
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Cliente</th>
+                <th>Mesa</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Pagamento</th>
+                <th>Origem</th>
+                <th>Hora</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', color: '#9ca3af', padding: '28px 0' }}>
+                    Nenhum pedido neste status
+                  </td>
+                </tr>
+              )}
+              {filtered.map((o) => (
+                <tr
+                  key={o.id}
+                  className={`${newIds.has(o.id) ? 'ff-order-row-new' : ''}${selected?.id === o.id ? ' selected' : ''}`}
+                  onClick={() => setSelected(selected?.id === o.id ? null : o)}
+                >
+                  <td><strong style={{ fontVariantNumeric: 'tabular-nums' }}>#{o.orderNumber}</strong></td>
+                  <td>{o.customerName}</td>
+                  <td>{o.tableNumber ? `Mesa ${o.tableNumber}` : <span style={{ color: '#d1d5db' }}>—</span>}</td>
+                  <td style={{ fontWeight: 700 }}>{formatBRL(o.total)}</td>
+                  <td><StatusPill status={o.status} map={ORDER_STATUS_STYLE} /></td>
+                  <td><StatusPill status={o.paymentStatus} map={PAYMENT_STATUS_STYLE} /></td>
+                  <td style={{ color: '#6b7280' }}>{o.source}</td>
+                  <td style={{ color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
+                    {new Date(o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Drawer */}
+      {selected && (
+        <OrderDrawer
+          order={selected}
+          onClose={() => setSelected(null)}
+          onAdvance={handleAdvance}
+        />
+      )}
     </div>
   );
 }
@@ -1226,46 +1860,107 @@ export function AdminPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [section, setSection] = useState<AdminSection>('dashboard');
+  const [tenantName, setTenantName] = useState('Admin');
+  const [tenantLogo, setTenantLogo] = useState<string | undefined>();
 
   useEffect(() => {
     const s = location.pathname.split('/admin/')[1] as AdminSection | undefined;
     if (s && NAV.find((n) => n.section === s)) setSection(s);
   }, [location.pathname]);
 
+  useEffect(() => {
+    tenantService.get().then((t) => {
+      if (t) {
+        setTenantName(t.name);
+        setTenantLogo(t.logoUrl ?? undefined);
+      }
+    });
+  }, []);
+
   function goTo(s: AdminSection) {
     setSection(s);
     navigate(`/admin/${s}`);
   }
 
+  const pendingOrders = getCollection<DbOrder>('orders').filter(
+    (o) => o.status === 'SENT_TO_KITCHEN' || o.status === 'PREPARING'
+  ).length;
+
+  const currentNavItem = NAV.find((n) => n.section === section);
+
   return (
     <div className="ff-area-layout">
       <aside className="ff-area-sidebar">
-        <div className="ff-area-sidebar-logo"><i className="bi bi-grid-1x2 me-2" />Admin</div>
+        <div className="ff-area-sidebar-logo">
+          {tenantLogo ? (
+            <img src={tenantLogo} alt="" className="ff-area-sidebar-logo-img" />
+          ) : (
+            <div className="ff-area-sidebar-logo-icon">
+              <i className="bi bi-shop" />
+            </div>
+          )}
+          <div className="ff-area-sidebar-logo-text">
+            <span className="ff-area-sidebar-logo-name">{tenantName}</span>
+            <span className="ff-area-sidebar-logo-role">Administração</span>
+          </div>
+        </div>
+
         <nav className="ff-area-sidebar-nav">
-          {NAV.map((n) => (
-            <button key={n.section} className={`ff-nav-item ${section === n.section ? 'active' : ''}`} onClick={() => goTo(n.section)}>
-              <i className={`bi ${n.icon}`} />{n.label}
-            </button>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <div className="ff-area-sidebar-group-label">{group.label}</div>
+              {group.items.map((n) => (
+                <button
+                  key={n.section}
+                  className={`ff-nav-item ${section === n.section ? 'active' : ''}`}
+                  onClick={() => goTo(n.section)}
+                >
+                  <i className={`bi ${n.icon}`} />
+                  {n.label}
+                  {n.section === 'orders' && pendingOrders > 0 && (
+                    <span className="ff-nav-item-badge">{pendingOrders}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           ))}
-          <button className="ff-nav-item" onClick={() => navigate('/')}><i className="bi bi-house" />Hub</button>
+          <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.07)' }}>
+            <button className="ff-nav-item" onClick={() => navigate('/')}>
+              <i className="bi bi-house" />Hub
+            </button>
+          </div>
         </nav>
       </aside>
 
       <div className="ff-area-main">
         <div className="ff-area-topbar">
-          <span className="ff-area-topbar-title">{NAV.find((n) => n.section === section)?.label}</span>
+          <div className="ff-area-topbar-breadcrumb">
+            <span>{tenantName}</span>
+            <span className="ff-area-topbar-breadcrumb-sep">›</span>
+            <span className="ff-area-topbar-breadcrumb-active">{currentNavItem?.label ?? section}</span>
+          </div>
+          <div className="ff-area-topbar-right">
+            <AdminClock />
+            <div className="ff-area-status-badge">
+              <span className="ff-area-status-dot" />
+              Operando
+            </div>
+            <div className="ff-area-topbar-avatar" title="Admin">
+              <i className="bi bi-person" />
+            </div>
+          </div>
         </div>
         <div className="ff-area-content">
-          {section === 'dashboard' && <Dashboard />}
-          {section === 'products' && <Products />}
+          {section === 'dashboard'  && <Dashboard />}
+          {section === 'products'   && <Products />}
           {section === 'categories' && <Categories />}
-          {section === 'tables' && <Tables />}
-          {section === 'orders' && <Orders />}
-          {section === 'branches' && <RestaurantSettings />}
-          {section === 'settings' && <RestaurantSettings />}
-          {section === 'kiosks' && <Kiosks />}
-          {section === 'queue' && <QueueSection />}
-          {section === 'loyalty' && <LoyaltySection />}
+          {section === 'tables'     && <Tables />}
+          {section === 'orders'     && <Orders />}
+          {section === 'branches'   && <RestaurantSettings />}
+          {section === 'settings'   && <RestaurantSettings />}
+          {section === 'kiosks'     && <Kiosks />}
+          {section === 'queue'      && <QueueSection />}
+          {section === 'loyalty'    && <LoyaltySection />}
           {section === 'aggregator' && <AggregatorSection />}
         </div>
       </div>

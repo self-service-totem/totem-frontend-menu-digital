@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
+import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
 import { formatMoney } from '@/utils/format';
@@ -18,34 +20,37 @@ export function OrderConfirmationPage() {
   const { t } = useLabels();
 
   const state = location.state as ConfirmationState | null;
+  const currency = menuContext?.currency ?? 'BRL';
 
   function goToMenu() {
     navigate(tableId ? `/menu/${tableId}` : '/menu');
   }
 
-  // If landed here without state (e.g. direct URL access), redirect to menu
-  if (!state) {
-    goToMenu();
-    return null;
-  }
+  // If landed here without state (e.g. direct URL access), redirect to menu.
+  // Done in an effect so we don't navigate during render.
+  useEffect(() => {
+    if (!state) navigate(tableId ? `/menu/${tableId}` : '/menu', { replace: true });
+  }, [state, tableId, navigate]);
+
+  if (!state) return null;
 
   const { orderNumber, total, customerName, itemCount } = state;
 
   return (
     <div className="ff-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '0 24px', gap: 24, textAlign: 'center' }}>
-      {/* Success icon */}
+      {/* Success icon — green conveys success */}
       <div
         style={{
           width: 80,
           height: 80,
           borderRadius: '50%',
-          background: 'var(--ff-primary-soft)',
+          background: 'rgba(31, 122, 58, 0.12)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <i className="bi bi-check-lg" style={{ fontSize: 40, color: 'var(--ff-primary)' }} />
+        <i className="bi bi-check-lg" style={{ fontSize: 40, color: 'var(--ff-success)' }} />
       </div>
 
       {/* Heading */}
@@ -100,8 +105,8 @@ export function OrderConfirmationPage() {
             <span style={{ fontWeight: 600 }}>{itemCount}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 700, borderTop: '1px solid var(--ff-border)', paddingTop: 8, marginTop: 2 }}>
-            <span>Total</span>
-            <span>{formatMoney(total)}</span>
+            <span>{t('summary.total')}</span>
+            <span>{formatMoney(total, currency)}</span>
           </div>
         </div>
       </div>
@@ -112,10 +117,13 @@ export function OrderConfirmationPage() {
       </p>
 
       {/* CTA */}
-      <div style={{ width: '100%', maxWidth: 320 }}>
+      <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <PrimaryButton onClick={goToMenu}>
           {t('confirmation.backToMenu')}
         </PrimaryButton>
+        <SecondaryButton onClick={() => navigate('/rating')}>
+          <i className="bi bi-star" /> {t('confirmation.rate')}
+        </SecondaryButton>
       </div>
     </div>
   );

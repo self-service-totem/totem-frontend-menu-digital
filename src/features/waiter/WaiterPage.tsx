@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
+import type { LabelKey } from '@/i18n/labels';
 import { waiterService, orderService } from '@/services';
 import type { WaiterCall } from '@/lib/types';
 
@@ -20,39 +21,26 @@ const actions: { id: ActionId; icon: string }[] = [
   { id: 'other', icon: 'bi-three-dots' },
 ];
 
-const ACTION_LABELS_PT: Record<ActionId, string> = {
-  call: 'Chamar garçom',
-  bill: 'Pedir a conta',
-  order: 'Meus pedidos',
-  other: 'Outro motivo',
+const ACTION_LABEL_KEYS: Record<ActionId, LabelKey> = {
+  call: 'waiter.action.call',
+  bill: 'waiter.action.bill',
+  order: 'waiter.action.order',
+  other: 'waiter.action.other',
 };
 
-const ACTION_LABELS_ES: Record<ActionId, string> = {
-  call: 'Llamar al mozo',
-  bill: 'Pedir la cuenta',
-  order: 'Mis pedidos',
-  other: 'Otro motivo',
+const STATUS_LABEL_KEYS: Record<string, LabelKey> = {
+  PENDING: 'waiter.status.pending',
+  ACKNOWLEDGED: 'waiter.status.acknowledged',
+  RESOLVED: 'waiter.status.resolved',
+  CANCELED: 'waiter.status.canceled',
 };
 
-const STATUS_LABEL_PT: Record<string, string> = {
-  PENDING: 'Aguardando',
-  ACKNOWLEDGED: 'Reconhecido',
-  RESOLVED: 'Resolvido',
-  CANCELED: 'Cancelado',
-};
-
-const STATUS_LABEL_ES: Record<string, string> = {
-  PENDING: 'Pendiente',
-  ACKNOWLEDGED: 'Reconocida',
-  RESOLVED: 'Resuelta',
-  CANCELED: 'Cancelada',
-};
-
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, locale: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return `hace ${diff}s`;
-  if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
-  return `hace ${Math.floor(diff / 3600)} h`;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  if (diff < 60) return rtf.format(-diff, 'second');
+  if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+  return rtf.format(-Math.floor(diff / 3600), 'hour');
 }
 
 // ─── Active request card ──────────────────────────────────────────────────────
@@ -63,6 +51,7 @@ interface ActiveRequestCardProps {
   statusLabel: string;
   cancelLabel: string;
   resolveLabel: string;
+  locale: string;
   onCancel: () => void;
   onResolve: () => void;
 }
@@ -73,6 +62,7 @@ function ActiveRequestCard({
   statusLabel,
   cancelLabel,
   resolveLabel,
+  locale,
   onCancel,
   onResolve,
 }: ActiveRequestCardProps) {
@@ -110,7 +100,7 @@ function ActiveRequestCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{actionLabel}</div>
           <div style={{ fontSize: '0.78rem', color: 'var(--ff-text-muted)' }}>
-            {timeAgo(call.createdAt)}
+            {timeAgo(call.createdAt, locale)}
           </div>
         </div>
         <span
@@ -159,9 +149,8 @@ export function WaiterPage() {
   const { tableId, customer, setCustomerName, setCustomerPhone } = useSession();
   const { t, language } = useLabels();
   const navigate = useNavigate();
-  const isPt = language.startsWith('pt');
-  const actionLabels = isPt ? ACTION_LABELS_PT : ACTION_LABELS_ES;
-  const statusLabels = isPt ? STATUS_LABEL_PT : STATUS_LABEL_ES;
+  const actionLabel = (id: ActionId) => t(ACTION_LABEL_KEYS[id]);
+  const statusLabel = (status: string) => t(STATUS_LABEL_KEYS[status] ?? 'waiter.status.pending');
 
   const [open, setOpen] = useState(false);
   const [currentAction, setCurrentAction] = useState<ActionId>('call');
@@ -209,10 +198,7 @@ export function WaiterPage() {
     }
     // Check for existing active request (call or other)
     if (hasActiveCall()) {
-      const dupeMsg = isPt
-        ? 'Você já tem uma solicitação ativa. Aguarde o atendimento.'
-        : 'Ya tienes una solicitud activa. Por favor espera atención.';
-      showConfirmation(dupeMsg, 'info');
+      showConfirmation(t('waiter.dupeActive'), 'info');
       return;
     }
     setCurrentAction(id);
@@ -224,7 +210,7 @@ export function WaiterPage() {
 
   async function handleRequestBill() {
     if (!tableId) {
-      showConfirmation(isPt ? 'Mesa não identificada.' : 'Mesa no identificada.', 'info');
+      showConfirmation(t('waiter.tableUnknown'), 'info');
       return;
     }
     setSubmitting(true);
@@ -235,7 +221,7 @@ export function WaiterPage() {
       showConfirmation(t('bill.requestSent'));
       navigate('/close-account');
     } catch {
-      showConfirmation(isPt ? 'Não foi possível solicitar a conta. Tente novamente.' : 'No se pudo solicitar la cuenta. Intenta de nuevo.', 'info');
+      showConfirmation(t('waiter.billError'), 'info');
     } finally {
       setSubmitting(false);
     }
@@ -244,7 +230,7 @@ export function WaiterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!tableId) {
-      setError(isPt ? 'Mesa não identificada.' : 'Mesa no identificada.');
+      setError(t('waiter.tableUnknown'));
       return;
     }
     if (!phone.trim()) {
@@ -293,21 +279,19 @@ export function WaiterPage() {
   async function handleCancelCall(id: string) {
     await waiterService.cancelCall(id);
     setCalls((prev) => prev.map((c) => c.id === id ? { ...c, status: 'CANCELED', updatedAt: new Date().toISOString() } : c));
-    const msg = isPt ? 'Solicitação cancelada.' : 'Solicitud cancelada.';
-    showConfirmation(msg, 'info');
+    showConfirmation(t('waiter.requestCanceled'), 'info');
   }
 
   async function handleResolveCall(id: string) {
     await waiterService.resolveCall(id);
     setCalls((prev) => prev.map((c) => c.id === id ? { ...c, status: 'RESOLVED', updatedAt: new Date().toISOString() } : c));
-    const msg = isPt ? 'Solicitação marcada como resolvida.' : 'Solicitud marcada como resuelta.';
-    showConfirmation(msg);
+    showConfirmation(t('waiter.requestResolved'));
   }
 
-  const cancelLabel = isPt ? 'Cancelar solicitação' : 'Cancelar solicitud';
-  const resolveLabel = isPt ? 'Marcar como resolvida' : 'Marcar como resuelta';
-  const activeTitle = isPt ? 'Solicitação em curso' : 'Solicitud en curso';
-  const historyTitle = isPt ? 'Histórico' : 'Historial';
+  const cancelLabel = t('waiter.cancelRequest');
+  const resolveLabel = t('waiter.resolveRequest');
+  const activeTitle = t('waiter.activeTitle');
+  const historyTitle = t('waiter.historyTitle');
 
   return (
     <div className="ff-page">
@@ -330,7 +314,7 @@ export function WaiterPage() {
           <WaiterActionCard
             key={a.id}
             icon={a.icon}
-            label={actionLabels[a.id]}
+            label={actionLabel(a.id)}
             onClick={() => handleAction(a.id)}
           />
         ))}
@@ -367,10 +351,11 @@ export function WaiterPage() {
               <ActiveRequestCard
                 key={call.id}
                 call={call}
-                actionLabel={actionLabels[(call.reason as ActionId) ?? 'call']}
-                statusLabel={statusLabels[call.status]}
+                actionLabel={actionLabel((call.reason as ActionId) ?? 'call')}
+                statusLabel={statusLabel(call.status)}
                 cancelLabel={cancelLabel}
                 resolveLabel={resolveLabel}
+                locale={language}
                 onCancel={() => handleCancelCall(call.id)}
                 onResolve={() => handleResolveCall(call.id)}
               />
@@ -391,10 +376,11 @@ export function WaiterPage() {
               <ActiveRequestCard
                 key={call.id}
                 call={call}
-                actionLabel={actionLabels[(call.reason as ActionId) ?? 'call']}
-                statusLabel={statusLabels[call.status]}
+                actionLabel={actionLabel((call.reason as ActionId) ?? 'call')}
+                statusLabel={statusLabel(call.status)}
                 cancelLabel={cancelLabel}
                 resolveLabel={resolveLabel}
+                locale={language}
                 onCancel={() => handleCancelCall(call.id)}
                 onResolve={() => handleResolveCall(call.id)}
               />

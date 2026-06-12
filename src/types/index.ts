@@ -106,14 +106,26 @@ export interface Customer {
   phone: string;
 }
 
+export interface CartModifier {
+  groupId: string;
+  groupName: string;
+  optionId: string;
+  optionName: string;
+  priceModifier: number;
+}
+
 export interface CartItem {
   id: string;
   productId: string;
   name: string;
   imageUrl: string;
+  /** Final per-unit price (base product + selected modifiers). */
   unitPrice: number;
+  /** Base product price, without modifiers (for display). */
+  basePrice?: number;
   quantity: number;
   note?: string;
+  modifiers?: CartModifier[];
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'delivered' | 'closed';

@@ -21,9 +21,11 @@ interface LanguageSelectorProps {
   /** Hide the language name and show only the flag (compact pills, e.g. kiosk topbar) */
   showLabels?: boolean;
   className?: string;
+  /** Called after a language is chosen (e.g. to close a popover) */
+  onSelect?: () => void;
 }
 
-export function LanguageSelector({ variant = 'dropdown', showLabels = true, className }: LanguageSelectorProps) {
+export function LanguageSelector({ variant = 'dropdown', showLabels = true, className, onSelect }: LanguageSelectorProps) {
   const { language, setLanguage } = useSession();
   const { t } = useLabels();
   const [open, setOpen] = useState(false);
@@ -48,7 +50,10 @@ export function LanguageSelector({ variant = 'dropdown', showLabels = true, clas
             key={o.code}
             type="button"
             className={`ff-lang-pill ${language === o.code ? 'ff-lang-pill--active' : ''}`}
-            onClick={() => setLanguage(o.code)}
+            onClick={() => {
+              setLanguage(o.code);
+              onSelect?.();
+            }}
             aria-label={t(o.labelKey)}
           >
             <FlagIcon code={o.code} />

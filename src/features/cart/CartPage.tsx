@@ -7,13 +7,20 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { Modal } from '@/components/common/Modal';
 import { TextField } from '@/components/common/TextField';
+import { OrderSummary } from '@/components/account/OrderSummary';
+import { formatMoney } from '@/utils/format';
 import { orderService } from '@/services';
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { items, setQuantity, remove, clear } = useCart();
-  const { customer, tableId, setCustomerName, setCustomerPhone } = useSession();
+  const { items, subtotal, setQuantity, remove, clear } = useCart();
+  const { customer, tableId, menuContext, setCustomerName, setCustomerPhone } = useSession();
   const { t } = useLabels();
+
+  const currency = menuContext?.currency ?? 'BRL';
+  const serviceFeeRate = menuContext?.serviceFeeRate ?? 0.1;
+  const serviceFee = +(subtotal * serviceFeeRate).toFixed(2);
+  const total = +(subtotal + serviceFee).toFixed(2);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState('');
@@ -23,6 +30,13 @@ export function CartPage() {
 
   const goBackToMenu = () => navigate(tableId ? `/menu/${tableId}` : '/menu');
 
+  // Compose a human-readable note (chosen modifiers + free text) so the kitchen
+  // and bill keep the customization even though modifiers are stored structured.
+  const composeOrderNote = (it: (typeof items)[number]) => {
+    const mods = (it.modifiers ?? []).map((m) => m.optionName).join(', ');
+    return [mods, it.note].filter(Boolean).join(' | ') || undefined;
+  };
+
   const submitOrder = async (customerName: string) => {
     if (!tableId || items.length === 0) return;
     setSubmitting(true);
@@ -30,7 +44,7 @@ export function CartPage() {
     try {
       const order = await orderService.placeOrder(
         tableId,
-        { customerName, items: items.map((it) => ({ productId: it.productId, quantity: it.quantity, notes: it.note })) },
+        { customerName, items: items.map((it) => ({ productId: it.productId, quantity: it.quantity, notes: composeOrderNote(it) })) },
         items,
       );
       clear();
@@ -108,20 +122,33 @@ export function CartPage() {
 
           {/* Items */}
           <div className="ff-cart-items">
-            <h2 className="ff-cart-items__title">Seus itens</h2>
+            <h2 className="ff-cart-items__title">{t('cart.items')}</h2>
             {items.map((it) => (
               <div key={it.id} className="ff-cart-row">
                 <img className="ff-cart-row__img" src={it.imageUrl} alt={it.name} loading="lazy" />
                 <div className="ff-cart-row__body">
                   <span className="ff-cart-row__name">{it.name}</span>
+                  {it.modifiers && it.modifiers.length > 0 && (
+                    <span className="ff-cart-row__mods">
+                      {it.modifiers.map((m) => m.optionName).join(', ')}
+                    </span>
+                  )}
                   {it.note && <span className="ff-cart-row__note">{it.note}</span>}
+                  <span className="ff-cart-row__price">
+                    {formatMoney(it.unitPrice * it.quantity, currency)}
+                    {it.quantity > 1 && (
+                      <span className="ff-cart-row__unit">
+                        {' '}· {formatMoney(it.unitPrice, currency)} {t('cart.each')}
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div className="ff-cart-row__controls">
                   <button
                     type="button"
                     className="ff-cart-ctrl"
                     onClick={() => it.quantity > 1 ? setQuantity(it.id, it.quantity - 1) : remove(it.id)}
-                    aria-label="Diminuir"
+                    aria-label={t('cart.decrease')}
                   >
                     <i className="bi bi-dash-circle-fill" />
                   </button>
@@ -130,7 +157,7 @@ export function CartPage() {
                     type="button"
                     className="ff-cart-ctrl"
                     onClick={() => setQuantity(it.id, it.quantity + 1)}
-                    aria-label="Aumentar"
+                    aria-label={t('cart.increase')}
                   >
                     <i className="bi bi-plus-circle-fill" />
                   </button>
@@ -138,13 +165,22 @@ export function CartPage() {
                     type="button"
                     className="ff-cart-ctrl ff-cart-ctrl--trash"
                     onClick={() => remove(it.id)}
-                    aria-label="Remover"
+                    aria-label={t('cart.removeItem')}
                   >
                     <i className="bi bi-trash-fill" />
                   </button>
                 </div>
               </div>
             ))}
+
+            {/* Price breakdown */}
+            <OrderSummary
+              subtotal={subtotal}
+              serviceFee={serviceFee}
+              total={total}
+              currency={currency}
+              serviceFeeLabel={t('summary.serviceFee')}
+            />
           </div>
 
           {error && (
@@ -161,7 +197,8 @@ export function CartPage() {
               onClick={handlePlaceOrder}
               disabled={submitting}
             >
-              {submitting ? t('cart.placingOrder') : t('cart.placeOrder')}
+              <span>{submitting ? t('cart.placingOrder') : t('cart.placeOrder')}</span>
+              {!submitting && <span className="ff-cart-cta__total">{formatMoney(total, currency)}</span>}
             </button>
           </div>
         </>

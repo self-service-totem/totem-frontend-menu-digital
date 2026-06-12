@@ -18,6 +18,16 @@ export function SearchBar({ value, onChange, placeholder = 'Buscar producto' }: 
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         aria-label={placeholder}
       />
+      {value && (
+        <button
+          type="button"
+          className="ff-search__clear"
+          onClick={() => onChange('')}
+          aria-label="Clear"
+        >
+          <i className="bi bi-x-circle-fill" aria-hidden />
+        </button>
+      )}
     </div>
   );
 }

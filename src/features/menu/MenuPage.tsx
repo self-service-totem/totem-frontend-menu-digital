@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import type { Category, Product } from '@/types';
 import { menuService } from '@/services';
@@ -9,8 +9,12 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { SearchBar } from '@/components/common/SearchBar';
 import { CategoryCarousel } from '@/components/menu/CategoryCarousel';
 import { ProductSection } from '@/components/menu/ProductSection';
+import { MenuSkeleton } from '@/components/menu/MenuSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
+import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { ProductDetailModal } from '@/features/product-detail/ProductDetailModal';
+
+type LoadStatus = 'loading' | 'ready' | 'error';
 
 export function MenuPage() {
   const params = useParams();
@@ -23,25 +27,29 @@ export function MenuPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  // Which category is currently expanded (null = all collapsed)
+  // Which category accordion is expanded (null = all collapsed)
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<LoadStatus>('loading');
 
   useEffect(() => {
     if (tableIdParam && tableIdParam !== tableId) setTableId(tableIdParam);
   }, [tableIdParam, tableId, setTableId]);
 
-  useEffect(() => {
-    Promise.all([menuService.listCategories(), menuService.listProducts()]).then(
-      ([catsResponse, prodsResponse]) => {
+  const loadMenu = useCallback(() => {
+    setStatus('loading');
+    Promise.all([menuService.listCategories(), menuService.listProducts()])
+      .then(([catsResponse, prodsResponse]) => {
         setCategories(mapCategoriesResponseToViewModels(catsResponse));
         setProducts(mapProductsResponseToViewModels(prodsResponse));
-      },
-    );
+        setStatus('ready');
+      })
+      .catch(() => setStatus('error'));
   }, []);
 
-  const handleOpenProduct = (product: Product) => setSearchParams({ product: product.id });
-  const handleCloseProduct = () => setSearchParams({});
+  useEffect(() => {
+    loadMenu();
+  }, [loadMenu]);
 
   // Products indexed by category for O(1) lookup
   const productsByCategory = useMemo(() => {
@@ -67,7 +75,10 @@ export function MenuPage() {
     );
   }, [products, search]);
 
-  // Toggle accordion — clicking an already-open banner collapses it
+  const handleOpenProduct = (product: Product) => setSearchParams({ product: product.id });
+  const handleCloseProduct = () => setSearchParams({});
+
+  // Toggle accordion — clicking an already-open category collapses it
   const handleToggle = (categoryId: string) => {
     setActiveCategory((prev) => (prev === categoryId ? null : categoryId));
   };
@@ -100,42 +111,53 @@ export function MenuPage() {
         placeholder={t('menu.searchPlaceholder')}
       />
 
-      {/* Category circles — clicking selects/expands that category */}
-      {!search && (
+      {/* Category circles — clicking expands that category's accordion */}
+      {!search && status === 'ready' && (
         <CategoryCarousel
           categories={categories}
           activeId={activeCategory}
-          onSelect={(id) => setActiveCategory(id)}
+          onSelect={setActiveCategory}
         />
       )}
 
-      {searchResults ? (
-        // Search mode: flat results list
-        searchResults.length === 0 ? (
-          <EmptyState icon="bi-search" title={t('menu.empty')} description={t('menu.emptyDesc')} />
-        ) : (
-          <ProductSection
-            title={`${t('menu.results')} (${searchResults.length})`}
-            products={searchResults}
-            onOpen={handleOpenProduct}
-            isExpanded
-          />
-        )
-      ) : (
-        // Accordion mode: all category banners; only active one shows products
-        <div className="ff-accordion">
-          {categories.map((cat) => (
+      {status === 'loading' && <MenuSkeleton />}
+
+      {status === 'error' && (
+        <EmptyState
+          icon="bi-wifi-off"
+          title={t('menu.loadError')}
+          action={<PrimaryButton onClick={loadMenu}>{t('menu.retry')}</PrimaryButton>}
+        />
+      )}
+
+      {status === 'ready' && (
+        searchResults ? (
+          searchResults.length === 0 ? (
+            <EmptyState icon="bi-search" title={t('menu.empty')} description={t('menu.emptyDesc')} />
+          ) : (
             <ProductSection
-              key={cat.id}
-              title={cat.name}
-              imageUrl={cat.imageUrl}
-              products={productsByCategory.get(cat.id) ?? []}
-              isExpanded={activeCategory === cat.id}
-              onToggle={() => handleToggle(cat.id)}
+              title={`${t('menu.results')} (${searchResults.length})`}
+              products={searchResults}
               onOpen={handleOpenProduct}
+              isExpanded
             />
-          ))}
-        </div>
+          )
+        ) : (
+          // Accordion: all categories collapsed; tapping a banner expands it
+          <div className="ff-accordion">
+            {categories.map((cat) => (
+              <ProductSection
+                key={cat.id}
+                title={cat.name}
+                imageUrl={cat.imageUrl}
+                products={productsByCategory.get(cat.id) ?? []}
+                isExpanded={activeCategory === cat.id}
+                onToggle={() => handleToggle(cat.id)}
+                onOpen={handleOpenProduct}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {openProductId && (

@@ -1,5 +1,5 @@
 import { getCollection, setCollection, insertOne, updateOne, findById } from '@/lib/mock-db';
-import type { DbCategory, DbProduct, DbTable, Zone, Branch, Tenant, KioskDevice, DbOrder, MockUser } from '@/lib/types';
+import type { DbCategory, DbProduct, DbTable, Zone, Branch, Tenant, KioskDevice, DbOrder, MockUser, FullOrderStatus } from '@/lib/types';
 import { BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
 
 function delay<T>(val: T, ms = 150): Promise<T> {
@@ -173,6 +173,10 @@ export const adminOrderService = {
     return delay(
       getCollection<DbOrder>('orders').sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     );
+  },
+  async updateStatus(orderId: string, status: FullOrderStatus): Promise<void> {
+    updateOne<DbOrder>('orders', orderId, { status, updatedAt: now() });
+    return delay(undefined as unknown as void);
   },
 };
 
