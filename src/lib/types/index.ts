@@ -185,6 +185,7 @@ export interface KitchenTicket {
   tableNumber?: string;
   items: DbOrderItem[];
   status: KitchenTicketStatus;
+  priority?: 'URGENT' | 'VIP';
   notes?: string;
   createdAt: string;
   updatedAt: string;

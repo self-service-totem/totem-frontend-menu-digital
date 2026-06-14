@@ -2,65 +2,75 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { waiterStaffService } from '@/lib/services/waiterStaffService';
 import { useNotify } from '@/lib/notifications';
+import { getTableStatusUI } from '@/lib/utils/tableStatusUI';
+import { useElapsed, elapsedMins, fmtElapsed, ageSeverity } from '@/lib/utils/useElapsed';
 import type { DbTable, DbOrder, WaiterCall } from '@/lib/types';
 import { findById } from '@/lib/mock-db';
+
+// ─── Utils ──────────────────────────────────────────────────────────────────────
 
 function formatBRL(v: number | undefined | null) {
   if (v == null || isNaN(v as number)) return '—';
   return (v as number).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function initials(name: string): string {
+  return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+}
+
+// ─── Order status maps ─────────────────────────────────────────────────────────
+
 const ORDER_STATUS_LABEL: Record<string, string> = {
   SENT_TO_KITCHEN: 'Aguardando cozinha',
-  PREPARING: 'Preparando',
-  READY: 'Pronto para servir',
-  DELIVERED: 'Entregue',
-  CLOSED: 'Encerrado',
-  CANCELED: 'Cancelado',
-  CREATED: 'Criado',
-  DRAFT: 'Rascunho',
+  PREPARING:       'Preparando',
+  READY:           'Pronto para servir',
+  DELIVERED:       'Entregue',
+  CLOSED:          'Encerrado',
+  CANCELED:        'Cancelado',
+  CREATED:         'Criado',
+  DRAFT:           'Rascunho',
 };
 
-const ORDER_STATUS_COLOR: Record<string, string> = {
-  SENT_TO_KITCHEN: '#d97706',
-  PREPARING: '#7c3aed',
-  READY: '#059669',
-  DELIVERED: '#0284c7',
-  CLOSED: '#6b7280',
-  CANCELED: '#dc2626',
-  CREATED: '#374151',
-  DRAFT: '#9ca3af',
+const ORDER_STATUS_COLOR: Record<string, { color: string; bg: string }> = {
+  SENT_TO_KITCHEN: { color: '#d97706', bg: '#fffbeb' },
+  PREPARING:       { color: '#7c3aed', bg: '#f5f3ff' },
+  READY:           { color: '#059669', bg: '#f0fdf4' },
+  DELIVERED:       { color: '#0284c7', bg: '#eff6ff' },
+  CLOSED:          { color: '#6b7280', bg: '#f9fafb' },
+  CANCELED:        { color: '#dc2626', bg: '#fef2f2' },
+  CREATED:         { color: '#374151', bg: '#f9fafb' },
+  DRAFT:           { color: '#9ca3af', bg: '#f9fafb' },
 };
 
-const TABLE_STATUS_LABEL: Record<string, string> = {
-  EMPTY: 'Vazia',
-  OCCUPIED: 'Ocupada',
-  ORDER_IN_PROGRESS: 'Pedido em andamento',
-  WAITING_FOR_KITCHEN: 'Aguardando cozinha',
-  READY_TO_SERVE: 'Pronto para servir',
-  WAITING_FOR_PAYMENT: 'Aguardando pagamento',
-  CLOSED: 'Fechada',
-};
+// ─── Metric pill ───────────────────────────────────────────────────────────────
 
-const TABLE_STATUS_COLOR: Record<string, string> = {
-  EMPTY: '#6b7280',
-  OCCUPIED: '#0284c7',
-  ORDER_IN_PROGRESS: '#059669',
-  WAITING_FOR_KITCHEN: '#d97706',
-  READY_TO_SERVE: '#22c55e',
-  WAITING_FOR_PAYMENT: '#7c3aed',
-  CLOSED: '#374151',
-};
+function MetricPill({ icon, label, value, color }: { icon: string; label: string; value: string | number; color?: string }) {
+  return (
+    <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '12px 16px', display: 'flex', flex: '1 1 130px', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <i className={`bi ${icon}`} style={{ color: color ?? '#6b7280', fontSize: '0.85rem' }} />
+        <span style={{ fontSize: '0.73rem', color: '#9ca3af', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</span>
+      </div>
+      <span style={{ fontSize: '1.4rem', fontWeight: 800, color: color ?? '#111827', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export function WaiterTableDetailPage() {
   const { tableId } = useParams<{ tableId: string }>();
-  const navigate = useNavigate();
-  const notify = useNotify();
+  const navigate    = useNavigate();
+  const notify      = useNotify();
+  useElapsed(30_000);
 
-  const [table, setTable] = useState<DbTable | null>(null);
-  const [orders, setOrders] = useState<DbOrder[]>([]);
-  const [calls, setCalls] = useState<WaiterCall[]>([]);
+  const [table,      setTable]      = useState<DbTable | null>(null);
+  const [orders,     setOrders]     = useState<DbOrder[]>([]);
+  const [calls,      setCalls]      = useState<WaiterCall[]>([]);
   const [requesting, setRequesting] = useState(false);
+  const [serving,    setServing]    = useState(false);
 
   const load = useCallback(async () => {
     if (!tableId) return;
@@ -68,8 +78,7 @@ export function WaiterTableDetailPage() {
       waiterStaffService.getTableOrders(tableId),
       waiterStaffService.listCalls(),
     ]);
-    const dbTable = findById<DbTable>('tables', tableId);
-    setTable(dbTable);
+    setTable(findById<DbTable>('tables', tableId) ?? null);
     setOrders(tableOrders);
     setCalls(allCalls.filter((c) => c.tableId === tableId && c.status !== 'RESOLVED' && c.status !== 'CANCELED'));
   }, [tableId]);
@@ -80,6 +89,8 @@ export function WaiterTableDetailPage() {
     return () => clearInterval(interval);
   }, [load]);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────────
+
   async function handleAck(id: string) {
     await waiterStaffService.acknowledgeCall(id);
     notify('Chamado reconhecido', 'info');
@@ -88,7 +99,7 @@ export function WaiterTableDetailPage() {
 
   async function handleResolve(id: string) {
     await waiterStaffService.resolveCall(id);
-    notify('Chamado resolvido ✅');
+    notify('Chamado resolvido');
     load();
   }
 
@@ -104,14 +115,39 @@ export function WaiterTableDetailPage() {
     }
   }
 
+  async function handleMarkServed() {
+    if (!tableId) return;
+    setServing(true);
+    try {
+      await waiterStaffService.markServed(tableId);
+      notify(`Mesa ${table?.number} — pedido entregue`);
+      load();
+    } finally {
+      setServing(false);
+    }
+  }
+
+  // ── Derived ───────────────────────────────────────────────────────────────────
+
   const unpaidTotal = orders
     .filter((o) => o.paymentStatus === 'UNPAID')
     .reduce((s, o) => s + o.total, 0);
 
-  const canRequestBill =
-    orders.some((o) => o.paymentStatus === 'UNPAID') &&
-    table?.status !== 'WAITING_FOR_PAYMENT' &&
-    table?.status !== 'CLOSED';
+  const hasReadyOrders  = orders.some((o) => o.status === 'READY');
+  const canRequestBill  = orders.some((o) => o.paymentStatus === 'UNPAID') && table?.status !== 'WAITING_FOR_PAYMENT' && table?.status !== 'CLOSED';
+  const pendingCalls    = calls.filter((c) => c.status === 'PENDING');
+  const acknowledgedCalls = calls.filter((c) => c.status === 'ACKNOWLEDGED');
+
+  // Primary action for the header button
+  const primaryAction = calls.length > 0
+    ? null // call actions are in the calls section
+    : hasReadyOrders
+    ? { label: 'Entregar pedido', icon: 'bi-check2', color: '#059669', action: handleMarkServed, loading: serving }
+    : canRequestBill
+    ? { label: 'Pedir conta', icon: 'bi-receipt', color: '#1d4ed8', action: handleRequestBill, loading: requesting }
+    : null;
+
+  // ── Not found ─────────────────────────────────────────────────────────────────
 
   if (!table) {
     return (
@@ -123,9 +159,12 @@ export function WaiterTableDetailPage() {
     );
   }
 
+  const ui = getTableStatusUI(table.status);
+
   return (
     <div className="ff-area-layout">
-      <aside className="ff-area-sidebar">
+      {/* Sidebar */}
+      <aside className="ff-area-sidebar ff-area-sidebar--mobile-bottom">
         <div className="ff-area-sidebar-logo">
           <i className="bi bi-person-badge me-2" />Garçom
         </div>
@@ -139,151 +178,218 @@ export function WaiterTableDetailPage() {
         </nav>
       </aside>
 
-      <div className="ff-area-main">
+      <div className="ff-area-main ff-area-main--mobile-bottom-pad">
         {/* Header */}
-        <div className="ff-area-topbar">
-          <div>
-            <span className="ff-area-topbar-title">Mesa {table.number}</span>
-            <span
-              className="ms-3 badge"
-              style={{ background: TABLE_STATUS_COLOR[table.status] ?? '#6b7280', color: '#fff', fontSize: 12 }}
-            >
-              {TABLE_STATUS_LABEL[table.status] ?? table.status}
-            </span>
-            {table.zoneName && (
-              <span className="ms-2 badge bg-light text-secondary" style={{ fontSize: 12 }}>
-                <i className="bi bi-geo-alt me-1" />{table.zoneName}
+        <div className="ff-area-topbar" style={{ gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="ff-area-topbar-title">Mesa {table.number}</span>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                background: calls.length > 0 ? '#fef2f2' : ui.bgColor,
+                color:      calls.length > 0 ? '#dc2626'  : ui.color,
+                border: `1px solid ${calls.length > 0 ? '#fecaca' : ui.color + '30'}`,
+                borderRadius: 20, padding: '3px 10px', fontSize: '0.78rem', fontWeight: 700,
+              }}>
+                <i className={`bi ${calls.length > 0 ? 'bi-megaphone-fill' : ui.icon}`} style={{ fontSize: '0.75rem' }} />
+                {calls.length > 0 ? 'Chamando garçom' : ui.label}
               </span>
-            )}
-            {table.assignedWaiterName && (
-              <span className="ms-2 badge bg-light text-secondary" style={{ fontSize: 12 }}>
-                <i className="bi bi-person-badge me-1" />{table.assignedWaiterName}
-              </span>
-            )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {table.zoneName && (
+                <span style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <i className="bi bi-geo-alt" style={{ fontSize: '0.72rem' }} />{table.zoneName}
+                </span>
+              )}
+              {table.assignedWaiterName && (
+                <span style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ background: '#e0e7ff', color: '#4338ca', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 800 }}>
+                    {initials(table.assignedWaiterName)}
+                  </span>
+                  {table.assignedWaiterName}
+                </span>
+              )}
+              {(table.guestCount ?? 0) > 0 && (
+                <span style={{ fontSize: '0.78rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <i className="bi bi-people" style={{ fontSize: '0.72rem' }} />{table.guestCount} pessoas
+                </span>
+              )}
+            </div>
           </div>
-          <div className="ms-auto d-flex gap-2">
-            <button className="btn btn-sm btn-outline-secondary" onClick={load}>
+
+          <div className="ms-auto d-flex gap-2 align-items-center">
+            <button className="btn btn-sm btn-outline-secondary" onClick={load} title="Atualizar">
               <i className="bi bi-arrow-clockwise" />
             </button>
-            {canRequestBill && (
+            {primaryAction && (
               <button
-                className="btn btn-sm btn-primary"
-                onClick={handleRequestBill}
-                disabled={requesting}
+                className="btn btn-sm"
+                style={{ background: primaryAction.color, color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.85rem', padding: '6px 16px', borderRadius: 8 }}
+                onClick={primaryAction.action}
+                disabled={primaryAction.loading}
               >
-                <i className="bi bi-receipt me-1" />Pedir conta
+                <i className={`bi ${primaryAction.icon} me-1`} />
+                {primaryAction.label}
               </button>
             )}
           </div>
         </div>
 
         <div className="ff-area-content" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Waiter calls */}
+
+          {/* Metric strip */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <MetricPill icon="bi-receipt"           label="Pedidos"       value={orders.length} />
+            <MetricPill icon="bi-currency-dollar"   label="Total a pagar" value={formatBRL(unpaidTotal)} color={unpaidTotal > 0 ? '#7c3aed' : undefined} />
+            <MetricPill icon="bi-megaphone-fill"    label="Chamados"      value={calls.length}   color={calls.length > 0 ? '#dc2626' : undefined} />
+            {(table.guestCount ?? 0) > 0 && (
+              <MetricPill icon="bi-people-fill" label="Pessoas" value={table.guestCount!} />
+            )}
+          </div>
+
+          {/* Waiter calls section */}
           {calls.length > 0 && (
-            <div className="ff-data-card" style={{ borderLeft: '4px solid #ef4444' }}>
-              <div className="ff-data-card-header" style={{ color: '#dc2626' }}>
-                <i className="bi bi-bell-fill me-2" />Chamados pendentes ({calls.length})
+            <div style={{ background: '#fff', border: '1.5px solid #fecaca', borderLeft: '4px solid #dc2626', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(220,38,38,.12)' }}>
+              <div style={{ background: '#fef2f2', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #fecaca' }}>
+                <i className="bi bi-megaphone-fill" style={{ color: '#dc2626', fontSize: '1rem' }} />
+                <span style={{ fontWeight: 800, color: '#dc2626', fontSize: '0.9rem' }}>
+                  {calls.length === 1 ? '1 chamado pendente' : `${calls.length} chamados pendentes`}
+                </span>
               </div>
-              <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {calls.map((call) => (
-                  <div key={call.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 600 }}>{call.customerName || '—'}</span>
-                      {call.phone && <span style={{ color: '#6b7280', fontSize: 13, marginLeft: 8 }}>{call.phone}</span>}
-                      <span
-                        className={`badge ms-2 ${call.status === 'PENDING' ? 'bg-danger' : 'bg-warning text-dark'}`}
-                        style={{ fontSize: 11 }}
-                      >
-                        {call.status === 'PENDING' ? 'Pendente' : 'Reconhecido'}
+              <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {calls.map((call) => {
+                  const isPending = call.status === 'PENDING';
+                  const mins = elapsedMins(call.createdAt);
+                  const sev  = ageSeverity(mins, 3, 7);
+                  const timerColors = { ok: '#059669', warn: '#d97706', critical: '#dc2626' };
+                  return (
+                    <div key={call.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#fafafa', borderRadius: 8, border: '1px solid #f3f4f6' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>
+                          {call.customerName || 'Cliente'}
+                        </div>
+                        {call.reason && (
+                          <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: 2 }}>
+                            {call.reason === 'call' ? 'Chamar garçom' : call.reason === 'bill' ? 'Pedir a conta' : call.reason === 'order' ? 'Ver pedidos' : 'Outro motivo'}
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.73rem', fontWeight: 800, color: '#fff', background: timerColors[sev], borderRadius: 20, padding: '2px 9px', flexShrink: 0 }}>
+                        {fmtElapsed(mins)}
                       </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {call.status === 'PENDING' && (
-                        <button className="btn btn-sm btn-outline-warning" onClick={() => handleAck(call.id)}>
-                          Reconhecer
+                      <span className={`badge ${isPending ? 'bg-danger' : 'bg-warning text-dark'}`} style={{ fontSize: '0.67rem', flexShrink: 0 }}>
+                        {isPending ? 'PENDENTE' : 'RECONHECIDO'}
+                      </span>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {isPending && (
+                          <button className="btn btn-sm btn-outline-warning" style={{ fontSize: '0.78rem', minHeight: 32, padding: '4px 10px' }} onClick={() => handleAck(call.id)}>
+                            Reconhecer
+                          </button>
+                        )}
+                        <button className="btn btn-sm btn-success" style={{ fontSize: '0.78rem', minHeight: 32, padding: '4px 10px', fontWeight: 700 }} onClick={() => handleResolve(call.id)}>
+                          <i className="bi bi-check2 me-1" />Resolver
                         </button>
-                      )}
-                      <button className="btn btn-sm btn-success" onClick={() => handleResolve(call.id)}>
-                        Resolver
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Orders summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 14 }}>
-            <div className="ff-metric-card">
-              <div className="ff-metric-card-label">Pedidos ativos</div>
-              <div className="ff-metric-card-value">{orders.length}</div>
-            </div>
-            <div className="ff-metric-card">
-              <div className="ff-metric-card-label">Total a pagar</div>
-              <div className="ff-metric-card-value" style={{ color: '#e11d2a', fontSize: 20 }}>
-                {formatBRL(unpaidTotal)}
-              </div>
-            </div>
-            <div className="ff-metric-card">
-              <div className="ff-metric-card-label">Chamados</div>
-              <div className="ff-metric-card-value" style={{ color: calls.length > 0 ? '#dc2626' : '#059669' }}>
-                {calls.length}
-              </div>
-            </div>
-            {(table.guestCount ?? 0) > 0 && (
-              <div className="ff-metric-card">
-                <div className="ff-metric-card-label">Pessoas</div>
-                <div className="ff-metric-card-value">{table.guestCount}</div>
-              </div>
-            )}
-          </div>
-
-          {/* Orders list */}
+          {/* Orders */}
           {orders.length === 0 ? (
-            <div className="text-muted text-center py-4">Nenhum pedido ativo para esta mesa.</div>
+            <div className="ff-empty-state" style={{ paddingTop: 40 }}>
+              <i className="bi bi-receipt ff-empty-state-icon" />
+              <span className="ff-empty-state-title">Nenhum pedido ativo</span>
+            </div>
           ) : (
-            orders.map((order) => (
-              <div key={order.id} className="ff-data-card">
-                <div className="ff-data-card-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <strong>{order.orderNumber}</strong>
-                    <span style={{ color: '#6b7280', fontSize: 13 }}>{order.customerName}</span>
-                    <span
-                      className="badge ms-1"
-                      style={{ background: ORDER_STATUS_COLOR[order.status] ?? '#6b7280', color: '#fff', fontSize: 11 }}
-                    >
+            orders.map((order) => {
+              const statusStyle = ORDER_STATUS_COLOR[order.status] ?? { color: '#6b7280', bg: '#f9fafb' };
+              return (
+                <div key={order.id} style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
+                  {/* Order header */}
+                  <div style={{ padding: '12px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontWeight: 800, fontSize: '1rem', color: '#111827' }}>{order.orderNumber}</span>
+                    <span style={{ fontSize: '0.82rem', color: '#6b7280', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {order.customerName}
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.color}30`, borderRadius: 20, padding: '2px 9px', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}>
                       {ORDER_STATUS_LABEL[order.status] ?? order.status}
                     </span>
                   </div>
-                  <span style={{ fontWeight: 700 }}>{formatBRL(order.total)}</span>
-                </div>
-                <div style={{ padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {order.items.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                      <span>
-                        <strong>{item.quantity}×</strong> {item.name}
-                        {item.customerName && (
-                          <span style={{ color: '#6b7280', fontSize: 12, marginLeft: 6 }}>({item.customerName})</span>
-                        )}
-                        {item.note && <span style={{ color: '#d97706', fontSize: 12, marginLeft: 6 }}>— {item.note}</span>}
-                      </span>
-                      <span style={{ color: '#6b7280' }}>{formatBRL(item.unitPrice * item.quantity)}</span>
+
+                  {/* Items — receipt style */}
+                  <div style={{ padding: '12px 18px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                      {order.items.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <span style={{ background: '#f3f4f6', color: '#374151', borderRadius: 6, padding: '2px 7px', fontSize: '0.8rem', fontWeight: 800, flexShrink: 0, minWidth: 28, textAlign: 'center' }}>
+                            {item.quantity}×
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3 }}>{item.name}</div>
+                            {item.customerName && (
+                              <div style={{ fontSize: '0.73rem', color: '#60a5fa', marginTop: 2 }}>{item.customerName}</div>
+                            )}
+                            {item.note && (
+                              <div style={{ fontSize: '0.73rem', color: '#d97706', marginTop: 2 }}>— {item.note}</div>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151', flexShrink: 0 }}>
+                            {formatBRL(item.unitPrice * item.quantity)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', paddingTop: 8, marginTop: 4, fontWeight: 700 }}>
-                    <span>Total</span>
-                    <span>{formatBRL(order.total)}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: order.paymentStatus === 'PAID' ? '#059669' : '#6b7280' }}>
-                    <span>Pagamento</span>
-                    <span>
-                      {order.paymentStatus === 'PAID' ? '✅ Pago' : order.paymentStatus === 'PARTIALLY_PAID' ? '⚠ Parcial' : '⏳ Pendente'}
-                    </span>
+
+                    {/* Total row */}
+                    <div style={{ borderTop: '1.5px solid #e5e7eb', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {order.serviceFee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#9ca3af' }}>
+                          <span>Serviço (10%)</span>
+                          <span>{formatBRL(order.serviceFee)}</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 800, color: '#111827' }}>
+                        <span>Total</span>
+                        <span>{formatBRL(order.total)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginTop: 2 }}>
+                        <span style={{ color: '#9ca3af' }}>Pagamento</span>
+                        <span style={{ fontWeight: 700, color: order.paymentStatus === 'PAID' ? '#059669' : order.paymentStatus === 'PARTIALLY_PAID' ? '#d97706' : '#6b7280' }}>
+                          {order.paymentStatus === 'PAID' ? '✓ Pago' : order.paymentStatus === 'PARTIALLY_PAID' ? '◑ Parcial' : '○ Pendente'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
+          )}
+
+          {/* Footer action — request bill */}
+          {canRequestBill && (
+            <button
+              className="btn"
+              style={{ background: '#1d4ed8', color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.95rem', padding: '12px', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              onClick={handleRequestBill}
+              disabled={requesting}
+            >
+              <i className="bi bi-receipt" />
+              {requesting ? 'Solicitando...' : 'Solicitar conta ao caixa'}
+            </button>
+          )}
+          {hasReadyOrders && (
+            <button
+              className="btn"
+              style={{ background: '#059669', color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.95rem', padding: '12px', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              onClick={handleMarkServed}
+              disabled={serving}
+            >
+              <i className="bi bi-check2-circle" />
+              {serving ? 'Registrando...' : 'Marcar como entregue'}
+            </button>
           )}
         </div>
       </div>

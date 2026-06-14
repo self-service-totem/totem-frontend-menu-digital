@@ -22,6 +22,20 @@ type Tab = 'tables' | 'orders' | 'history' | 'receipts' | 'invoices';
 
 // ─── Generic payment modal ────────────────────────────────────────────────────
 
+const METHOD_CONFIG: Record<PaymentMethod, { label: string; icon: string }> = {
+  CASH:              { label: 'Dinheiro',  icon: 'bi-cash-coin' },
+  CARD:              { label: 'Cartão',    icon: 'bi-credit-card-2-front' },
+  PIX:               { label: 'PIX',       icon: 'bi-qr-code' },
+  EXTERNAL_TERMINAL: { label: 'Terminal',  icon: 'bi-device-hdd' },
+};
+
+function nextRoundAmount(amount: number): number {
+  if (amount <= 20)  return Math.ceil(amount / 5) * 5;
+  if (amount <= 100) return Math.ceil(amount / 10) * 10;
+  if (amount <= 500) return Math.ceil(amount / 50) * 50;
+  return Math.ceil(amount / 100) * 100;
+}
+
 interface PayModalProps {
   title: string;
   subtitle: string;
@@ -36,18 +50,62 @@ function PayModal({ title, subtitle, totalDue, paidAmount, onClose, onPay }: Pay
   const [method, setMethod] = useState<PaymentMethod>('CASH');
   const [mode, setMode] = useState<'full' | 'partial'>('full');
   const [customAmount, setCustomAmount] = useState(String(remaining));
+  const [cashGiven, setCashGiven] = useState(() => String(nextRoundAmount(remaining)));
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
   const payAmount = mode === 'full' ? remaining : Math.min(parseFloat(customAmount) || 0, remaining);
+  const cashGivenNum = parseFloat(cashGiven) || 0;
+  const troco = method === 'CASH' && cashGivenNum >= payAmount && payAmount > 0
+    ? +(cashGivenNum - payAmount).toFixed(2)
+    : null;
 
   async function handlePay() {
     if (payAmount <= 0) return;
     setLoading(true);
     try {
       await onPay(payAmount, method);
+      const isFullyPaid = +(remaining - payAmount).toFixed(2) <= 0;
+      if (isFullyPaid) {
+        setDone(true);
+        return;
+      }
     } finally {
       setLoading(false);
     }
+    onClose();
+  }
+
+  if (done) {
+    return (
+      <div
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        onClick={onClose}
+      >
+        <div
+          style={{ background: '#fff', borderRadius: 16, padding: 36, width: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontSize: 52 }}>✅</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#059669' }}>Pagamento recebido!</div>
+          <div style={{ fontSize: 14, color: '#6b7280' }}>{subtitle}</div>
+          {troco !== null && troco > 0 && (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 20px', width: '100%' }}>
+              <div style={{ fontSize: 12, color: '#059669', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>Troco</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#059669' }}>{formatBRL(troco)}</div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button className="btn btn-outline-secondary flex-1" onClick={() => window.print()}>
+              <i className="bi bi-printer me-1" />Imprimir recibo
+            </button>
+            <button className="btn btn-success flex-1" onClick={onClose}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -56,11 +114,12 @@ function PayModal({ title, subtitle, totalDue, paidAmount, onClose, onPay }: Pay
       onClick={onClose}
     >
       <div
-        style={{ background: '#fff', borderRadius: 16, padding: 28, width: 420, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '90vh', overflowY: 'auto' }}
+        style={{ background: '#fff', borderRadius: 16, padding: 28, width: 440, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '90vh', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >
         <h5 style={{ margin: 0 }}>{title}</h5>
 
+        {/* Summary */}
         <div style={{ background: '#f9fafb', borderRadius: 10, padding: 14 }}>
           <div style={{ fontSize: 13, color: '#6b7280' }}>{subtitle}</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
@@ -79,6 +138,7 @@ function PayModal({ title, subtitle, totalDue, paidAmount, onClose, onPay }: Pay
           </div>
         </div>
 
+        {/* Full / partial */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className={`btn btn-sm flex-1 ${mode === 'full' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setMode('full')}>
             Total restante
@@ -103,23 +163,67 @@ function PayModal({ title, subtitle, totalDue, paidAmount, onClose, onPay }: Pay
           </div>
         )}
 
+        {/* Payment method */}
         <div>
           <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 8 }}>Forma de pagamento</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {(Object.keys(METHOD_LABELS) as PaymentMethod[]).map((m) => (
-              <button
-                key={m}
-                className={`btn btn-sm ${method === m ? 'btn-primary' : 'btn-outline-secondary'}`}
-                onClick={() => setMethod(m)}
-              >
-                {METHOD_LABELS[m]}
-              </button>
-            ))}
+            {(Object.keys(METHOD_CONFIG) as PaymentMethod[]).map((m) => {
+              const cfg = METHOD_CONFIG[m];
+              return (
+                <button
+                  key={m}
+                  className={`btn ${method === m ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 8px', fontSize: 14 }}
+                  onClick={() => setMethod(m)}
+                >
+                  <i className={`bi ${cfg.icon}`} style={{ fontSize: 18 }} />
+                  {cfg.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
+        {/* Cash given + troco */}
+        {method === 'CASH' && (
+          <div style={{ background: '#fefce8', border: '1px solid #fde68a', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>
+                <i className="bi bi-cash-coin me-1" />Valor recebido em dinheiro
+              </label>
+              <input
+                className="form-control"
+                type="number"
+                min={payAmount}
+                step={0.01}
+                value={cashGiven}
+                onChange={(e) => setCashGiven(e.target.value)}
+                style={{ fontSize: 18, fontWeight: 700, textAlign: 'right' }}
+              />
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                {[payAmount, nextRoundAmount(payAmount), nextRoundAmount(payAmount) + 10].filter((v, i, arr) => arr.indexOf(v) === i && v > 0).map((v) => (
+                  <button key={v} className="btn btn-sm btn-outline-warning" onClick={() => setCashGiven(String(v))}>
+                    {formatBRL(v)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {troco !== null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: troco > 0 ? '#f0fdf4' : '#fff7ed', borderRadius: 8, padding: '8px 12px', border: `1px solid ${troco > 0 ? '#bbf7d0' : '#fed7aa'}` }}>
+                <span style={{ fontWeight: 700, color: troco > 0 ? '#059669' : '#ea580c' }}>Troco</span>
+                <span style={{ fontWeight: 900, fontSize: 22, color: troco > 0 ? '#059669' : '#ea580c' }}>{formatBRL(troco)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Confirm */}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-success flex-1" onClick={handlePay} disabled={loading || payAmount <= 0}>
+          <button
+            className="btn btn-success flex-1"
+            onClick={handlePay}
+            disabled={loading || payAmount <= 0 || (method === 'CASH' && cashGivenNum < payAmount)}
+          >
             {loading ? '...' : `Receber ${formatBRL(payAmount)}`}
           </button>
           <button className="btn btn-outline-secondary" onClick={onClose}>Cancelar</button>

@@ -951,11 +951,97 @@
   padding: 16px 20px;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 600;
-  font-size: 15px;
+  flex-direction: column;
+  gap: 4px;
 }
+
+.ff-data-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.ff-data-card-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 400;
+  margin: 0;
+}
+
+/* ─── Admin form primitives ──────────────────────────────────────────────── */
+.ff-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px;
+}
+
+.ff-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ff-form-input {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color .15s;
+  background: #fff;
+}
+
+.ff-form-input:focus { border-color: var(--ff-primary); }
+
+/* Toggle switch */
+.ff-toggle-btn {
+  width: 48px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: #e5e7eb;
+  padding: 3px;
+  cursor: pointer;
+  transition: background .2s;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ff-toggle-btn.active { background: #059669; }
+
+.ff-toggle-knob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transition: transform .2s;
+  display: block;
+}
+
+.ff-toggle-btn.active .ff-toggle-knob { transform: translateX(22px); }
+
+/* Primary action button */
+.ff-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ff-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.ff-primary-btn:active { background: var(--ff-primary-hover); }
 
 /* ─── Admin modal ────────────────────────────────────────────────────────── */
 .ff-admin-modal-overlay {
@@ -1287,139 +1373,545 @@
 .ff-empty-state-title { font-size: 15px; font-weight: 700; color: #374151; }
 .ff-empty-state-desc { font-size: 13px; color: #9ca3af; max-width: 260px; line-height: 1.5; }
 
-/* ─── Kitchen ────────────────────────────────────────────────────────────── */
-.ff-kitchen-layout {
+/* ─── Kitchen Display System (KDS) ──────────────────────────────────────── */
+
+.ff-kds-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: #111827;
-  color: #f9fafb;
+  height: 100vh;
+  overflow: hidden;
+  background: #0f172a;
+  color: #f1f5f9;
 }
 
-.ff-kitchen-topbar {
-  background: #1f2937;
-  padding: 12px 24px;
+/* ── Topbar ── */
+.ff-kds-topbar {
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  padding: 0 16px;
+  height: 62px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid #374151;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.ff-kitchen-topbar-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.ff-kitchen-filter-bar {
+/* Generic icon control button (home, mute, fullscreen) */
+.ff-kds-ctrl-btn {
+  background: rgba(51,65,85,.6);
+  border: 1px solid #334155;
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.ff-kds-ctrl-btn:hover        { background: #334155; color: #f1f5f9; }
+.ff-kds-ctrl-btn.muted        { color: #ef4444; border-color: rgba(239,68,68,.35); }
+.ff-kds-ctrl-btn.muted:hover  { background: rgba(239,68,68,.15); color: #fca5a5; }
+
+/* Keep legacy alias */
+.ff-kds-home-btn {
+  background: rgba(51,65,85,.6);
+  border: 1px solid #334155;
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.ff-kds-home-btn:hover { background: #334155; color: #f1f5f9; }
+
+.ff-kds-topbar-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 12px 24px;
-  background: #1f2937;
+  flex-shrink: 0;
+}
+
+.ff-kds-clock {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  letter-spacing: .02em;
+}
+
+.ff-kds-stats-bar {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+  flex-shrink: 0;
   flex-wrap: wrap;
 }
 
-.ff-kitchen-filter-btn {
-  padding: 6px 16px;
+.ff-kds-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
   border-radius: 20px;
-  border: 1px solid #374151;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(15,23,42,.7);
+  border: 1px solid #1e293b;
+  white-space: nowrap;
+}
+.ff-kds-stat-pill.blue   { color: #93c5fd; border-color: rgba(59,130,246,.3); }
+.ff-kds-stat-pill.amber  { color: #fcd34d; border-color: rgba(245,158,11,.3); }
+.ff-kds-stat-pill.green  { color: #6ee7b7; border-color: rgba(16,185,129,.3); }
+.ff-kds-stat-pill.slate  { color: #94a3b8; }
+.ff-kds-stat-pill.purple { color: #c4b5fd; border-color: rgba(139,92,246,.3); }
+.ff-kds-stat-pill.red    { color: #fca5a5; border-color: rgba(239,68,68,.3); animation: kds-live-pulse 1.5s ease-in-out infinite; }
+.ff-kds-stat-pill-count  { font-size: 16px; font-weight: 800; line-height: 1; }
+
+/* ── Live indicator with last-update time ── */
+.ff-kds-live-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.ff-kds-live-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #22c55e;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.ff-kds-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: kds-live-pulse 2s ease-in-out infinite;
+}
+
+.ff-kds-live-time {
+  font-size: 10px;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+
+@keyframes kds-live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Filter bar ── */
+.ff-kds-filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.ff-kds-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #334155;
   background: transparent;
-  color: #9ca3af;
+  color: #64748b;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all .15s;
 }
-
-.ff-kitchen-filter-btn.active {
-  background: var(--ff-primary);
-  border-color: var(--ff-primary);
-  color: #fff;
+.ff-kds-filter-btn:hover { border-color: #475569; color: #94a3b8; }
+.ff-kds-filter-btn.active {
+  background: rgba(59,130,246,.15);
+  border-color: rgba(59,130,246,.4);
+  color: #93c5fd;
 }
 
-.ff-kitchen-columns {
+.ff-kds-filter-badge {
+  background: #334155;
+  color: #94a3b8;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+}
+.ff-kds-filter-btn.active .ff-kds-filter-badge {
+  background: rgba(59,130,246,.25);
+  color: #93c5fd;
+}
+
+/* ── Columns — sticky headers + independent scroll ── */
+.ff-kds-columns {
   display: flex;
   gap: 16px;
-  padding: 16px 24px;
+  padding: 16px;
   flex: 1;
+  min-height: 0;
   overflow-x: auto;
+  align-items: stretch;
 }
 
-.ff-kitchen-column {
+.ff-kds-column {
   flex: 1;
-  min-width: 260px;
-  background: #1f2937;
-  border-radius: 12px;
+  min-width: 290px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ff-kds-column-header {
+  border-radius: 14px 14px 0 0;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.ff-kds-column-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.ff-kds-column-header.blue  { background: rgba(59,130,246,.12); }
+.ff-kds-column-header.blue::before  { background: #3b82f6; }
+.ff-kds-column-header.amber { background: rgba(245,158,11,.12); }
+.ff-kds-column-header.amber::before { background: #f59e0b; }
+.ff-kds-column-header.green { background: rgba(16,185,129,.12); }
+.ff-kds-column-header.green::before { background: #10b981; }
+
+.ff-kds-col-icon { font-size: 15px; }
+.ff-kds-col-icon.blue  { color: #60a5fa; }
+.ff-kds-col-icon.amber { color: #fbbf24; }
+.ff-kds-col-icon.green { color: #34d399; }
+
+.ff-kds-column-header-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #cbd5e1;
+}
+
+.ff-kds-column-header-count {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+.ff-kds-column-header-count.blue  { color: #60a5fa; }
+.ff-kds-column-header-count.amber { color: #fbbf24; }
+.ff-kds-column-header-count.green { color: #34d399; }
+
+.ff-kds-column-body {
+  background: rgba(30,41,59,.5);
+  border: 1px solid #1e293b;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
   padding: 12px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+.ff-kds-column-body::-webkit-scrollbar        { width: 5px; }
+.ff-kds-column-body::-webkit-scrollbar-thumb  { background: #334155; border-radius: 3px; }
+.ff-kds-column-body::-webkit-scrollbar-track  { background: transparent; }
+
+/* ── Empty state ── */
+.ff-kds-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
   gap: 10px;
+  opacity: .45;
+}
+.ff-kds-empty-icon { font-size: 30px; color: #64748b; }
+.ff-kds-empty-msg  { font-size: 13px; color: #64748b; font-weight: 500; }
+
+/* ── Cards ── */
+@keyframes kds-card-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.ff-kitchen-column-header {
-  font-size: 13px;
+@keyframes kds-card-exit {
+  0%   { opacity: 1; transform: scale(1) translateY(0); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+  40%  { transform: scale(1.02) translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+  100% { opacity: 0; transform: scale(0.92) translateY(-12px); box-shadow: none; }
+}
+
+.ff-kds-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-top-width: 3px;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform .15s ease, box-shadow .15s ease;
+  animation: kds-card-enter 0.28s ease-out both;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.ff-kds-card:not(.exiting):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.45);
+}
+.ff-kds-card.exiting {
+  animation: kds-card-exit 0.32s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+  pointer-events: none;
+}
+.ff-kds-card.new       { border-top-color: #3b82f6; }
+.ff-kds-card.preparing { border-top-color: #f59e0b; }
+.ff-kds-card.ready     { border-top-color: #10b981; }
+
+/* Order number row */
+.ff-kds-card-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ff-kds-order-num {
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Badge row — urgency + priority */
+.ff-kds-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Urgency badge */
+.ff-kds-urgency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  padding: 4px 8px;
-  border-radius: 6px;
-  text-align: center;
-  margin-bottom: 4px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ff-kds-urgency-badge.green  { background: rgba(16,185,129,.15); color: #6ee7b7; }
+.ff-kds-urgency-badge.yellow { background: rgba(245,158,11,.15); color: #fcd34d; }
+.ff-kds-urgency-badge.red {
+  background: rgba(239,68,68,.2);
+  color: #fca5a5;
+  animation: kds-urgency-pulse 2s ease-in-out infinite;
 }
 
-.ff-kitchen-column-header.new { background: #1e40af; color: #bfdbfe; }
-.ff-kitchen-column-header.preparing { background: #92400e; color: #fde68a; }
-.ff-kitchen-column-header.ready { background: #065f46; color: #a7f3d0; }
+@keyframes kds-urgency-pulse {
+  0%, 100% { background: rgba(239,68,68,.2); }
+  50%       { background: rgba(239,68,68,.38); }
+}
 
-.ff-kitchen-ticket {
-  background: #374151;
+.ff-kds-urgency-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ff-kds-urgency-badge.green  .ff-kds-urgency-dot { background: #10b981; }
+.ff-kds-urgency-badge.yellow .ff-kds-urgency-dot { background: #f59e0b; }
+.ff-kds-urgency-badge.red    .ff-kds-urgency-dot { background: #ef4444; }
+
+/* Priority badge */
+.ff-kds-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 10px;
-  padding: 12px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.ff-kds-priority-badge.urgent {
+  background: rgba(239,68,68,.22);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,.35);
+  animation: kds-urgent-badge-pulse 1.4s ease-in-out infinite;
+}
+.ff-kds-priority-badge.vip {
+  background: rgba(234,179,8,.18);
+  color: #fde047;
+  border: 1px solid rgba(234,179,8,.3);
+}
+
+@keyframes kds-urgent-badge-pulse {
+  0%, 100% { background: rgba(239,68,68,.22); }
+  50%       { background: rgba(239,68,68,.38); }
+}
+
+/* Meta pills */
+.ff-kds-card-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ff-kds-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #334155;
+  color: #94a3b8;
+}
+.ff-kds-meta-pill.delivery { background: rgba(99,102,241,.18); color: #a5b4fc; }
+.ff-kds-meta-pill.takeaway { background: rgba(16,185,129,.12); color: #6ee7b7; }
+
+/* Divider */
+.ff-kds-card-divider {
+  height: 1px;
+  background: #334155;
+}
+
+/* Items */
+.ff-kds-items {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  cursor: pointer;
-  transition: background .15s;
-  border: 1px solid transparent;
 }
 
-.ff-kitchen-ticket:hover { background: #4b5563; }
-.ff-kitchen-ticket.urgent { border-color: #ef4444; }
-
-.ff-kitchen-ticket-header {
+.ff-kds-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 10px;
+  align-items: flex-start;
 }
 
-.ff-kitchen-ticket-number {
+.ff-kds-item-qty {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 900;
   color: #fff;
+  flex-shrink: 0;
+  min-width: 26px;
+  line-height: 1.3;
 }
 
-.ff-kitchen-ticket-time {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.ff-kitchen-ticket-table {
-  font-size: 13px;
-  color: #d1d5db;
-}
-
-.ff-kitchen-ticket-items {
+.ff-kds-item-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.ff-kitchen-ticket-item {
-  font-size: 13px;
-  color: #d1d5db;
+.ff-kds-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+  line-height: 1.3;
 }
 
-.ff-kitchen-ticket-item strong {
-  color: #fff;
+.ff-kds-item-customer {
+  font-size: 11px;
+  color: #60a5fa;
+  font-style: italic;
+}
+
+.ff-kds-item-note {
+  font-size: 12px;
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+/* Action buttons */
+.ff-kds-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s ease;
+  letter-spacing: .01em;
+}
+.ff-kds-action-btn.amber {
+  background: rgba(245,158,11,.15);
+  color: #fbbf24;
+  border-color: rgba(245,158,11,.3);
+}
+.ff-kds-action-btn.amber:hover  { background: #f59e0b; color: #0f172a; border-color: #f59e0b; }
+.ff-kds-action-btn.green {
+  background: rgba(16,185,129,.15);
+  color: #34d399;
+  border-color: rgba(16,185,129,.3);
+}
+.ff-kds-action-btn.green:hover  { background: #10b981; color: #0f172a; border-color: #10b981; }
+.ff-kds-action-btn.slate {
+  background: rgba(100,116,139,.15);
+  color: #94a3b8;
+  border-color: rgba(100,116,139,.3);
+}
+.ff-kds-action-btn.slate:hover  { background: #475569; color: #f1f5f9; border-color: #475569; }
+
+/* ── List view (filtered single column) ── */
+.ff-kds-list-view {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 480px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* ─── Kiosk ──────────────────────────────────────────────────────────────── */
@@ -2514,6 +3006,192 @@ html.ff-kiosk-a11y body::before {
   z-index: 0;
 }
 
+/* ─── Attract Screen (Idle / Kiosk Entry) ───────────────────────────────── */
+
+/* Full-screen fixed container — sits behind everything */
+.ff-attract-root {
+  position: fixed;
+  inset: 0;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  background: #0a0a0a;
+  z-index: 0;
+  transition: opacity 0.42s ease;
+  outline: none;
+}
+
+.ff-attract-fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Video mode ─────────────────────────────────────────────────────────── */
+.ff-attract-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 0;
+}
+
+/* Gradient tint over video so text stays legible */
+.ff-attract-video-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.30) 0%,
+    rgba(0, 0, 0, 0.10) 35%,
+    rgba(0, 0, 0, 0.50) 65%,
+    rgba(0, 0, 0, 0.82) 100%
+  );
+  z-index: 1;
+}
+
+/* ── No-video fallback: premium dark backdrop ────────────────────────────── */
+.ff-attract-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 28%, rgba(225, 29, 42, 0.28) 0%, transparent 68%),
+    linear-gradient(160deg, #0d0d0d 0%, #1a0004 45%, #090909 100%);
+  z-index: 0;
+}
+
+/* Subtle dot texture on top of the backdrop */
+.ff-attract-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* ── Content overlay ─────────────────────────────────────────────────────── */
+.ff-attract-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(80px, 9vw, 120px) clamp(32px, 5vw, 80px) clamp(96px, 11vw, 140px);
+}
+
+/* ── Restaurant brand block ──────────────────────────────────────────────── */
+.ff-attract-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 1.6vw, 22px);
+  text-align: center;
+  animation: ff-attract-in 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ff-attract-in {
+  from { opacity: 0; transform: translateY(-24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ff-attract-logo {
+  width: clamp(110px, 14vw, 190px);
+  height: clamp(110px, 14vw, 190px);
+  object-fit: contain;
+  border-radius: 24px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55));
+}
+
+.ff-attract-name {
+  font-size: clamp(64px, 8.5vw, 128px);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  text-shadow: 0 4px 32px rgba(0, 0, 0, 0.55);
+}
+
+.ff-attract-slogan {
+  font-size: clamp(22px, 2.8vw, 40px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Call-to-action block ────────────────────────────────────────────────── */
+.ff-attract-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 2.4vw, 32px);
+  animation: ff-attract-in 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Pulsing ring with touch icon */
+.ff-attract-cta-ring {
+  position: relative;
+  width: clamp(88px, 10vw, 136px);
+  height: clamp(88px, 10vw, 136px);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Expanding pulse ring */
+.ff-attract-cta-ring::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  animation: ff-attract-ring-pulse 2.4s ease-in-out infinite;
+}
+
+/* Second, slower pulse ring for depth */
+.ff-attract-cta-ring::after {
+  content: '';
+  position: absolute;
+  inset: -26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.10);
+  animation: ff-attract-ring-pulse 2.4s ease-in-out 0.6s infinite;
+}
+
+@keyframes ff-attract-ring-pulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  60%  { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+.ff-attract-cta-ring i {
+  font-size: clamp(38px, 4.8vw, 64px);
+  color: #fff;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.35));
+}
+
+/* "Touch anywhere to start" text with slow pulse */
+.ff-attract-cta-text {
+  font-size: clamp(26px, 3.2vw, 46px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+  animation: ff-attract-text-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes ff-attract-text-pulse {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%       { opacity: 0.65; transform: scale(0.975); }
+}
+
 /* ─── Queue Display ──────────────────────────────────────────────────────── */
 .ff-queue-layout {
   min-height: 100vh;
@@ -2797,4 +3475,144 @@ html.ff-kiosk-a11y body::before {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
+}
+
+/* ─── Sidebar nav badge (works in both vertical sidebar and mobile bottom nav) ── */
+.ff-nav-badge {
+  margin-left: auto;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.5;
+  color: #fff;
+}
+.ff-nav-badge--warn   { background: #f59e0b; }
+.ff-nav-badge--danger { background: #dc2626; }
+
+/* ─── Responsive: staff shell → bottom nav on phones/small tablets ─────────── */
+/* Opt-in via .ff-area-sidebar--mobile-bottom (used by tools with few nav items, */
+/* e.g. Garçom). Admin keeps its own treatment because it has many entries.     */
+@media (max-width: 768px) {
+  .ff-area-sidebar--mobile-bottom {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    min-height: 0;
+    height: 58px;
+    flex-direction: row;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 1030;
+  }
+  .ff-area-sidebar--mobile-bottom .ff-area-sidebar-logo {
+    display: none;
+  }
+  .ff-area-sidebar--mobile-bottom .ff-area-sidebar-nav {
+    flex-direction: row;
+    padding: 0;
+    width: 100%;
+    justify-content: space-around;
+  }
+  .ff-area-sidebar--mobile-bottom .ff-nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 2px;
+    font-size: 10px;
+    position: relative;
+  }
+  .ff-area-sidebar--mobile-bottom .ff-nav-item i {
+    font-size: 19px;
+  }
+  .ff-area-sidebar--mobile-bottom .ff-nav-item.active {
+    border-left: none;
+    border-top: 3px solid var(--ff-primary);
+    padding-left: 2px;
+    padding-top: 3px;
+  }
+  /* badge → small corner pill near the icon */
+  .ff-area-sidebar--mobile-bottom .ff-nav-badge {
+    position: absolute;
+    top: 3px;
+    left: calc(50% + 6px);
+    margin-left: 0;
+    padding: 0 5px;
+    min-width: 16px;
+    font-size: 0.62rem;
+    line-height: 1.6;
+  }
+  /* keep content clear of the fixed bottom bar */
+  .ff-area-main--mobile-bottom-pad {
+    padding-bottom: 58px;
+  }
+}
+
+/* ── Queue number cards (QueueDisplayPage) ──────────────────────────────────── */
+.ff-queue-num-card {
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 20px;
+}
+.ff-queue-num-card.preparing {
+  background: #1e3a5f;
+  border: 2px solid #3b82f6;
+  min-width: 130px;
+}
+.ff-queue-num-card.ready {
+  background: #14532d;
+  border: 2px solid #22c55e;
+  min-width: 160px;
+}
+.ff-queue-num-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.ff-queue-num-card.preparing .ff-queue-num-label { color: #93c5fd; }
+.ff-queue-num-card.ready     .ff-queue-num-label { color: #86efac; }
+.ff-queue-num-value {
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.ff-queue-num-card.preparing .ff-queue-num-value { font-size: 72px; }
+.ff-queue-num-card.ready     .ff-queue-num-value { font-size: 120px; }
+.ff-queue-num-order {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,.6);
+  background: rgba(255,255,255,.1);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+
+@keyframes queue-ready-flash {
+  0%   { transform: scale(0.9);  box-shadow: 0 0 0 0   rgba(34,197,94,.7); }
+  40%  { transform: scale(1.06); box-shadow: 0 0 0 24px rgba(34,197,94,0); }
+  100% { transform: scale(1);    box-shadow: none; }
+}
+.ff-queue-ready-anim { animation: queue-ready-flash 0.75s cubic-bezier(.36,.07,.19,.97); }
+
+/* ── Kitchen KDS — card urgency tiers ─────────────────────────────────────── */
+.ff-kds-card--urgency-yellow {
+  border-color: rgba(245,158,11,.45);
+  border-top-color: #f59e0b;
+}
+.ff-kds-card--urgency-red {
+  border-color: rgba(239,68,68,.55);
+  border-top-color: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239,68,68,.2) inset;
+  animation: kds-live-pulse 2s ease-in-out infinite;
 }

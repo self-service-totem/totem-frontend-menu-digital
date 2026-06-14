@@ -193,7 +193,8 @@ export type LabelKey =
   | 'kiosk.idle.subtitle'
   | 'kiosk.idle.continue'
   | 'kiosk.idle.restart'
-  | 'kiosk.a11y.label';
+  | 'kiosk.a11y.label'
+  | 'kiosk.attract.cta';
 
 type LabelMap = Record<LabelKey, string>;
 
@@ -387,6 +388,7 @@ const ptBR: LabelMap = {
   'kiosk.idle.continue': 'Sim, continuar',
   'kiosk.idle.restart': 'Começar de novo',
   'kiosk.a11y.label': 'Modo acessível',
+  'kiosk.attract.cta': 'Toque para começar',
 };
 
 const es: LabelMap = {
@@ -579,6 +581,7 @@ const es: LabelMap = {
   'kiosk.idle.continue': 'Sí, continuar',
   'kiosk.idle.restart': 'Empezar de nuevo',
   'kiosk.a11y.label': 'Modo accesible',
+  'kiosk.attract.cta': 'Toca para comenzar',
 };
 
 const en: LabelMap = {
@@ -760,6 +763,7 @@ const en: LabelMap = {
   'kiosk.idle.continue': 'Yes, continue',
   'kiosk.idle.restart': 'Start over',
   'kiosk.a11y.label': 'Accessibility mode',
+  'kiosk.attract.cta': 'Touch anywhere to start',
 };
 
 export const labels: Record<LanguageCode, LabelMap> = {

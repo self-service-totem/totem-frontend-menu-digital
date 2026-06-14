@@ -16,6 +16,7 @@ import { WaiterTableDetailPage } from './waiter-staff/WaiterTableDetailPage';
 import { CashierPage } from './cashier/CashierPage';
 import { AdminPage } from './admin/AdminPage';
 import { KioskWelcomePage, KioskMenuPage, KioskCartPage, KioskPaymentPage } from './kiosk/KioskApp';
+import { AttractScreen } from './kiosk/AttractScreen';
 import { LoginPage } from './login/LoginPage';
 import { ReportsPage } from './reports/ReportsPage';
 import { ReservationsPage } from './reservations/ReservationsPage';
@@ -24,6 +25,7 @@ import { DeliveryPage } from './delivery/DeliveryPage';
 export const router = createBrowserRouter([
   // ─── Hub ──────────────────────────────────────────────────────────────────
   { path: '/', element: <HubPage /> },
+  { path: '/hub', element: <Navigate to="/" replace /> },
 
   // ─── Digital Menu (existing, unchanged) ───────────────────────────────────
   {
@@ -77,7 +79,8 @@ export const router = createBrowserRouter([
   { path: '/admin/:section', element: <AdminPage /> },
 
   // ─── Kiosk ────────────────────────────────────────────────────────────────
-  { path: '/kiosk', element: <Navigate to="/kiosk/start" replace /> },
+  { path: '/kiosk', element: <Navigate to="/kiosk/attract" replace /> },
+  { path: '/kiosk/attract', element: <AttractScreen /> },
   { path: '/kiosk/start', element: <KioskWelcomePage /> },
   { path: '/kiosk/menu', element: <KioskMenuPage /> },
   { path: '/kiosk/cart', element: <KioskCartPage /> },

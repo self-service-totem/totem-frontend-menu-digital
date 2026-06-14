@@ -4,10 +4,10 @@ import { kioskService } from '@/lib/services/kioskService';
 import { useNotify } from '@/lib/notifications';
 import { useLabels } from '@/i18n/I18nContext';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
+import { loadAttractConfig } from './attractConfig';
 import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder } from '@/lib/types';
 import type { LabelKey } from '@/i18n/labels';
 
-const IDLE_TIMEOUT_MS = 60_000;
 const IDLE_COUNTDOWN_S = 10;
 
 /**
@@ -20,12 +20,14 @@ function useKioskIdleTimeout(enabled = true) {
   const navigate = useNavigate();
   const [warning, setWarning] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Read timeout from saved admin config each time the hook mounts.
+  const timeoutMs = useRef(loadAttractConfig().idleTimeoutSeconds * 1000);
 
-  const goHome = useCallback(() => navigate('/kiosk/start'), [navigate]);
+  const goHome = useCallback(() => navigate('/kiosk/attract'), [navigate]);
 
   const armIdle = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setWarning(true), IDLE_TIMEOUT_MS);
+    timerRef.current = setTimeout(() => setWarning(true), timeoutMs.current);
   }, []);
 
   const dismiss = useCallback(() => {
@@ -163,6 +165,7 @@ function KioskSteps({ current, allDone = false }: { current: 1 | 2 | 3 | 4; allD
 export function KioskWelcomePage() {
   const navigate = useNavigate();
   const { t } = useLabels();
+  const { warning, dismiss, goHome } = useKioskIdleTimeout();
 
   // Fresh session: drop any cart left behind by an abandoned/timed-out order
   useEffect(() => {
@@ -219,6 +222,7 @@ export function KioskWelcomePage() {
         </div>
       </div>
 
+      {warning && <KioskIdleModal onContinue={dismiss} onRestart={goHome} />}
     </div>
   );
 }
