@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getCollection } from '@/lib/mock-db';
 import type { DbOrder, DbProduct } from '@/lib/types';
 import { formatBRL } from '../adminUtils';
+import { AdminPageHeader, AdminMetricCard, AdminEmptyState } from '@/components/admin';
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -36,17 +37,6 @@ const STATUS_FEED_LABEL: Record<string, string> = {
   CREATED:         'Criado',
   DRAFT:           'Rascunho',
 };
-
-function DeltaBadge({ today, yesterday }: { today: number; yesterday: number }) {
-  const d = calcDelta(today, yesterday);
-  if (d === null) return null;
-  return (
-    <span className={`ff-metric-delta ${d.up ? 'up' : 'down'}`}>
-      <i className={`bi bi-arrow-${d.up ? 'up' : 'down'}`} />
-      {d.pct}%
-    </span>
-  );
-}
 
 export function Dashboard() {
   const [tick, setTick] = useState(0);
@@ -97,64 +87,54 @@ export function Dashboard() {
     .map(([name, qty]) => ({ name, qty, imageUrl: products.find((p) => p.name === name)?.imageUrl }));
   const maxQty = topProducts[0]?.qty ?? 1;
 
+  const deltaOrders  = calcDelta(todayOrders.length, yOrders.length);
+  const deltaRevenue = calcDelta(revenueToday, revenueY);
+  const deltaTicket  = calcDelta(avgTicket, avgTicketY);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   void tick;
 
   return (
     <div className="ff-dash">
-      <div className="ff-dash-metrics">
-        <div className="ff-metric-card-v2">
-          <div className="ff-metric-card-v2-top">
-            <div className="ff-metric-icon blue"><i className="bi bi-receipt" /></div>
-            <DeltaBadge today={todayOrders.length} yesterday={yOrders.length} />
-          </div>
-          <div>
-            <div className="ff-metric-card-v2-value">{todayOrders.length}</div>
-            <div className="ff-metric-card-v2-label">Pedidos hoje</div>
-          </div>
-        </div>
+      <AdminPageHeader title="Dashboard" subtitle="Visão geral da operação em tempo real" />
 
-        <div className="ff-metric-card-v2">
-          <div className="ff-metric-card-v2-top">
-            <div className="ff-metric-icon green"><i className="bi bi-cash-coin" /></div>
-            <DeltaBadge today={revenueToday} yesterday={revenueY} />
-          </div>
-          <div>
-            <div className="ff-metric-card-v2-value" style={{ fontSize: 22 }}>{formatBRL(revenueToday)}</div>
-            <div className="ff-metric-card-v2-label">Receita hoje</div>
-          </div>
-        </div>
-
-        <div className="ff-metric-card-v2">
-          <div className="ff-metric-card-v2-top">
-            <div className="ff-metric-icon purple"><i className="bi bi-graph-up" /></div>
-            <DeltaBadge today={avgTicket} yesterday={avgTicketY} />
-          </div>
-          <div>
-            <div className="ff-metric-card-v2-value" style={{ fontSize: 22 }}>{formatBRL(avgTicket)}</div>
-            <div className="ff-metric-card-v2-label">Ticket médio</div>
-          </div>
-        </div>
-
-        <div className="ff-metric-card-v2">
-          <div className="ff-metric-card-v2-top">
-            <div className="ff-metric-icon amber"><i className="bi bi-fire" /></div>
-          </div>
-          <div>
-            <div className="ff-metric-card-v2-value" style={{ color: '#d97706' }}>{pendingKitchen}</div>
-            <div className="ff-metric-card-v2-label">Na cozinha</div>
-          </div>
-        </div>
-
-        <div className="ff-metric-card-v2">
-          <div className="ff-metric-card-v2-top">
-            <div className="ff-metric-icon slate"><i className="bi bi-clock-history" /></div>
-          </div>
-          <div>
-            <div className="ff-metric-card-v2-value">{avgPrepMin > 0 ? `${avgPrepMin} min` : '—'}</div>
-            <div className="ff-metric-card-v2-label">Tempo médio preparo</div>
-          </div>
-        </div>
+      <div className="ff-admin-metrics-grid">
+        <AdminMetricCard
+          label="Pedidos hoje"
+          value={todayOrders.length}
+          icon="bi-receipt"
+          color="blue"
+          delta={deltaOrders ? `${deltaOrders.pct}%` : undefined}
+          deltaDir={deltaOrders ? (deltaOrders.up ? 'up' : 'down') : undefined}
+        />
+        <AdminMetricCard
+          label="Receita hoje"
+          value={formatBRL(revenueToday)}
+          icon="bi-cash-coin"
+          color="green"
+          delta={deltaRevenue ? `${deltaRevenue.pct}%` : undefined}
+          deltaDir={deltaRevenue ? (deltaRevenue.up ? 'up' : 'down') : undefined}
+        />
+        <AdminMetricCard
+          label="Ticket médio"
+          value={formatBRL(avgTicket)}
+          icon="bi-graph-up"
+          color="purple"
+          delta={deltaTicket ? `${deltaTicket.pct}%` : undefined}
+          deltaDir={deltaTicket ? (deltaTicket.up ? 'up' : 'down') : undefined}
+        />
+        <AdminMetricCard
+          label="Na cozinha"
+          value={pendingKitchen}
+          icon="bi-fire"
+          color="amber"
+        />
+        <AdminMetricCard
+          label="Tempo médio preparo"
+          value={avgPrepMin > 0 ? `${avgPrepMin} min` : '—'}
+          icon="bi-clock-history"
+          color="slate"
+        />
       </div>
 
       <div className="ff-dash-row">
@@ -192,9 +172,11 @@ export function Dashboard() {
             </div>
           </div>
           {feed.length === 0 ? (
-            <div style={{ padding: '28px 20px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
-              Nenhum pedido ainda
-            </div>
+            <AdminEmptyState
+              icon="bi-inbox"
+              title="Nenhum pedido ainda"
+              message="Os pedidos aparecerão aqui em tempo real."
+            />
           ) : (
             feed.map((o) => (
               <div key={o.id} className="ff-dash-feed-item">

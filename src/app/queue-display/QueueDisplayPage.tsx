@@ -4,7 +4,16 @@ import { queueService, type EnrichedQueueTicket } from '@/lib/services/queueServ
 import { getCollection } from '@/lib/mock-db';
 import type { Tenant, Branch } from '@/lib/types';
 
-// ─── Audio ───────────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const DISPLAY_CONFIG = {
+  readyOrderDisplayMinutes: 10,
+  pageRotationSeconds: 8,
+  maxPreparingPerPage: 12,
+  audioEnabled: true,
+} as const;
+
+// ─── Audio ────────────────────────────────────────────────────────────────────
 
 function playReadyChime() {
   try {
@@ -25,23 +34,95 @@ function playReadyChime() {
       gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
       osc.start(t); osc.stop(t + dur + 0.05);
     });
-  } catch { /* AudioContext blocked before user interaction — ignored */ }
+  } catch { /* AudioContext blocked before user interaction */ }
 }
 
-// ─── Number card ─────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-interface NumberCardProps {
-  ticket: EnrichedQueueTicket;
-  isReady: boolean;
-  flash: boolean;
+type ReadySize = 'xl' | 'lg' | 'md' | 'sm';
+type PrepSize  = 'lg' | 'md' | 'sm';
+
+function readyCardSize(otherCount: number): ReadySize {
+  if (otherCount === 0) return 'xl';
+  if (otherCount <= 3)  return 'lg';
+  if (otherCount <= 7)  return 'md';
+  return 'sm';
 }
 
-function NumberCard({ ticket, isReady, flash }: NumberCardProps) {
+function prepCardSize(total: number): PrepSize {
+  if (total <= 4) return 'lg';
+  if (total <= 9) return 'md';
+  return 'sm';
+}
+
+// ─── Now Calling Hero ─────────────────────────────────────────────────────────
+
+function NowCallingHero({ ticket, flash }: { ticket: EnrichedQueueTicket; flash: boolean }) {
   return (
-    <div className={`ff-queue-num-card${isReady ? ' ready' : ' preparing'}${flash ? ' ff-queue-ready-anim' : ''}`}>
-      <div className="ff-queue-num-label">Senha</div>
-      <div className="ff-queue-num-value">{ticket.ticketNumber}</div>
-      <div className="ff-queue-num-order">{ticket.orderNumber}</div>
+    <div className={`ff-qdp-hero${flash ? ' ff-qdp-ready-anim' : ''}`}>
+      <div className="ff-qdp-hero-eyebrow">
+        <i className="bi bi-bell-fill" />
+        CHAMANDO AGORA
+      </div>
+      <div className="ff-qdp-hero-number">{ticket.ticketNumber}</div>
+      <div className="ff-qdp-hero-instruction">
+        <i className="bi bi-arrow-right-circle me-2" />
+        Retire seu pedido no balcão
+      </div>
+    </div>
+  );
+}
+
+// ─── Ready Card ───────────────────────────────────────────────────────────────
+
+function ReadyCard({ ticket, size, flash }: { ticket: EnrichedQueueTicket; size: ReadySize; flash: boolean }) {
+  return (
+    <div className={`ff-qdp-ready-card ff-qdp-ready-card--${size}${flash ? ' ff-qdp-ready-anim' : ''}`}>
+      <div className="ff-qdp-card-label">SENHA</div>
+      <div className="ff-qdp-card-number">{ticket.ticketNumber}</div>
+      <div className="ff-qdp-card-sub">{ticket.orderNumber}</div>
+    </div>
+  );
+}
+
+// ─── Preparing Card ───────────────────────────────────────────────────────────
+
+function PrepCard({ ticket, size }: { ticket: EnrichedQueueTicket; size: PrepSize }) {
+  return (
+    <div className={`ff-qdp-prep-card ff-qdp-prep-card--${size}`}>
+      <div className="ff-qdp-card-label ff-qdp-card-label--prep">SENHA</div>
+      <div className="ff-qdp-card-number ff-qdp-card-number--prep">{ticket.ticketNumber}</div>
+    </div>
+  );
+}
+
+// ─── Empty States ─────────────────────────────────────────────────────────────
+
+function ReadyEmpty() {
+  return (
+    <div className="ff-qdp-empty">
+      <div className="ff-qdp-empty-icon">🧑‍🍳</div>
+      <div className="ff-qdp-empty-title">Preparando seus pedidos</div>
+      <div className="ff-qdp-empty-sub">Você será chamado assim que estiver pronto</div>
+    </div>
+  );
+}
+
+function PrepEmpty() {
+  return (
+    <div className="ff-qdp-empty ff-qdp-empty--muted">
+      <i className="bi bi-check-all ff-qdp-empty-icon" style={{ fontSize: 40, color: '#22c55e' }} />
+      <div className="ff-qdp-empty-sub">Todos os pedidos prontos</div>
+    </div>
+  );
+}
+
+function AllEmpty() {
+  return (
+    <div className="ff-qdp-all-empty">
+      <div style={{ fontSize: 80 }}>🍽️</div>
+      <div className="ff-qdp-all-empty-title">Nenhum pedido ativo</div>
+      <div className="ff-qdp-all-empty-sub">Faça seu pedido para aparecer aqui</div>
     </div>
   );
 }
@@ -49,16 +130,18 @@ function NumberCard({ ticket, isReady, flash }: NumberCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function QueueDisplayPage() {
-  const [tickets, setTickets]     = useState<EnrichedQueueTicket[]>([]);
-  const [now, setNow]             = useState(new Date());
-  const [flashIds, setFlashIds]   = useState<Set<string>>(new Set());
-  const navigate = useNavigate();
+  const [tickets, setTickets]       = useState<EnrichedQueueTicket[]>([]);
+  const [now, setNow]               = useState(new Date());
+  const [flashIds, setFlashIds]     = useState<Set<string>>(new Set());
+  const [prepPage, setPrepPage]     = useState(0);
+  const [pageVisible, setPageVisible] = useState(true);
 
-  const tenant = getCollection<Tenant>('tenants')[0];
-  const branch = getCollection<Branch>('branches')[0];
+  const navigate        = useNavigate();
+  const tenant          = getCollection<Tenant>('tenants')[0];
+  const branch          = getCollection<Branch>('branches')[0];
+  const prevReadyIds    = useRef<Set<string>>(new Set());
 
-  const prevReadyIds = useRef<Set<string>>(new Set());
-
+  // ── Polling ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     function load() {
       const data     = queueService.listActiveSync();
@@ -66,10 +149,10 @@ export function QueueDisplayPage() {
       const readyIds = new Set(ready.map((t) => t.id));
 
       const justReady = [...readyIds].filter((id) => !prevReadyIds.current.has(id));
-      if (justReady.length > 0) {
+      if (justReady.length > 0 && DISPLAY_CONFIG.audioEnabled) {
         playReadyChime();
         setFlashIds(new Set(justReady));
-        setTimeout(() => setFlashIds(new Set()), 2000);
+        setTimeout(() => setFlashIds(new Set()), 2500);
       }
 
       prevReadyIds.current = readyIds;
@@ -77,104 +160,152 @@ export function QueueDisplayPage() {
       setNow(new Date());
     }
     load();
-    const interval = setInterval(load, 3000);
-    return () => clearInterval(interval);
+    const id = setInterval(load, 3000);
+    return () => clearInterval(id);
   }, []);
 
+  // ── Derived data ──────────────────────────────────────────────────────────────
   const ready     = tickets.filter((t) => t.status === 'CALLED' || t.status === 'SERVING');
   const preparing = tickets.filter((t) => t.status === 'WAITING');
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif', color: '#f1f5f9' }}>
+  // Most recently-called ticket = "Now Calling" hero
+  const nowCalling = ready.length > 0
+    ? [...ready].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+    : null;
+  const otherReady = nowCalling ? ready.filter((t) => t.id !== nowCalling.id) : [];
 
-      {/* Header */}
-      <div style={{ background: '#1e293b', borderBottom: '1px solid #334155', padding: '0 28px', height: 68, display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
-        {/* Branding */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 10, background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-            🍽️
-          </div>
-          <div style={{ lineHeight: 1.2 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#f1f5f9', letterSpacing: '.02em' }}>
-              {tenant?.name ?? 'Restaurante'}
-            </div>
-            {branch?.name && (
-              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>{branch.name}</div>
-            )}
+  const rSize        = readyCardSize(otherReady.length);
+  const pSize        = prepCardSize(preparing.length);
+  const totalPages   = Math.max(1, Math.ceil(preparing.length / DISPLAY_CONFIG.maxPreparingPerPage));
+  const safePage     = Math.min(prepPage, totalPages - 1);
+  const prepPageItems = preparing.slice(
+    safePage * DISPLAY_CONFIG.maxPreparingPerPage,
+    (safePage + 1) * DISPLAY_CONFIG.maxPreparingPerPage,
+  );
+  const totalTickets = ready.length + preparing.length;
+
+  // ── Auto-page rotation ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (totalPages <= 1) { setPrepPage(0); return; }
+    const id = setInterval(() => {
+      setPageVisible(false);
+      setTimeout(() => {
+        setPrepPage((p) => (p + 1) % totalPages);
+        setPageVisible(true);
+      }, 380);
+    }, DISPLAY_CONFIG.pageRotationSeconds * 1000);
+    return () => clearInterval(id);
+  }, [totalPages]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  return (
+    <div className="ff-qdp-root">
+
+      {/* ── Header ── */}
+      <header className="ff-qdp-header">
+        <div className="ff-qdp-brand">
+          <div className="ff-qdp-brand-logo">🍽️</div>
+          <div>
+            <div className="ff-qdp-brand-name">{tenant?.name ?? 'Restaurante'}</div>
+            {branch?.name && <div className="ff-qdp-brand-branch">{branch.name}</div>}
           </div>
         </div>
 
-        {/* Center title */}
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 700, color: '#94a3b8', letterSpacing: '.08em', textTransform: 'uppercase' }}>
-          <i className="bi bi-tv me-2" style={{ color: '#60a5fa' }} />
+        <div className="ff-qdp-header-title">
+          <i className="bi bi-tv me-2" />
           Acompanhe seu pedido
         </div>
 
-        {/* Clock */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{ color: '#475569', background: 'transparent', border: '1px solid #1e3a5f', borderRadius: 7, padding: '3px 9px', cursor: 'pointer', fontSize: 13 }}
-            title="Hub"
-          >
+        <div className="ff-qdp-header-right">
+          <button className="ff-qdp-home-btn" onClick={() => navigate('/')} title="Hub">
             <i className="bi bi-house" />
           </button>
-          <span style={{ color: '#60a5fa', fontSize: 20, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '.04em' }}>
+          <div className="ff-qdp-clock">
             {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-      </div>
-
-      {/* Two-column body */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', overflow: 'hidden' }}>
-
-        {/* Left — Em preparo */}
-        <div style={{ borderRight: '1px solid #1e3a5f', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 24px', background: 'rgba(59,130,246,.08)', borderBottom: '2px solid #3b82f6', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <span style={{ fontSize: 20 }}>⏳</span>
-            <span style={{ fontSize: 17, fontWeight: 800, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.06em' }}>Em preparo</span>
-            <span style={{ background: '#1e3a5f', color: '#93c5fd', borderRadius: 20, padding: '2px 10px', fontSize: 13, fontWeight: 700, marginLeft: 'auto' }}>
-              {preparing.length}
-            </span>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexWrap: 'wrap', gap: 12, alignContent: 'flex-start' }}>
-            {preparing.length === 0 ? (
-              <p style={{ color: '#475569', fontSize: 15, margin: 0 }}>Nenhum pedido em preparo.</p>
-            ) : (
-              preparing.map((t) => (
-                <NumberCard key={t.id} ticket={t} isReady={false} flash={false} />
-              ))
-            )}
           </div>
         </div>
+      </header>
 
-        {/* Right — Pronto para retirar */}
-        <div style={{ background: 'rgba(20,83,45,.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 24px', background: 'rgba(34,197,94,.08)', borderBottom: '2px solid #22c55e', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <span style={{ fontSize: 20 }}>✅</span>
-            <span style={{ fontSize: 17, fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '.06em' }}>Pronto — Retire!</span>
-            <span style={{ background: '#14532d', color: '#86efac', borderRadius: 20, padding: '2px 10px', fontSize: 13, fontWeight: 700, marginLeft: 'auto' }}>
-              {ready.length}
-            </span>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexWrap: 'wrap', gap: 16, alignContent: 'flex-start' }}>
-            {ready.length === 0 ? (
-              <p style={{ color: '#475569', fontSize: 15, margin: 0 }}>Aguardando pedidos prontos...</p>
-            ) : (
-              ready.map((t) => (
-                <NumberCard key={t.id} ticket={t} isReady={true} flash={flashIds.has(t.id)} />
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+      {/* ── Main ── */}
+      <main className="ff-qdp-main">
+        {totalTickets === 0 ? (
+          <AllEmpty />
+        ) : (
+          <div className="ff-qdp-columns">
 
-      {/* Footer */}
-      <div style={{ background: '#1e293b', borderTop: '1px solid #334155', padding: '10px 40px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, color: '#475569', fontSize: 13, flexShrink: 0 }}>
+            {/* ── Ready Column ── */}
+            <div className="ff-qdp-col-ready">
+              <div className="ff-qdp-col-header ff-qdp-col-header--ready">
+                <i className="bi bi-check-circle-fill" />
+                <span>Pronto — Retire!</span>
+                <span className="ff-qdp-badge ff-qdp-badge--ready">{ready.length}</span>
+              </div>
+
+              <div className="ff-qdp-col-body">
+                {ready.length === 0 ? (
+                  <ReadyEmpty />
+                ) : (
+                  <>
+                    {nowCalling && (
+                      <NowCallingHero ticket={nowCalling} flash={flashIds.has(nowCalling.id)} />
+                    )}
+                    {otherReady.length > 0 && (
+                      <div className={`ff-qdp-ready-grid ff-qdp-ready-grid--${rSize}`}>
+                        {otherReady.map((t) => (
+                          <ReadyCard key={t.id} ticket={t} size={rSize} flash={flashIds.has(t.id)} />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── Preparing Column ── */}
+            <div className="ff-qdp-col-prep">
+              <div className="ff-qdp-col-header ff-qdp-col-header--prep">
+                <i className="bi bi-hourglass-split" />
+                <span>Em preparo</span>
+                <span className="ff-qdp-badge ff-qdp-badge--prep">{preparing.length}</span>
+              </div>
+
+              <div className="ff-qdp-col-body">
+                {preparing.length === 0 ? (
+                  <PrepEmpty />
+                ) : (
+                  <>
+                    <div className={`ff-qdp-prep-grid ff-qdp-prep-grid--${pSize}${pageVisible ? '' : ' ff-qdp-page-exit'}`}>
+                      {prepPageItems.map((t) => (
+                        <PrepCard key={t.id} ticket={t} size={pSize} />
+                      ))}
+                    </div>
+
+                    {totalPages > 1 && (
+                      <div className="ff-qdp-pager">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                          <span key={i} className={`ff-qdp-pager-dot${i === safePage ? ' active' : ''}`} />
+                        ))}
+                        <span className="ff-qdp-pager-label">
+                          Pág. {safePage + 1} de {totalPages}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+      </main>
+
+      {/* ── Footer ── */}
+      <footer className="ff-qdp-footer">
         <span><i className="bi bi-arrow-repeat me-1" />Atualiza a cada 3 segundos</span>
-        <span>·</span>
-        <span>Confira a senha impressa com o número exibido na tela</span>
-      </div>
+        <span className="ff-qdp-footer-sep">·</span>
+        <span>Confira o número na senha impressa</span>
+      </footer>
+
     </div>
   );
 }

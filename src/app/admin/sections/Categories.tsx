@@ -3,6 +3,12 @@ import { categoryService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { DbCategory } from '@/lib/types';
 import { AdminModal } from '@/components/admin';
+import {
+  AdminPageHeader,
+  AdminButton,
+  AdminIconButton,
+  AdminEmptyState,
+} from '@/components/admin';
 
 export function Categories() {
   const [categories, setCategories] = useState<DbCategory[]>([]);
@@ -17,6 +23,12 @@ export function Categories() {
   function openCreate() {
     setEditing(null);
     setForm({ name: '', imageUrl: '', active: true });
+    setShowModal(true);
+  }
+
+  function openEdit(c: DbCategory) {
+    setEditing(c);
+    setForm({ name: c.name, imageUrl: c.imageUrl, active: c.active });
     setShowModal(true);
   }
 
@@ -36,19 +48,27 @@ export function Categories() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <button className="btn btn-primary" onClick={openCreate}>
-          <i className="bi bi-plus me-1" />Nova categoria
-        </button>
-      </div>
+      <AdminPageHeader
+        title="Categorias"
+        subtitle={`${categories.length} categoria${categories.length !== 1 ? 's' : ''} no catálogo`}
+        actions={
+          <AdminButton variant="primary" icon="bi-plus" onClick={openCreate}>
+            Nova categoria
+          </AdminButton>
+        }
+      />
 
       {categories.length === 0 ? (
-        <div className="ff-empty-state">
-          <i className="bi bi-tags ff-empty-state-icon" />
-          <div className="ff-empty-state-title">Nenhuma categoria ainda</div>
-          <div className="ff-empty-state-desc">Crie categorias para organizar seu cardápio.</div>
-          <button className="btn btn-primary btn-sm mt-2" onClick={openCreate}>Criar primeira categoria</button>
-        </div>
+        <AdminEmptyState
+          icon="bi-tags"
+          title="Nenhuma categoria ainda"
+          message="Crie categorias para organizar seu cardápio."
+          action={
+            <AdminButton variant="primary" size="sm" icon="bi-plus" onClick={openCreate}>
+              Criar primeira categoria
+            </AdminButton>
+          }
+        />
       ) : (
         <div className="ff-cat-grid">
           {categories.map((c) => (
@@ -65,9 +85,13 @@ export function Categories() {
                       <div className="ff-toggle-thumb" />
                     </div>
                   </label>
-                  <button className="btn btn-sm btn-outline-secondary" onClick={() => { setEditing(c); setForm({ name: c.name, imageUrl: c.imageUrl, active: c.active }); setShowModal(true); }}>
-                    <i className="bi bi-pencil" />
-                  </button>
+                  <AdminIconButton
+                    icon="bi-pencil"
+                    variant="ghost"
+                    size="sm"
+                    title="Editar categoria"
+                    onClick={() => openEdit(c)}
+                  />
                 </div>
               </div>
             </div>
@@ -81,15 +105,19 @@ export function Categories() {
           onClose={() => setShowModal(false)}
           footer={
             <>
-              <button className="btn btn-primary flex-fill" onClick={handleSave}>Salvar</button>
-              <button className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+              <AdminButton variant="primary" onClick={handleSave} style={{ flex: 1 }}>Salvar</AdminButton>
+              <AdminButton variant="outline" onClick={() => setShowModal(false)}>Cancelar</AdminButton>
             </>
           }
         >
           {([['Nome', 'name'], ['URL da imagem', 'imageUrl']] as const).map(([label, field]) => (
-            <div key={field}>
-              <label className="ff-admin-modal-label">{label}</label>
-              <input className="form-control form-control-sm" value={(form as Record<string, string | boolean>)[field] as string} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))} />
+            <div key={field} className="ff-admin-form-row">
+              <label className="ff-admin-form-label">{label}</label>
+              <input
+                className="ff-admin-form-input"
+                value={(form as Record<string, string | boolean>)[field] as string}
+                onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+              />
             </div>
           ))}
           <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>

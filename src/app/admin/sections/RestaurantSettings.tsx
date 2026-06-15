@@ -2,108 +2,279 @@ import { useEffect, useState } from 'react';
 import { branchService, tenantService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { Branch, Tenant } from '@/lib/types';
+import {
+  AdminPageHeader,
+  AdminButton,
+  AdminFormSection,
+  AdminFormRow,
+} from '@/components/admin';
+
+type TenantForm = {
+  name: string;
+  logoUrl: string;
+  defaultLanguage: 'es' | 'pt-BR' | 'en';
+};
+
+type BranchForm = {
+  name: string;
+  address: string;
+  serviceType: string;
+  queueEnabled: boolean;
+  queueMessage: string;
+  serviceFeeRate: string;
+  currency: string;
+};
+
+function formsEqual<T extends object>(a: T, b: T) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 export function RestaurantSettings() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [branch, setBranch] = useState<Branch | null>(null);
-  const [tenantForm, setTenantForm] = useState({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' as 'es' | 'pt-BR' | 'en' });
-  const [branchForm, setBranchForm] = useState({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL' });
+
+  const [tenantForm, setTenantForm]     = useState<TenantForm>({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' });
+  const [savedTenantForm, setSavedTenantForm] = useState<TenantForm>({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' });
+
+  const [branchForm, setBranchForm]     = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL' });
+  const [savedBranchForm, setSavedBranchForm] = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL' });
+
+  const [saving, setSaving] = useState(false);
   const notify = useNotify();
 
   useEffect(() => {
     Promise.all([tenantService.get(), branchService.get()]).then(([t, b]) => {
-      if (t) { setTenant(t); setTenantForm({ name: t.name, logoUrl: t.logoUrl ?? '', defaultLanguage: t.defaultLanguage ?? 'pt-BR' }); }
+      if (t) {
+        const tf: TenantForm = { name: t.name, logoUrl: t.logoUrl ?? '', defaultLanguage: t.defaultLanguage ?? 'pt-BR' };
+        setTenant(t); setTenantForm(tf); setSavedTenantForm(tf);
+      }
       if (b) {
-        setBranch(b);
-        setBranchForm({ name: b.name, address: b.address ?? '', serviceType: b.serviceType, queueEnabled: b.queueEnabled, queueMessage: b.queueMessage ?? '', serviceFeeRate: String(b.serviceFeeRate ?? 0.1), currency: b.currency ?? 'BRL' });
+        const bf: BranchForm = {
+          name: b.name,
+          address: b.address ?? '',
+          serviceType: b.serviceType,
+          queueEnabled: b.queueEnabled,
+          queueMessage: b.queueMessage ?? '',
+          serviceFeeRate: String(b.serviceFeeRate ?? 0.1),
+          currency: b.currency ?? 'BRL',
+        };
+        setBranch(b); setBranchForm(bf); setSavedBranchForm(bf);
       }
     });
   }, []);
 
-  async function handleSaveTenant() {
-    if (!tenant) return;
-    await tenantService.update({ name: tenantForm.name.trim(), logoUrl: tenantForm.logoUrl.trim() || undefined, defaultLanguage: tenantForm.defaultLanguage });
-    notify('Restaurante atualizado — nome refletido no Menu e Kiosk');
+  const isDirty = !formsEqual(tenantForm, savedTenantForm) || !formsEqual(branchForm, savedBranchForm);
+
+  async function handleSave() {
+    if (!tenant || !branch) return;
+    setSaving(true);
+    try {
+      await Promise.all([
+        tenantService.update({
+          name: tenantForm.name.trim(),
+          logoUrl: tenantForm.logoUrl.trim() || undefined,
+          defaultLanguage: tenantForm.defaultLanguage,
+        }),
+        branchService.update({
+          ...branchForm,
+          serviceType: branchForm.serviceType as Branch['serviceType'],
+          serviceFeeRate: parseFloat(branchForm.serviceFeeRate) || 0.1,
+        }),
+      ]);
+      setSavedTenantForm({ ...tenantForm });
+      setSavedBranchForm({ ...branchForm });
+      notify('Configurações salvas com sucesso');
+    } catch {
+      notify('Erro ao salvar — tente novamente');
+    } finally {
+      setSaving(false);
+    }
   }
 
-  async function handleSaveBranch() {
-    if (!branch) return;
-    await branchService.update({ ...branchForm, serviceType: branchForm.serviceType as Branch['serviceType'], serviceFeeRate: parseFloat(branchForm.serviceFeeRate) || 0.1 });
-    notify('Filial atualizada');
+  function handleDiscard() {
+    setTenantForm({ ...savedTenantForm });
+    setBranchForm({ ...savedBranchForm });
   }
+
+  const tf = (field: keyof TenantForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setTenantForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const bf = (field: keyof BranchForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setBranchForm((f) => ({ ...f, [field]: e.target.value }));
 
   return (
-    <div style={{ maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div className="ff-data-card">
-        <div className="ff-data-card-header">Restaurante</div>
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600 }}>Nome do restaurante</label>
-            <input className="form-control form-control-sm" value={tenantForm.name} onChange={(e) => setTenantForm((f) => ({ ...f, name: e.target.value }))} />
-            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Este nome aparece no cabeçalho do Menu Digital e no Kiosk.</div>
-          </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600 }}>URL do logotipo</label>
-            <input className="form-control form-control-sm" placeholder="https://..." value={tenantForm.logoUrl} onChange={(e) => setTenantForm((f) => ({ ...f, logoUrl: e.target.value }))} />
-          </div>
-          {tenantForm.logoUrl && <img src={tenantForm.logoUrl} alt="Logo preview" style={{ height: 48, objectFit: 'contain', borderRadius: 6 }} />}
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600 }}>Idioma padrão</label>
-            <select className="form-select form-select-sm" value={tenantForm.defaultLanguage} onChange={(e) => setTenantForm((f) => ({ ...f, defaultLanguage: e.target.value as 'es' | 'pt-BR' | 'en' }))}>
+    <div style={{ maxWidth: 760, paddingBottom: isDirty ? 80 : 0 }}>
+      <AdminPageHeader
+        title="Configurações"
+        subtitle="Identidade, filial, operação e integração"
+        actions={
+          isDirty ? (
+            <AdminButton variant="primary" loading={saving} onClick={handleSave}>
+              Salvar alterações
+            </AdminButton>
+          ) : undefined
+        }
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* ── Identity ── */}
+        <AdminFormSection
+          title="Identidade do restaurante"
+          description="Nome e logo exibidos no Menu Digital e no Kiosk."
+        >
+          <AdminFormRow label="Nome do restaurante" required>
+            <input
+              className="ff-admin-form-input"
+              value={tenantForm.name}
+              onChange={tf('name')}
+              placeholder="Nome do estabelecimento"
+            />
+          </AdminFormRow>
+
+          <AdminFormRow
+            label="URL do logotipo"
+            hint="Cole a URL pública da imagem (PNG, SVG ou JPG)."
+          >
+            <input
+              className="ff-admin-form-input"
+              placeholder="https://..."
+              value={tenantForm.logoUrl}
+              onChange={tf('logoUrl')}
+            />
+          </AdminFormRow>
+
+          {tenantForm.logoUrl && (
+            <img
+              src={tenantForm.logoUrl}
+              alt="Preview do logo"
+              style={{ height: 48, objectFit: 'contain', borderRadius: 8, border: '1px solid #e5e7eb' }}
+            />
+          )}
+
+          <AdminFormRow
+            label="Idioma padrão"
+            hint="Idioma inicial para o Menu Digital e Kiosk deste tenant."
+          >
+            <select
+              className="ff-admin-form-select"
+              value={tenantForm.defaultLanguage}
+              onChange={(e) => setTenantForm((f) => ({ ...f, defaultLanguage: e.target.value as TenantForm['defaultLanguage'] }))}
+            >
               <option value="pt-BR">🇧🇷 Português</option>
               <option value="es">🇦🇷 Español</option>
               <option value="en">🇺🇸 English</option>
             </select>
-            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>Idioma inicial para o Menu Digital e Kiosk deste tenant.</div>
-          </div>
-          <button className="btn btn-primary" onClick={handleSaveTenant}>Salvar restaurante</button>
-        </div>
-      </div>
+          </AdminFormRow>
+        </AdminFormSection>
 
-      <div className="ff-data-card">
-        <div className="ff-data-card-header">Filial / Unidade</div>
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {(['Nome da filial', 'address', 'queueMessage'] as const).length > 0 && (
-            [['Nome da filial', 'name'], ['Endereço', 'address'], ['Mensagem da fila', 'queueMessage']] as const
-          ).map(([label, field]) => (
-            <div key={field}>
-              <label style={{ fontSize: 13, fontWeight: 600 }}>{label}</label>
-              <input className="form-control form-control-sm" value={branchForm[field] as string} onChange={(e) => setBranchForm((f) => ({ ...f, [field]: e.target.value }))} />
-            </div>
-          ))}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600 }}>Moeda</label>
-              <select className="form-select form-select-sm" value={branchForm.currency} onChange={(e) => setBranchForm((f) => ({ ...f, currency: e.target.value }))}>
-                <option value="BRL">BRL — R$</option>
-                <option value="USD">USD — $</option>
-                <option value="ARS">ARS — $</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600 }}>Taxa de serviço</label>
-              <div className="input-group input-group-sm">
-                <input className="form-control" type="number" min="0" max="0.5" step="0.01" value={branchForm.serviceFeeRate} onChange={(e) => setBranchForm((f) => ({ ...f, serviceFeeRate: e.target.value }))} />
-                <span className="input-group-text">%×100</span>
-              </div>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Ex: 0.1 = 10%</div>
-            </div>
-          </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600 }}>Tipo de serviço</label>
-            <select className="form-select form-select-sm" value={branchForm.serviceType} onChange={(e) => setBranchForm((f) => ({ ...f, serviceType: e.target.value }))}>
+        {/* ── Branch ── */}
+        <AdminFormSection
+          title="Filial / Unidade"
+          description="Informações da unidade física e tipo de operação."
+        >
+          <AdminFormRow label="Nome da filial" required>
+            <input
+              className="ff-admin-form-input"
+              value={branchForm.name}
+              onChange={bf('name')}
+              placeholder="Nome da unidade"
+            />
+          </AdminFormRow>
+
+          <AdminFormRow label="Endereço">
+            <input
+              className="ff-admin-form-input"
+              value={branchForm.address}
+              onChange={bf('address')}
+              placeholder="Rua, número, cidade..."
+            />
+          </AdminFormRow>
+
+          <AdminFormRow label="Tipo de serviço">
+            <select className="ff-admin-form-select" value={branchForm.serviceType} onChange={bf('serviceType')}>
               <option value="TABLE_SERVICE">Serviço de mesa</option>
               <option value="TAKEAWAY">Takeaway</option>
               <option value="KIOSK_SELF_SERVICE">Kiosk / Autoatendimento</option>
             </select>
+          </AdminFormRow>
+        </AdminFormSection>
+
+        {/* ── Financial ── */}
+        <AdminFormSection
+          title="Financeiro"
+          description="Moeda e taxa de serviço aplicadas aos pedidos."
+        >
+          <div className="ff-admin-form-grid-2">
+            <AdminFormRow label="Moeda">
+              <select className="ff-admin-form-select" value={branchForm.currency} onChange={bf('currency')}>
+                <option value="BRL">BRL — R$</option>
+                <option value="USD">USD — $</option>
+                <option value="ARS">ARS — $</option>
+              </select>
+            </AdminFormRow>
+            <AdminFormRow label="Taxa de serviço" hint="Ex: 0.1 = 10%">
+              <input
+                className="ff-admin-form-input"
+                type="number"
+                min={0}
+                max={0.5}
+                step={0.01}
+                value={branchForm.serviceFeeRate}
+                onChange={bf('serviceFeeRate')}
+              />
+            </AdminFormRow>
           </div>
-          <label style={{ fontSize: 13 }}>
-            <input type="checkbox" className="me-1" checked={branchForm.queueEnabled} onChange={(e) => setBranchForm((f) => ({ ...f, queueEnabled: e.target.checked }))} />
-            Fila habilitada
-          </label>
-          <button className="btn btn-primary" onClick={handleSaveBranch}>Salvar filial</button>
-        </div>
+        </AdminFormSection>
+
+        {/* ── Queue ── */}
+        <AdminFormSection
+          title="Fila de espera"
+          description="Configuração da fila visível no Menu Digital."
+        >
+          <AdminFormRow label="Fila habilitada">
+            <label className="ff-admin-toggle-row" style={{ cursor: 'pointer' }}>
+              <button
+                className="ff-admin-toggle"
+                aria-checked={branchForm.queueEnabled}
+                role="switch"
+                onClick={() => setBranchForm((f) => ({ ...f, queueEnabled: !f.queueEnabled }))}
+              >
+                <span className="ff-admin-toggle-thumb" />
+              </button>
+              <span className={`ff-admin-toggle-label${branchForm.queueEnabled ? ' ff-admin-toggle-label--on' : ''}`}>
+                {branchForm.queueEnabled ? 'Fila habilitada' : 'Fila desabilitada'}
+              </span>
+            </label>
+          </AdminFormRow>
+
+          <AdminFormRow
+            label="Mensagem da fila"
+            hint="Exibida aos clientes na tela de fila do Menu Digital."
+          >
+            <input
+              className="ff-admin-form-input"
+              value={branchForm.queueMessage}
+              onChange={bf('queueMessage')}
+              placeholder="ex: Acompanhe seu pedido aqui!"
+            />
+          </AdminFormRow>
+        </AdminFormSection>
       </div>
+
+      {/* Sticky save bar */}
+      {isDirty && (
+        <div className="ff-admin-save-bar">
+          <span className="ff-admin-save-bar-text">Você tem alterações não salvas</span>
+          <div className="ff-admin-save-bar-actions">
+            <AdminButton variant="ghost" onClick={handleDiscard}>Descartar</AdminButton>
+            <AdminButton variant="primary" loading={saving} onClick={handleSave}>
+              Salvar alterações
+            </AdminButton>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

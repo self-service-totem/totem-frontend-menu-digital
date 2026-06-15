@@ -11,6 +11,7 @@ import type {
   QueueTicket,
   WaiterCall,
   Payment,
+  PaymentMethod,
   KioskDevice,
   ModifierGroup,
   LoyaltyCard,
@@ -1190,6 +1191,136 @@ const aggregatorSettings: AggregatorSettings[] = [
   { id: 'agg-2', tenantId: TENANT_ID, branchId: BRANCH_ID, platform: 'RAPPI', active: false, autoAccept: false, createdAt: NOW, updatedAt: NOW },
 ];
 
+// ─── F6: Rich report demo data ───────────────────────────────────────────────
+// Generates 36 orders + payments spread across today's hours so the
+// analytics dashboard has realistic hourly bars, waiter breakdowns, etc.
+
+function makeReportDemoData(): { orders: DbOrder[]; payments: Payment[] } {
+  function at(h: number, m: number): string {
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+  }
+
+  const P: Record<string, { productId: string; name: string; unitPrice: number }> = {
+    carne:   { productId: 'prod-carne-de-sol',     name: 'Carne de sol c/ aipim',   unitPrice: 78.9 },
+    frango:  { productId: 'prod-isquinha-frango',  name: 'Isquinha de Frango Kids', unitPrice: 34.5 },
+    entrada: { productId: 'prod-entrada-mirante',  name: 'Entrada Mirante',          unitPrice: 42.0 },
+    bolinho: { productId: 'prod-bolinho-bacalhau', name: 'Bolinho de bacalhau',      unitPrice: 36.0 },
+    helado:  { productId: 'prod-helado',           name: 'Helado 1/4 kg',            unitPrice: 22.0 },
+    pudim:   { productId: 'prod-pudim',            name: 'Pudim de leite',           unitPrice: 16.5 },
+    coca0:   { productId: 'prod-coca-zero',        name: 'Coca Cola Zero',           unitPrice:  8.9 },
+    cocaN:   { productId: 'prod-coca-normal',      name: 'Coca Cola Normal',         unitPrice:  8.9 },
+    suco:    { productId: 'prod-suco-laranja',     name: 'Suco de laranja',          unitPrice: 12.0 },
+    agua:    { productId: 'prod-agua-sem-gas',     name: 'Água sem gás',             unitPrice:  5.5 },
+    cafe:    { productId: 'prod-cafe-com-leite',   name: 'Café com leite',           unitPrice:  9.5 },
+  };
+
+  type Def = {
+    t: string; tn: string; h: number; m: number;
+    items: Array<[keyof typeof P, number]>;
+    method: PaymentMethod; name: string; canceled?: true;
+  };
+
+  const defs: Def[] = [
+    { t:'table-1', tn:'1', h:11, m:20, items:[['entrada',1],['suco',2]],                   method:'PIX',  name:'Casal Alves' },
+    { t:'table-2', tn:'2', h:11, m:45, items:[['coca0',2],['bolinho',1]],                   method:'CASH', name:'João Costa' },
+    { t:'table-1', tn:'1', h:12, m:10, items:[['carne',2],['suco',3],['entrada',1]],        method:'CARD', name:'Grupo Santos' },
+    { t:'table-3', tn:'3', h:12, m:25, items:[['frango',2],['coca0',2]],                    method:'PIX',  name:'Família Lima' },
+    { t:'table-4', tn:'4', h:12, m:40, items:[['carne',3],['entrada',1],['suco',4]],        method:'CARD', name:'Mesa 4 Grupo' },
+    { t:'table-5', tn:'5', h:12, m:55, items:[['frango',1],['agua',2],['bolinho',1]],       method:'PIX',  name:'Casal Rodrigues' },
+    { t:'table-1', tn:'1', h:13, m: 5, items:[['helado',2],['cafe',2]],                     method:'CASH', name:'Turma Arte' },
+    { t:'table-2', tn:'2', h:13, m:15, items:[['carne',1],['cocaN',2],['entrada',1]],       method:'CARD', name:'Lucas Pereira' },
+    { t:'table-3', tn:'3', h:13, m:30, items:[['carne',2],['suco',2]],                      method:'PIX',  name:'Amigos Silva' },
+    { t:'table-5', tn:'5', h:13, m:45, items:[['frango',2],['coca0',2],['pudim',2]],        method:'CARD', name:'Gabriela Nunes' },
+    { t:'table-7', tn:'7', h:13, m:50, items:[['carne',1],['bolinho',1],['suco',1]],        method:'PIX',  name:'Tiago Mota' },
+    { t:'table-2', tn:'2', h:14, m: 5, items:[['helado',1],['pudim',1],['cafe',2]],         method:'CASH', name:'Vera Santos' },
+    { t:'table-4', tn:'4', h:14, m:20, items:[['carne',1],['entrada',1],['coca0',2]],       method:'CARD', name:'Rodrigo Lima' },
+    { t:'table-6', tn:'6', h:14, m:35, items:[['frango',2],['agua',2]],                     method:'PIX',  name:'Débora Faria' },
+    { t:'table-7', tn:'7', h:14, m:50, items:[['carne',1],['suco',2]],                      method:'CASH', name:'Márcio Araújo' },
+    { t:'table-3', tn:'3', h:15, m:20, items:[['bolinho',1],['coca0',1]],                   method:'PIX',  name:'Carla Vieira' },
+    { t:'table-5', tn:'5', h:15, m:50, items:[['helado',2],['cafe',2]],                     method:'CARD', name:'Paulo Ramos' },
+    { t:'table-1', tn:'1', h:16, m:30, items:[['cafe',2],['pudim',1]],                      method:'CASH', name:'Elisa Torres' },
+    { t:'table-3', tn:'3', h:17, m:15, items:[['coca0',1],['bolinho',1]],                   method:'PIX',  name:'Felipe Neto' },
+    { t:'table-2', tn:'2', h:18, m:10, items:[['entrada',1],['suco',2],['coca0',1]],        method:'CARD', name:'Beatriz Rocha' },
+    { t:'table-6', tn:'6', h:18, m:40, items:[['bolinho',2],['cocaN',2]],                   method:'CASH', name:'André Moura' },
+    { t:'table-1', tn:'1', h:19, m:10, items:[['carne',2],['entrada',1],['suco',3]],        method:'CARD', name:'Família Gomes' },
+    { t:'table-3', tn:'3', h:19, m:25, items:[['carne',1],['frango',1],['coca0',2]],        method:'PIX',  name:'Casal Carvalho' },
+    { t:'table-4', tn:'4', h:19, m:40, items:[['carne',3],['suco',4],['entrada',2]],        method:'CARD', name:'Grupo Turma' },
+    { t:'table-7', tn:'7', h:19, m:55, items:[['frango',2],['bolinho',1],['coca0',3]],      method:'PIX',  name:'Mesa 7 Família' },
+    { t:'table-2', tn:'2', h:20, m:10, items:[['carne',2],['entrada',1],['suco',2]],        method:'CARD', name:'Amigos Fonseca' },
+    { t:'table-4', tn:'4', h:20, m:25, items:[['carne',2],['frango',1],['coca0',3]],        method:'PIX',  name:'Grupo Andrade' },
+    { t:'table-5', tn:'5', h:20, m:40, items:[['carne',1],['helado',2],['cafe',2]],         method:'CASH', name:'Sandra Lemos' },
+    { t:'table-6', tn:'6', h:20, m:50, items:[['frango',2],['suco',2],['pudim',2]],         method:'CARD', name:'Casal Monteiro' },
+    { t:'table-7', tn:'7', h:20, m:55, items:[['carne',2],['entrada',1],['suco',3]],        method:'PIX',  name:'Grupo Nogueira' },
+    { t:'table-1', tn:'1', h:21, m: 5, items:[['carne',1],['frango',1],['suco',2]],         method:'CARD', name:'Rafael Braga' },
+    { t:'table-2', tn:'2', h:21, m:20, items:[['helado',3],['pudim',1],['cafe',3]],         method:'PIX',  name:'Sobremesas Turma' },
+    { t:'table-3', tn:'3', h:21, m:40, items:[['carne',2],['bolinho',1],['coca0',2]],       method:'CASH', name:'Henrique Santos' },
+    { t:'table-5', tn:'5', h:21, m:55, items:[['frango',2],['suco',2]],                     method:'CARD', name:'Última Mesa 5' },
+    { t:'table-4', tn:'4', h:22, m:10, items:[['entrada',1],['coca0',2]],                   method:'PIX',  name:'Mesa 4 Tarde' },
+    { t:'table-7', tn:'7', h:22, m:20, items:[['cafe',2],['pudim',1]],                      method:'CASH', name:'Últimos Clientes' },
+    // 2 canceled orders (no payment)
+    { t:'table-6', tn:'6', h:14, m:10, items:[['carne',2]],                                 method:'PIX',  name:'Pedido Cancelado 1', canceled: true },
+    { t:'table-3', tn:'3', h:18, m: 5, items:[['entrada',1]],                               method:'CASH', name:'Pedido Cancelado 2', canceled: true },
+  ];
+
+  const resultOrders: DbOrder[] = [];
+  const resultPayments: Payment[] = [];
+
+  defs.forEach((def, i) => {
+    const idx = i + 200;
+    const orderId = `order-rep-${idx}`;
+    const orderNumber = `#${3000 + idx}`;
+    const createdAt = at(def.h, def.m);
+
+    const items = def.items.map(([key, qty]) => ({ ...P[key], quantity: qty }));
+    const subtotal = +items.reduce((s, x) => s + x.quantity * x.unitPrice, 0).toFixed(2);
+    const svcFee = def.canceled ? 0 : +(subtotal * 0.1).toFixed(2);
+    const total = +(subtotal + svcFee).toFixed(2);
+
+    resultOrders.push({
+      id: orderId,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_ID,
+      tableId: def.t,
+      tableNumber: def.tn,
+      customerName: def.name,
+      items,
+      subtotal,
+      serviceFee: svcFee,
+      total,
+      status: def.canceled ? 'CANCELED' : 'DELIVERED',
+      paymentStatus: def.canceled ? 'UNPAID' : 'PAID',
+      paidAmount: def.canceled ? 0 : total,
+      source: 'MENU',
+      orderNumber,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    if (!def.canceled) {
+      resultPayments.push({
+        id: `pay-rep-${idx}`,
+        tenantId: TENANT_ID,
+        branchId: BRANCH_ID,
+        orderId,
+        orderNumber,
+        tableId: def.t,
+        tableNumber: def.tn,
+        customerName: def.name,
+        total,
+        paidAmount: total,
+        method: def.method,
+        status: 'PAID',
+        createdAt,
+        updatedAt: createdAt,
+      });
+    }
+  });
+
+  return { orders: resultOrders, payments: resultPayments };
+}
+
 export function seedDb(): void {
   if (isSeeded()) return;
 
@@ -1199,11 +1330,12 @@ export function seedDb(): void {
   setCollection('tables', tables);
   setCollection('categories', categories);
   setCollection('products', products);
-  setCollection('orders', orders);
+  const reportDemo = makeReportDemoData();
+  setCollection('orders', [...orders, ...reportDemo.orders]);
   setCollection('kitchenTickets', kitchenTickets);
   setCollection('queueTickets', queueTickets);
   setCollection('waiterCalls', waiterCalls);
-  setCollection('payments', payments);
+  setCollection('payments', [...payments, ...reportDemo.payments]);
   setCollection('paymentTransactions', []);
   setCollection('invoices', []);
   setCollection('receipts', []);

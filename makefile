@@ -24,6 +24,7 @@ CLAUDE_SETTINGS := $(CLAUDE_DIR)/settings.json
 CLAUDE_PERSONAL := $(CLAUDE_DIR)/settings.personal.json
 CLAUDE_WORK := $(CLAUDE_DIR)/settings.work.json
 
+# como hay un alias se puede correr sin make directo el comando en terminal
 claude-personal:
 	@echo "Backing up current settings to settings.work.json..."
 	@cp $(CLAUDE_SETTINGS) $(CLAUDE_WORK)
@@ -36,6 +37,8 @@ claude-personal:
 	claude auth login
 	@claude auth status --text
 
+
+# como hay un alias se puede correr sin make directo el comando en terminal
 claude-work:
 	@echo "Backing up current settings to settings.personal.json..."
 	@cp $(CLAUDE_SETTINGS) $(CLAUDE_PERSONAL)

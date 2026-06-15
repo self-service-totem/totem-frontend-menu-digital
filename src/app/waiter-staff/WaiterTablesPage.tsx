@@ -76,11 +76,11 @@ function DashSummary({ tables, pendingCalls }: { tables: FloorTable[]; pendingCa
       {pills.map((p) => (
         <div
           key={p.label}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: p.bg, border: `1px solid ${p.color}28`, borderRadius: 20, padding: '5px 13px', flexShrink: 0 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: p.bg, border: `1px solid ${p.color}28`, borderRadius: 20, padding: '5px 14px', flexShrink: 0 }}
         >
           <i className={`bi ${p.icon}`} style={{ color: p.color, fontSize: '0.8rem' }} />
-          <span style={{ fontSize: '0.92rem', fontWeight: 800, color: p.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{p.value}</span>
-          <span style={{ fontSize: '0.73rem', color: '#9ca3af', fontWeight: 500 }}>{p.label}</span>
+          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: p.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{p.value}</span>
+          <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: 500 }}>{p.label}</span>
         </div>
       ))}
     </div>
@@ -117,26 +117,28 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
 
   const badgeUI = hasCall ? callUI : ui;
 
+  const borderColor = hasCall ? '#fecaca' : hasReady ? '#bbf7d0' : table.status === 'WAITING_FOR_PAYMENT' ? '#ddd6fe' : '#e5e7eb';
+
   return (
     <div
+      className="ff-waiter-table-card"
       style={{
-        borderRadius: 12,
-        border: `1.5px solid ${hasCall ? '#fecaca' : hasReady ? '#bbf7d0' : table.status === 'WAITING_FOR_PAYMENT' ? '#ddd6fe' : '#e5e7eb'}`,
+        borderRadius: 14,
+        border: `1.5px solid ${borderColor}`,
         boxShadow: hasCall ? '0 0 0 3px #dc262618, 0 2px 8px rgba(0,0,0,.06)' : '0 1px 4px rgba(0,0,0,.05)',
         background: '#fff',
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
-        transition: 'box-shadow .15s, transform .12s',
         borderLeft: `4px solid ${accentColor}`,
       }}
       onClick={() => onDetail(table)}
     >
       {/* Body */}
-      <div style={{ padding: '12px 14px 10px' }}>
+      <div style={{ padding: '13px 14px 10px' }}>
         {/* Table number + status badge */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontWeight: 900, fontSize: '1.4rem', color: '#111827', letterSpacing: '-0.02em', lineHeight: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 9 }}>
+          <span style={{ fontWeight: 900, fontSize: '1.45rem', color: '#111827', letterSpacing: '-0.02em', lineHeight: 1 }}>
             Mesa {table.number}
           </span>
           <span style={{
@@ -144,10 +146,10 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
             background: badgeUI.bgColor,
             color: badgeUI.color,
             border: `1px solid ${badgeUI.color}30`,
-            borderRadius: 20, padding: '3px 9px',
-            fontSize: '0.7rem', fontWeight: 700, flexShrink: 0,
+            borderRadius: 20, padding: '3px 10px',
+            fontSize: '0.69rem', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap', marginLeft: 'auto',
           }}>
-            <i className={`bi ${badgeUI.icon}`} style={{ fontSize: '0.7rem' }} />
+            <i className={`bi ${badgeUI.icon}`} style={{ fontSize: '0.69rem' }} />
             {badgeUI.label}
           </span>
         </div>
@@ -155,13 +157,15 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
         {/* Urgency alert — waiter call */}
         {hasCall && (() => {
           const mins = table.oldestCallAt ? elapsedMins(table.oldestCallAt) : 0;
+          const sev  = ageSeverity(mins, 3, 7);
+          const timerBg = sev === 'critical' ? '#dc2626' : sev === 'warn' ? '#d97706' : '#059669';
           return (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}>
               <i className="bi bi-megaphone-fill" style={{ color: '#dc2626', fontSize: '0.75rem', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#dc2626', flex: 1 }}>
+              <span style={{ fontSize: '0.79rem', fontWeight: 700, color: '#dc2626', flex: 1 }}>
                 {table.pendingCallCount > 1 ? `${table.pendingCallCount}× chamados` : 'Chamando garçom'}
               </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b', background: '#fee2e2', borderRadius: 10, padding: '1px 7px' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fff', background: timerBg, borderRadius: 10, padding: '1px 8px' }}>
                 {fmtElapsed(mins)}
               </span>
             </div>
@@ -174,10 +178,10 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
           const sev  = ageSeverity(mins, 5, 12);
           const s    = SEVERITY_STYLE[sev];
           return (
-            <div style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <div style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}>
               <i className="bi bi-check-circle-fill" style={{ color: s.color, fontSize: '0.75rem', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: s.color, flex: 1 }}>Pronto para servir</span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: s.color, background: s.border, borderRadius: 10, padding: '1px 7px' }}>
+              <span style={{ fontSize: '0.79rem', fontWeight: 700, color: s.color, flex: 1 }}>Pronto para servir</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: s.color, background: s.border, borderRadius: 10, padding: '1px 8px' }}>
                 {fmtElapsed(mins)}
               </span>
             </div>
@@ -187,7 +191,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
         {/* Waiter */}
         {table.assignedWaiterName && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <span style={{ background: '#e0e7ff', color: '#4338ca', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 800, flexShrink: 0 }}>
+            <span style={{ background: '#e0e7ff', color: '#4338ca', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 800, flexShrink: 0 }}>
               {initials(table.assignedWaiterName)}
             </span>
             <span style={{ fontSize: '0.79rem', color: '#6b7280' }}>{table.assignedWaiterName}</span>
@@ -196,7 +200,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
 
         {/* Session meta */}
         {!isEmpty ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ fontSize: '0.78rem', color: '#6b7280', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {(table.guestCount ?? 0) > 0 && (
                 <span><i className="bi bi-people me-1" />{table.guestCount} pax</span>
@@ -206,7 +210,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
               )}
             </div>
             {table.unpaidAmount > 0 && (
-              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827', marginTop: 2 }}>
+              <span style={{ fontWeight: 800, fontSize: '0.97rem', color: '#111827', marginTop: 2 }}>
                 {formatBRL(table.unpaidAmount)}
               </span>
             )}
@@ -218,7 +222,10 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
             )}
           </div>
         ) : (
-          <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Disponível</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <i className="bi bi-circle" style={{ color: '#d1d5db', fontSize: '0.7rem' }} />
+            <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Disponível</span>
+          </div>
         )}
       </div>
 
@@ -230,7 +237,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
         {/* Primary action — waiter call takes highest priority */}
         {hasCall && (
           <button
-            className="btn btn-sm flex-1"
+            className="btn btn-sm flex-1 ff-waiter-btn-action"
             style={{ background: '#dc2626', color: '#fff', border: 'none', fontSize: '0.8rem', fontWeight: 700, minHeight: 36, borderRadius: 8 }}
             onClick={() => onDetail(table)}
           >
@@ -238,23 +245,23 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
           </button>
         )}
         {!hasCall && table.status === 'EMPTY' && (
-          <button className="btn btn-sm btn-outline-primary flex-1" style={{ fontSize: '0.8rem', minHeight: 36 }} onClick={() => onOpen(table)}>
+          <button className="btn btn-sm btn-outline-primary flex-1 ff-waiter-btn-action" style={{ fontSize: '0.8rem', minHeight: 36, borderRadius: 8 }} onClick={() => onOpen(table)}>
             <i className="bi bi-unlock me-1" />Abrir
           </button>
         )}
         {!hasCall && (table.status === 'OCCUPIED' || table.status === 'ORDER_IN_PROGRESS') && (
-          <button className="btn btn-sm btn-outline-primary flex-1" style={{ fontSize: '0.8rem', minHeight: 36 }} onClick={() => onRequestBill(table)}>
+          <button className="btn btn-sm btn-outline-primary flex-1 ff-waiter-btn-action" style={{ fontSize: '0.8rem', minHeight: 36, borderRadius: 8 }} onClick={() => onRequestBill(table)}>
             <i className="bi bi-receipt me-1" />Pedir conta
           </button>
         )}
         {!hasCall && table.status === 'WAITING_FOR_KITCHEN' && !hasReady && (
-          <button className="btn btn-sm btn-outline-secondary flex-1" style={{ fontSize: '0.8rem', minHeight: 36 }} onClick={() => onDetail(table)}>
+          <button className="btn btn-sm btn-outline-secondary flex-1 ff-waiter-btn-action" style={{ fontSize: '0.8rem', minHeight: 36, borderRadius: 8 }} onClick={() => onDetail(table)}>
             <i className="bi bi-fire me-1" />Na cozinha
           </button>
         )}
         {!hasCall && hasReady && (
           <button
-            className="btn btn-sm flex-1"
+            className="btn btn-sm flex-1 ff-waiter-btn-action"
             style={{ background: '#059669', color: '#fff', border: 'none', fontSize: '0.8rem', fontWeight: 700, minHeight: 36, borderRadius: 8 }}
             onClick={() => onMarkServed(table)}
           >
@@ -263,7 +270,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
         )}
         {!hasCall && !hasReady && table.status === 'WAITING_FOR_PAYMENT' && (
           <button
-            className="btn btn-sm flex-1"
+            className="btn btn-sm flex-1 ff-waiter-btn-action"
             style={{ background: '#7c3aed', color: '#fff', border: 'none', fontSize: '0.8rem', fontWeight: 700, minHeight: 36, borderRadius: 8 }}
             onClick={() => onDetail(table)}
           >
@@ -271,7 +278,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
           </button>
         )}
         {!hasCall && table.status === 'CLOSED' && (
-          <button className="btn btn-sm btn-outline-secondary flex-1" style={{ fontSize: '0.8rem', minHeight: 36 }} onClick={() => onClose(table)}>
+          <button className="btn btn-sm btn-outline-secondary flex-1 ff-waiter-btn-action" style={{ fontSize: '0.8rem', minHeight: 36, borderRadius: 8 }} onClick={() => onClose(table)}>
             <i className="bi bi-door-open me-1" />Liberar
           </button>
         )}
@@ -280,7 +287,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
         <div style={{ position: 'relative' }}>
           <button
             className="btn btn-sm btn-outline-secondary"
-            style={{ padding: '7px 9px', minHeight: 36 }}
+            style={{ padding: '7px 9px', minHeight: 36, borderRadius: 8 }}
             onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
           >
             <i className="bi bi-three-dots-vertical" />
@@ -288,7 +295,7 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
           {menuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setMenuOpen(false)} />
-              <div style={{ position: 'absolute', right: 0, bottom: '100%', marginBottom: 4, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)', zIndex: 100, minWidth: 190, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: 0, bottom: '100%', marginBottom: 6, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 8px 28px rgba(0,0,0,.12)', zIndex: 100, minWidth: 196, overflow: 'hidden' }}>
                 {[
                   { icon: 'bi-eye',          label: 'Ver detalhes',      action: () => { onDetail(table);   setMenuOpen(false); } },
                   { icon: 'bi-person-badge', label: 'Reatribuir garçom', action: () => { onReassign(table); setMenuOpen(false); } },
@@ -298,11 +305,11 @@ function TableCard({ table, onRequestBill, onOpen, onMarkServed, onClose, onReas
                 ].map((item, idx) => (
                   <button
                     key={item.label}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', fontSize: '0.85rem', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderBottom: idx < 2 ? '1px solid #f3f4f6' : 'none' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', fontSize: '0.85rem', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderBottom: idx < 2 ? '1px solid #f3f4f6' : 'none' }}
                     onClick={item.action}
                   >
-                    <i className={`bi ${item.icon}`} style={{ width: 16, fontSize: '0.9rem', color: item.label === 'Fechar mesa' ? '#dc2626' : undefined }} />
-                    <span style={{ color: item.label === 'Fechar mesa' ? '#dc2626' : undefined }}>{item.label}</span>
+                    <i className={`bi ${item.icon}`} style={{ width: 16, fontSize: '0.9rem', color: item.label === 'Fechar mesa' ? '#dc2626' : '#6b7280' }} />
+                    <span style={{ color: item.label === 'Fechar mesa' ? '#dc2626' : '#374151' }}>{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -328,13 +335,13 @@ function ZoneSection({ zone, tables, cardProps }: ZoneSectionProps) {
   const waiterNames = [...new Set(tables.map((t) => t.assignedWaiterName).filter(Boolean))];
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: 28 }}>
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 12, cursor: 'pointer', userSelect: 'none', padding: '0 2px' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 14, cursor: 'pointer', userSelect: 'none', padding: '0 2px' }}
         onClick={() => setCollapsed((v) => !v)}
       >
-        <i className={`bi bi-chevron-${collapsed ? 'right' : 'down'}`} style={{ color: '#9ca3af', fontSize: '0.72rem', flexShrink: 0 }} />
-        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <i className={`bi bi-chevron-${collapsed ? 'right' : 'down'}`} style={{ color: '#d1d5db', fontSize: '0.7rem', flexShrink: 0 }} />
+        <span style={{ fontWeight: 700, fontSize: '0.78rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {zone}
         </span>
         <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>
@@ -344,16 +351,16 @@ function ZoneSection({ zone, tables, cardProps }: ZoneSectionProps) {
           <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>· {waiterNames.join(', ')}</span>
         )}
         {alertCount > 0 && (
-          <span style={{ marginLeft: 4, background: '#fef3c7', color: '#92400e', borderRadius: 20, padding: '2px 9px', fontSize: '0.7rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-            <i className="bi bi-exclamation-triangle" style={{ fontSize: '0.65rem' }} />
+          <span style={{ marginLeft: 4, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 20, padding: '2px 10px', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '0.62rem' }} />
             {alertCount} alerta{alertCount > 1 ? 's' : ''}
           </span>
         )}
-        <div style={{ flex: 1, height: 1, background: '#e5e7eb', marginLeft: 4 }} />
+        <div style={{ flex: 1, height: 1, background: '#f0f0f0', marginLeft: 4 }} />
       </div>
 
       {!collapsed && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
           {tables.map((t) => (
             <TableCard key={t.id} table={t} {...cardProps} />
           ))}
@@ -375,24 +382,24 @@ function ReassignModal({ table, waiters, onSave, onClose }: {
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
       onClick={onClose}
     >
       <div
-        style={{ background: '#fff', borderRadius: 16, padding: 24, width: 340, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 16px 48px rgba(0,0,0,.2)' }}
+        style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h5 style={{ margin: 0, fontWeight: 800 }}>Reatribuir — Mesa {table.number}</h5>
+        <h5 style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#111827' }}>Reatribuir — Mesa {table.number}</h5>
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Garçom responsável</label>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.04em', display: 'block', marginBottom: 8 }}>Garçom responsável</label>
           <select className="form-select form-select-sm" value={selected} onChange={(e) => setSelected(e.target.value)}>
             <option value="">— Sem atribuição —</option>
             {waiters.map((w) => <option key={w.id} value={w.name}>{w.name}</option>)}
           </select>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary flex-1" onClick={() => onSave(table.id, selected)}>Salvar</button>
-          <button className="btn btn-outline-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary flex-1" style={{ fontWeight: 700, borderRadius: 8 }} onClick={() => onSave(table.id, selected)}>Salvar</button>
+          <button className="btn btn-outline-secondary" style={{ borderRadius: 8 }} onClick={onClose}>Cancelar</button>
         </div>
       </div>
     </div>
@@ -407,66 +414,106 @@ function CallCard({ call, onAck, onResolve, onViewTable }: {
   onResolve: (id: string) => void;
   onViewTable: (tableId: string) => void;
 }) {
-  const isPending = call.status === 'PENDING';
-  const mins      = elapsedMins(call.createdAt);
-  const sev       = ageSeverity(mins, 3, 7);
-  const timerBg   = sev === 'critical' ? '#dc2626' : sev === 'warn' ? '#d97706' : '#059669';
+  const isPending   = call.status === 'PENDING';
+  const mins        = elapsedMins(call.createdAt);
+  const sev         = ageSeverity(mins, 3, 7);
+  const timerBg     = sev === 'critical' ? '#dc2626' : sev === 'warn' ? '#d97706' : '#059669';
   const borderColor = isPending ? '#dc2626' : '#d97706';
 
   return (
-    <div style={{ background: '#fff', border: `1.5px solid ${isPending ? '#fecaca' : '#fde68a'}`, borderLeft: `4px solid ${borderColor}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)', marginBottom: 10 }}>
+    <div
+      className={isPending ? 'ff-waiter-call--pending' : undefined}
+      style={{
+        background: '#fff',
+        border: `1.5px solid ${isPending ? '#fecaca' : '#fde68a'}`,
+        borderLeft: `4px solid ${borderColor}`,
+        borderRadius: 14,
+        overflow: 'hidden',
+        marginBottom: 10,
+      }}
+    >
       {/* Header */}
-      <div style={{ background: isPending ? '#fef2f2' : '#fffbeb', padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{
+        background: isPending
+          ? 'linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%)'
+          : 'linear-gradient(135deg, #fffbeb 0%, #fefce8 100%)',
+        padding: '14px 16px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+      }}>
+        {/* Icon */}
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: isPending ? '#dc2626' : '#d97706',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          marginTop: 2,
+        }}>
+          <i className={`bi ${isPending ? 'bi-megaphone-fill' : 'bi-hand-index-fill'}`} style={{ color: '#fff', fontSize: '0.9rem' }} />
+        </div>
+
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
             <button
-              style={{ fontWeight: 800, fontSize: '1.05rem', color: '#111827', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              style={{ fontWeight: 900, fontSize: '1.1rem', color: '#111827', background: 'none', border: 'none', padding: 0, cursor: 'pointer', letterSpacing: '-0.01em' }}
               onClick={() => onViewTable(call.tableId)}
             >
               Mesa {call.tableNumber}
             </button>
             {call.reason && (
-              <span style={{ fontSize: '0.73rem', fontWeight: 700, color: borderColor, background: `${borderColor}18`, border: `1px solid ${borderColor}30`, borderRadius: 20, padding: '2px 9px' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: borderColor, background: `${borderColor}14`, border: `1px solid ${borderColor}28`, borderRadius: 20, padding: '2px 10px' }}>
                 {CALL_REASON_LABEL[call.reason] ?? call.reason}
               </span>
             )}
           </div>
           {call.customerName && (
-            <span style={{ fontSize: '0.82rem', color: '#6b7280' }}>{call.customerName}</span>
+            <span style={{ fontSize: '0.83rem', color: '#6b7280' }}>{call.customerName}</span>
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, background: timerBg, color: '#fff', borderRadius: 20, padding: '3px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, background: timerBg, color: '#fff', borderRadius: 20, padding: '3px 11px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <i className="bi bi-clock" style={{ fontSize: '0.7rem' }} />
             {fmtElapsed(mins)}
           </span>
-          <span className={`badge ${isPending ? 'bg-danger' : 'bg-warning text-dark'}`} style={{ fontSize: '0.67rem', letterSpacing: '.03em' }}>
+          <span style={{
+            fontSize: '0.66rem', fontWeight: 800, letterSpacing: '.04em',
+            color: isPending ? '#991b1b' : '#92400e',
+            background: isPending ? '#fee2e2' : '#fef3c7',
+            border: `1px solid ${isPending ? '#fca5a5' : '#fde68a'}`,
+            borderRadius: 20, padding: '2px 9px',
+          }}>
             {isPending ? 'PENDENTE' : 'RECONHECIDO'}
           </span>
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div style={{ padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center', background: '#fafafa' }}>
         {isPending && (
           <button
-            className="btn btn-sm btn-outline-warning"
-            style={{ fontSize: '0.8rem', minHeight: 34, fontWeight: 600 }}
+            className="btn btn-sm btn-outline-warning ff-waiter-btn-action"
+            style={{ fontSize: '0.8rem', minHeight: 36, fontWeight: 600, borderRadius: 8 }}
             onClick={() => onAck(call.id)}
           >
             <i className="bi bi-hand-index me-1" />Reconhecer
           </button>
         )}
         <button
-          className="btn btn-sm btn-success"
-          style={{ fontSize: '0.8rem', minHeight: 34, fontWeight: 700 }}
+          className="btn btn-sm btn-success ff-waiter-btn-action"
+          style={{ fontSize: '0.8rem', minHeight: 36, fontWeight: 700, borderRadius: 8 }}
           onClick={() => onResolve(call.id)}
         >
           <i className="bi bi-check2 me-1" />Resolver
         </button>
         <button
-          className="btn btn-sm btn-outline-secondary ms-auto"
-          style={{ fontSize: '0.8rem', minHeight: 34 }}
+          className="btn btn-sm btn-outline-secondary ms-auto ff-waiter-btn-action"
+          style={{ fontSize: '0.8rem', minHeight: 36, borderRadius: 8 }}
           onClick={() => onViewTable(call.tableId)}
         >
           <i className="bi bi-arrow-right me-1" />Ver mesa
@@ -489,6 +536,7 @@ export function WaiterTablesPage() {
   const [quickFilter,     setQuickFilter]     = useState<QuickFilter>('all');
   const [reassignTarget,  setReassignTarget]  = useState<FloorTable | null>(null);
   const [showResolved,    setShowResolved]    = useState(false);
+  const [muteAlerts,      setMuteAlerts]      = useState(false);
   const notify   = useNotify();
   const navigate = useNavigate();
   useElapsed(30_000);
@@ -631,9 +679,19 @@ export function WaiterTablesPage() {
           <span className="ff-area-topbar-title">
             {activeTab === 'floor' ? 'Mesas' : 'Chamados de garçom'}
           </span>
-          <button className="btn btn-sm btn-outline-secondary ms-auto" onClick={load} title="Atualizar">
-            <i className="bi bi-arrow-clockwise" />
-          </button>
+          <div className="ms-auto d-flex align-items-center gap-2">
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              style={{ borderRadius: 8, padding: '5px 10px' }}
+              title={muteAlerts ? 'Alertas silenciados' : 'Silenciar alertas'}
+              onClick={() => setMuteAlerts((v) => !v)}
+            >
+              <i className={`bi bi-bell${muteAlerts ? '-slash' : ''}`} style={{ color: muteAlerts ? '#9ca3af' : undefined }} />
+            </button>
+            <button className="btn btn-sm btn-outline-secondary" style={{ borderRadius: 8, padding: '5px 10px' }} onClick={load} title="Atualizar">
+              <i className="bi bi-arrow-clockwise" />
+            </button>
+          </div>
         </div>
 
         {activeTab === 'floor' && (
@@ -693,7 +751,7 @@ export function WaiterTablesPage() {
                     style={{
                       background: zoneFilter === z ? '#1d4ed8' : '#f3f4f6',
                       color: zoneFilter === z ? '#fff' : '#374151',
-                      border: 'none', borderRadius: 8, padding: '4px 11px',
+                      border: 'none', borderRadius: 8, padding: '5px 12px',
                       fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all .12s',
                     }}
                     onClick={() => setZoneFilter(zoneFilter === z ? 'all' : z)}
@@ -705,7 +763,7 @@ export function WaiterTablesPage() {
                 {waiterNames.length > 0 && (
                   <select
                     className="form-select form-select-sm"
-                    style={{ width: 165, borderRadius: 8 }}
+                    style={{ width: 170, borderRadius: 8 }}
                     value={waiterFilter}
                     onChange={(e) => setWaiterFilter(e.target.value)}
                   >

@@ -52,13 +52,6 @@ function elapsedMs(createdAt: string): number {
   return Date.now() - new Date(createdAt).getTime();
 }
 
-function formatElapsed(ms: number): string {
-  const min = Math.floor(ms / 60000);
-  const sec = Math.floor((ms % 60000) / 1000);
-  if (min >= 60) return `${Math.floor(min / 60)}h ${min % 60}min`;
-  return min > 0 ? `${min}min ${sec}s` : `${sec}s`;
-}
-
 function formatMinutes(ms: number): string {
   if (ms <= 0) return '—';
   const min = Math.floor(ms / 60000);

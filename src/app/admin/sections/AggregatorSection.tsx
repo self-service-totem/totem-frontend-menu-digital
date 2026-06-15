@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react';
 import { aggregatorService } from '@/lib/services/aggregatorService';
 import { useNotify } from '@/lib/notifications';
 import type { AggregatorSettings } from '@/lib/types';
+import {
+  AdminPageHeader,
+  AdminButton,
+  AdminBadge,
+  AdminCard,
+  AdminEmptyState,
+} from '@/components/admin';
 
 export function AggregatorSection() {
   const [settings, setSettings] = useState<AggregatorSettings[]>([]);
@@ -21,30 +28,69 @@ export function AggregatorSection() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 500 }}>
-      {settings.map((s) => (
-        <div key={s.id} className="ff-data-card">
-          <div className="ff-data-card-header">
-            <span>
-              <span className="ff-platform-badge me-2" style={{ background: aggregatorService.getPlatformColor(s.platform) }}>
-                {aggregatorService.getPlatformName(s.platform)}
-              </span>
-              {s.externalId && <span style={{ fontSize: 12, color: '#9ca3af' }}>ID: {s.externalId}</span>}
-            </span>
-            <span className={`badge ${s.active ? 'bg-success' : 'bg-secondary'}`}>{s.active ? 'Ativo' : 'Inativo'}</span>
-          </div>
-          <div style={{ padding: '12px 20px', display: 'flex', gap: 8 }}>
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => handleToggle(s)}>
-              {s.active ? 'Desativar' : 'Ativar'}
-            </button>
-            {s.active && (
-              <button className="btn btn-sm btn-primary" onClick={() => handleSimulate(s)}>
-                <i className="bi bi-lightning me-1" />Simular pedido
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 560 }}>
+      <AdminPageHeader
+        title="Agregadores"
+        subtitle="Integrações com plataformas de delivery externas"
+      />
+
+      {settings.length === 0 ? (
+        <AdminEmptyState
+          icon="bi-phone"
+          title="Nenhum agregador configurado"
+          message="Configure integrações com iFood, Rappi e outras plataformas."
+        />
+      ) : (
+        settings.map((s) => {
+          const platformName = aggregatorService.getPlatformName(s.platform);
+          const platformColor = aggregatorService.getPlatformColor(s.platform);
+
+          return (
+            <AdminCard
+              key={s.id}
+              header={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    className="ff-platform-badge"
+                    style={{ background: platformColor }}
+                  >
+                    {platformName}
+                  </span>
+                  {s.externalId && (
+                    <span style={{ fontSize: 12, color: '#9ca3af' }}>ID: {s.externalId}</span>
+                  )}
+                </div>
+              }
+              headerRight={
+                <AdminBadge
+                  variant={s.active ? 'active' : 'inactive'}
+                  label={s.active ? 'Ativo' : 'Inativo'}
+                />
+              }
+            >
+              <div style={{ display: 'flex', gap: 8 }}>
+                <AdminButton
+                  variant={s.active ? 'ghost' : 'outline'}
+                  size="sm"
+                  onClick={() => handleToggle(s)}
+                >
+                  {s.active ? 'Desativar' : 'Ativar'}
+                </AdminButton>
+                {s.active && (
+                  <AdminButton
+                    variant="primary"
+                    size="sm"
+                    icon="bi-lightning"
+                    onClick={() => handleSimulate(s)}
+                  >
+                    Simular pedido
+                  </AdminButton>
+                )}
+              </div>
+            </AdminCard>
+          );
+        })
+      )}
     </div>
   );
 }

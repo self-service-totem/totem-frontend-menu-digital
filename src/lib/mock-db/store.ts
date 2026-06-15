@@ -49,14 +49,20 @@ export function clearCollection(key: string): void {
   localStorage.removeItem(PREFIX + key);
 }
 
-const SEED_VERSION = 'v9';
+const SEED_VERSION = 'v11';
 
 export function isSeeded(): boolean {
-  return localStorage.getItem(PREFIX + '__seeded') === SEED_VERSION;
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    localStorage.getItem(PREFIX + '__seeded') === SEED_VERSION &&
+    localStorage.getItem(PREFIX + '__seeded_date') === today
+  );
 }
 
 export function markSeeded(): void {
+  const today = new Date().toISOString().slice(0, 10);
   localStorage.setItem(PREFIX + '__seeded', SEED_VERSION);
+  localStorage.setItem(PREFIX + '__seeded_date', today);
 }
 
 export function resetDb(): void {

@@ -3,6 +3,17 @@ import { adminOrderService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { DbOrder, FullOrderStatus } from '@/lib/types';
 import { formatBRL } from '../adminUtils';
+import {
+  AdminPageHeader,
+  OrderStatusBadge,
+  PaymentStatusBadge,
+  AdminTable,
+  AdminMetricCard,
+  AdminSearchInput,
+  AdminFilterBar,
+  useSortable,
+} from '@/components/admin';
+import type { AdminTableColumn, SortDir } from '@/components/admin';
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT:           'Rascunho',
@@ -15,30 +26,6 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELED:        'Cancelado',
 };
 
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  UNPAID:         'Não pago',
-  PARTIALLY_PAID: 'Parcial',
-  PAID:           'Pago',
-  REFUNDED:       'Reembolsado',
-};
-
-const ORDER_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  DRAFT:           { bg: '#f3f4f6', color: '#9ca3af' },
-  CREATED:         { bg: '#f3f4f6', color: '#6b7280' },
-  SENT_TO_KITCHEN: { bg: 'var(--ff-status-new-soft)',        color: 'var(--ff-status-new)' },
-  PREPARING:       { bg: 'var(--ff-status-preparing-soft)',  color: 'var(--ff-status-preparing)' },
-  READY:           { bg: 'var(--ff-status-ready-soft)',      color: 'var(--ff-status-ready)' },
-  DELIVERED:       { bg: 'var(--ff-status-delivered-soft)',  color: 'var(--ff-status-delivered)' },
-  CLOSED:          { bg: 'var(--ff-status-paid-soft)',       color: 'var(--ff-status-paid)' },
-  CANCELED:        { bg: 'var(--ff-status-cancelled-soft)',  color: 'var(--ff-status-cancelled)' },
-};
-
-const PAYMENT_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  UNPAID:         { bg: '#f3f4f6', color: '#9ca3af' },
-  PARTIALLY_PAID: { bg: '#fffbeb', color: '#d97706' },
-  PAID:           { bg: '#ecfdf5', color: '#059669' },
-  REFUNDED:       { bg: '#f5f3ff', color: '#7c3aed' },
-};
 
 const STATUS_ADVANCE: Record<string, string> = {
   CREATED:         'SENT_TO_KITCHEN',
@@ -76,18 +63,13 @@ const FILTER_TABS = [
   { key: 'PAID',            label: 'Pagos' },
 ];
 
-function Pill({ status, map, labelMap }: { status: string; map: Record<string, { bg: string; color: string }>; labelMap: Record<string, string> }) {
-  const style = map[status] ?? { bg: '#f3f4f6', color: '#6b7280' };
-  return (
-    <span className="ff-status-pill" style={{ background: style.bg, color: style.color }}>
-      {labelMap[status] ?? status}
-    </span>
-  );
-}
-
-function OrderDrawer({ order, onClose, onAdvance }: { order: DbOrder; onClose: () => void; onAdvance: (id: string, status: string) => void }) {
-  const nextStatus = STATUS_ADVANCE[order.status];
-  const currentIdx = STATUS_ORDER.indexOf(order.status);
+function OrderDrawer({ order, onClose, onAdvance }: {
+  order: DbOrder;
+  onClose: () => void;
+  onAdvance: (id: string, status: string) => void;
+}) {
+  const nextStatus  = STATUS_ADVANCE[order.status];
+  const currentIdx  = STATUS_ORDER.indexOf(order.status);
 
   return (
     <div className="ff-order-drawer">
@@ -97,17 +79,23 @@ function OrderDrawer({ order, onClose, onAdvance }: { order: DbOrder; onClose: (
       </div>
 
       <div className="ff-order-drawer-body">
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Pill status={order.status}        map={ORDER_STATUS_STYLE}   labelMap={ORDER_STATUS_LABEL} />
-          <Pill status={order.paymentStatus} map={PAYMENT_STATUS_STYLE} labelMap={PAYMENT_STATUS_LABEL} />
-          <span className="ff-status-pill" style={{ background: '#f3f4f6', color: '#6b7280' }}>{order.source}</span>
-          {order.tableNumber && <span className="ff-status-pill" style={{ background: '#eff6ff', color: '#1d4ed8' }}><i className="bi bi-table" /> Mesa {order.tableNumber}</span>}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <OrderStatusBadge status={order.status} />
+          <PaymentStatusBadge status={order.paymentStatus} />
+          <span className="ff-admin-badge ff-admin-badge--neutral">{order.source}</span>
+          {order.tableNumber && (
+            <span className="ff-admin-badge ff-admin-badge--blue">
+              <i className="bi bi-table" /> Mesa {order.tableNumber}
+            </span>
+          )}
         </div>
 
         <div>
           <div className="ff-order-drawer-section-label">Cliente</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{order.customerName}</div>
-          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+            {new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+          </div>
         </div>
 
         <div>
@@ -126,7 +114,9 @@ function OrderDrawer({ order, onClose, onAdvance }: { order: DbOrder; onClose: (
 
         <div className="ff-order-drawer-totals">
           <div className="ff-order-drawer-total-row"><span>Subtotal</span><span>{formatBRL(order.subtotal)}</span></div>
-          {order.serviceFee > 0 && <div className="ff-order-drawer-total-row"><span>Taxa de serviço</span><span>{formatBRL(order.serviceFee)}</span></div>}
+          {order.serviceFee > 0 && (
+            <div className="ff-order-drawer-total-row"><span>Taxa de serviço</span><span>{formatBRL(order.serviceFee)}</span></div>
+          )}
           <div className="ff-order-drawer-total-row grand"><span>Total</span><span>{formatBRL(order.total)}</span></div>
         </div>
 
@@ -151,8 +141,12 @@ function OrderDrawer({ order, onClose, onAdvance }: { order: DbOrder; onClose: (
             })}
             {order.status === 'CANCELED' && (
               <div className="ff-order-timeline-step">
-                <div className="ff-order-timeline-dot current" style={{ background: 'var(--ff-status-cancelled)', borderColor: 'var(--ff-status-cancelled)' }}><i className="bi bi-x" /></div>
-                <div className="ff-order-timeline-label current" style={{ color: 'var(--ff-status-cancelled)' }}>Cancelado</div>
+                <div className="ff-order-timeline-dot current" style={{ background: 'var(--ff-status-cancelled)', borderColor: 'var(--ff-status-cancelled)' }}>
+                  <i className="bi bi-x" />
+                </div>
+                <div className="ff-order-timeline-label current" style={{ color: 'var(--ff-status-cancelled)' }}>
+                  Cancelado
+                </div>
               </div>
             )}
           </div>
@@ -171,12 +165,75 @@ function OrderDrawer({ order, onClose, onAdvance }: { order: DbOrder; onClose: (
   );
 }
 
+const COLUMNS: AdminTableColumn<DbOrder>[] = [
+  {
+    key: 'orderNumber',
+    label: 'Pedido',
+    sortable: true,
+    width: '90px',
+    render: (o) => (
+      <strong style={{ fontVariantNumeric: 'tabular-nums', color: '#1a1a1a' }}>#{o.orderNumber}</strong>
+    ),
+  },
+  {
+    key: 'customerName',
+    label: 'Cliente',
+    sortable: true,
+    render: (o) => o.customerName,
+  },
+  {
+    key: 'tableNumber',
+    label: 'Mesa',
+    sortable: true,
+    render: (o) => o.tableNumber
+      ? `Mesa ${o.tableNumber}`
+      : <span style={{ color: '#d1d5db' }}>—</span>,
+  },
+  {
+    key: 'total',
+    label: 'Total',
+    sortable: true,
+    align: 'right',
+    render: (o) => <span style={{ fontWeight: 700 }}>{formatBRL(o.total)}</span>,
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    sortable: true,
+    render: (o) => <OrderStatusBadge status={o.status} />,
+  },
+  {
+    key: 'paymentStatus',
+    label: 'Pagamento',
+    sortable: true,
+    render: (o) => <PaymentStatusBadge status={o.paymentStatus} />,
+  },
+  {
+    key: 'source',
+    label: 'Origem',
+    render: (o) => <span style={{ color: '#6b7280' }}>{o.source}</span>,
+  },
+  {
+    key: 'createdAt',
+    label: 'Hora',
+    sortable: true,
+    render: (o) => (
+      <span style={{ color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
+        {new Date(o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+      </span>
+    ),
+  },
+];
+
 export function Orders() {
-  const [orders, setOrders]   = useState<DbOrder[]>([]);
-  const [filter, setFilter]   = useState('');
-  const [selected, setSelected] = useState<DbOrder | null>(null);
-  const [newIds, setNewIds]   = useState<Set<string>>(new Set());
-  const prevIdsRef            = useRef<Set<string>>(new Set());
+  const [orders, setOrders]       = useState<DbOrder[]>([]);
+  const [filter, setFilter]       = useState('');
+  const [search, setSearch]       = useState('');
+  const [selected, setSelected]   = useState<DbOrder | null>(null);
+  const [newIds, setNewIds]       = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy]       = useState('createdAt');
+  const [sortDir, setSortDir]     = useState<SortDir>('desc');
+  const prevIdsRef                = useRef<Set<string>>(new Set());
   const notify = useNotify();
 
   async function load() {
@@ -201,7 +258,24 @@ export function Orders() {
     setSelected((prev) => prev?.id === orderId ? { ...prev, status: status as FullOrderStatus } : prev);
   }
 
-  const filtered = filter ? orders.filter((o) => o.status === filter || o.paymentStatus === filter) : orders;
+  function handleSort(key: string) {
+    if (sortBy === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(key); setSortDir('asc'); }
+  }
+
+  const statusFiltered = filter
+    ? orders.filter((o) => o.status === filter || o.paymentStatus === filter)
+    : orders;
+
+  const searchFiltered = search
+    ? statusFiltered.filter((o) =>
+        `#${o.orderNumber}`.includes(search) ||
+        o.customerName.toLowerCase().includes(search.toLowerCase()) ||
+        (o.tableNumber && `mesa ${o.tableNumber}`.toLowerCase().includes(search.toLowerCase()))
+      )
+    : statusFiltered;
+
+  const sorted = useSortable(searchFiltered, sortBy, sortDir);
 
   const counts: Record<string, number> = {};
   orders.forEach((o) => {
@@ -209,45 +283,85 @@ export function Orders() {
     if (o.paymentStatus === 'PAID') counts['PAID'] = (counts['PAID'] ?? 0) + 1;
   });
 
-  return (
-    <div className="ff-orders-layout">
-      <div className="ff-orders-main">
-        <div className="ff-orders-tabs">
-          {FILTER_TABS.map((tab) => (
-            <button key={tab.key} className={`ff-orders-tab${filter === tab.key ? ' active' : ''}`} onClick={() => setFilter(tab.key)}>
-              {tab.label}
-              <span className="ff-orders-tab-count">{tab.key === '' ? orders.length : (counts[tab.key] ?? 0)}</span>
-            </button>
-          ))}
-        </div>
+  const inKitchen  = (counts['SENT_TO_KITCHEN'] ?? 0);
+  const preparing  = (counts['PREPARING'] ?? 0);
+  const ready      = (counts['READY'] ?? 0);
+  const delivered  = (counts['DELIVERED'] ?? 0);
+  const paid       = (counts['PAID'] ?? 0);
+  const unpaid     = orders.filter((o) => o.paymentStatus === 'UNPAID').length;
 
-        <div className="ff-data-card" style={{ overflow: 'hidden' }}>
-          <table className="ff-orders-table">
-            <thead>
-              <tr><th>Pedido</th><th>Cliente</th><th>Mesa</th><th>Total</th><th>Status</th><th>Pagamento</th><th>Origem</th><th>Hora</th></tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', color: '#9ca3af', padding: '28px 0' }}>Nenhum pedido neste status</td></tr>
-              )}
-              {filtered.map((o) => (
-                <tr key={o.id} className={`${newIds.has(o.id) ? 'ff-order-row-new' : ''}${selected?.id === o.id ? ' selected' : ''}`} onClick={() => setSelected(selected?.id === o.id ? null : o)}>
-                  <td><strong style={{ fontVariantNumeric: 'tabular-nums' }}>#{o.orderNumber}</strong></td>
-                  <td>{o.customerName}</td>
-                  <td>{o.tableNumber ? `Mesa ${o.tableNumber}` : <span style={{ color: '#d1d5db' }}>—</span>}</td>
-                  <td style={{ fontWeight: 700 }}>{formatBRL(o.total)}</td>
-                  <td><Pill status={o.status}        map={ORDER_STATUS_STYLE}   labelMap={ORDER_STATUS_LABEL} /></td>
-                  <td><Pill status={o.paymentStatus} map={PAYMENT_STATUS_STYLE} labelMap={PAYMENT_STATUS_LABEL} /></td>
-                  <td style={{ color: '#6b7280' }}>{o.source}</td>
-                  <td style={{ color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{new Date(o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+  const filterOptions = FILTER_TABS.map((tab) => ({
+    key: tab.key,
+    label: tab.label,
+    count: tab.key === '' ? orders.length : (counts[tab.key] ?? 0),
+  }));
+
+  const columnsWithHighlight: AdminTableColumn<DbOrder>[] = COLUMNS.map((col) => ({
+    ...col,
+    render: (o: DbOrder) => {
+      const base = col.render(o);
+      if (col.key === 'orderNumber' && newIds.has(o.id)) {
+        return <span className="ff-order-row-new-indicator">{base}</span>;
+      }
+      return base;
+    },
+  }));
+
+  return (
+    <div className="ff-orders-screen">
+      <AdminPageHeader title="Pedidos" subtitle="Acompanhamento de pedidos em tempo real" />
+
+      {/* Metrics */}
+      <div className="ff-admin-metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+        <AdminMetricCard label="Total hoje" value={orders.length} icon="bi-receipt" color="slate" />
+        <AdminMetricCard label="Na cozinha" value={inKitchen} icon="bi-fire" color="amber" />
+        <AdminMetricCard label="Preparando" value={preparing} icon="bi-hourglass-split" color="amber" />
+        <AdminMetricCard label="Prontos" value={ready} icon="bi-check-circle" color="green" />
+        <AdminMetricCard label="Entregues" value={delivered} icon="bi-bag-check" color="purple" />
+        <AdminMetricCard label="Pagos" value={paid} icon="bi-credit-card" color="green" />
+        <AdminMetricCard label="Não pagos" value={unpaid} icon="bi-exclamation-circle" color="red" />
       </div>
 
-      {selected && <OrderDrawer order={selected} onClose={() => setSelected(null)} onAdvance={handleAdvance} />}
+      <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="ff-orders-screen-main">
+          {/* Toolbar */}
+          <div className="ff-admin-toolbar">
+            <AdminSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar pedido, cliente ou mesa..."
+              className="ff-admin-search--orders"
+            />
+            <AdminFilterBar options={filterOptions} value={filter} onChange={setFilter} />
+          </div>
+
+          {/* Table */}
+          <div className="ff-admin-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
+            <AdminTable<DbOrder>
+              columns={columnsWithHighlight}
+              rows={sorted}
+              sortBy={sortBy}
+              sortDir={sortDir}
+              onSort={handleSort}
+              onRowClick={(o) => setSelected(selected?.id === o.id ? null : o)}
+              selectedId={selected?.id}
+              emptyIcon="bi-receipt"
+              emptyTitle="Nenhum pedido encontrado"
+              emptyMessage="Nenhum pedido corresponde aos filtros selecionados."
+            />
+            </div>
+          </div>
+        </div>
+
+        {selected && (
+          <OrderDrawer
+            order={selected}
+            onClose={() => setSelected(null)}
+            onAdvance={handleAdvance}
+          />
+        )}
+      </div>
     </div>
   );
 }
