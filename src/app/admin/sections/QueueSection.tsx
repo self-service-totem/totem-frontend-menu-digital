@@ -7,7 +7,7 @@ import {
   AdminPageHeader,
   AdminButton,
   AdminCard,
-  AdminMetricCard,
+  MetricChip,
   AdminTable,
   QueueStatusBadge,
 } from '@/components/admin';
@@ -173,11 +173,11 @@ export function QueueSection() {
         </div>
       </AdminCard>
 
-      {/* Metrics */}
-      <div className="ff-admin-metrics-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <AdminMetricCard label="Aguardando"     value={waiting.length} icon="bi-hourglass-split" color="amber" />
-        <AdminMetricCard label="Sendo atendido" value={active.length}  icon="bi-person-check"    color="green" />
-        <AdminMetricCard label="Concluídos"     value={done}           icon="bi-check-all"        color="slate" />
+      {/* Metrics strip */}
+      <div className="ff-queue-metrics-strip">
+        <MetricChip label="Aguardando"     value={waiting.length} icon="bi-hourglass-split" color="amber" />
+        <MetricChip label="Sendo atendido" value={active.length}  icon="bi-person-check"    color="green" />
+        <MetricChip label="Concluídos"     value={done}           icon="bi-check-all"        color="slate" />
       </div>
 
       {/* Call next CTA */}

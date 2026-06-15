@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { categoryService, productService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { DbCategory, DbProduct, KitchenStation } from '@/lib/types';
-import { formatBRL } from '../adminUtils';
+import { formatBRL, formatDate } from '../adminUtils';
 import { AdminModal } from '@/components/admin';
 import {
   AdminPageHeader,
@@ -11,7 +11,14 @@ import {
   AdminSearchInput,
   AdminFilterBar,
   AdminEmptyState,
+  AdminTable,
+  AdminActionMenu,
+  ViewToggle,
+  useSortable,
 } from '@/components/admin';
+import type { AdminTableColumn, SortDir, ViewMode } from '@/components/admin';
+
+type ProductRow = DbProduct & { categoryName: string };
 
 export function Products() {
   const [products, setProducts]     = useState<DbProduct[]>([]);
@@ -24,6 +31,9 @@ export function Products() {
   });
   const [search, setSearch]       = useState('');
   const [catFilter, setCatFilter] = useState('');
+  const [viewMode, setViewMode]   = useState<ViewMode>('card');
+  const [sortBy, setSortBy]       = useState('name');
+  const [sortDir, setSortDir]     = useState<SortDir>('asc');
   const notify = useNotify();
 
   async function load() {
@@ -64,17 +74,152 @@ export function Products() {
     load();
   }
 
+  async function toggleFeatured(p: DbProduct) {
+    await productService.update(p.id, { featured: !p.featured });
+    notify(p.featured ? 'Destaque removido' : 'Marcado como destaque');
+    load();
+  }
+
+  function handleSort(key: string) {
+    if (sortBy === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      setSortDir('asc');
+    }
+  }
+
   const filtered = products
     .filter((p) => !search    || p.name.toLowerCase().includes(search.toLowerCase()))
     .filter((p) => !catFilter || p.categoryId === catFilter);
+
+  const withCatName: ProductRow[] = filtered.map((p) => ({
+    ...p,
+    categoryName: categories.find((c) => c.id === p.categoryId)?.name ?? '',
+  }));
+
+  const tableRows = useSortable(withCatName, sortBy, sortDir);
 
   const catOptions = [
     { key: '', label: 'Todos' },
     ...categories.map((c) => ({ key: c.id, label: c.name })),
   ];
 
+  const productColumns: AdminTableColumn<ProductRow>[] = [
+    {
+      key: 'imageUrl',
+      label: '',
+      width: '52px',
+      render: (p) => (
+        <div className="ff-table-thumb">
+          {p.imageUrl
+            ? <img src={p.imageUrl} alt={p.name} className="ff-table-thumb-img" />
+            : <div className="ff-table-thumb-ph"><i className="bi bi-image" /></div>
+          }
+        </div>
+      ),
+    },
+    {
+      key: 'name',
+      label: 'Produto',
+      sortable: true,
+      render: (p) => (
+        <div>
+          <div className="ff-table-row-title">{p.name}</div>
+          {p.description && <div className="ff-table-row-sub">{p.description}</div>}
+        </div>
+      ),
+    },
+    {
+      key: 'categoryName',
+      label: 'Categoria',
+      sortable: true,
+      className: 'ff-hide-mobile',
+      render: (p) => <span className="ff-table-row-tag">{p.categoryName || '—'}</span>,
+    },
+    {
+      key: 'price',
+      label: 'Preço',
+      sortable: true,
+      width: '100px',
+      align: 'right',
+      render: (p) => <span className="ff-table-price">{formatBRL(p.price)}</span>,
+    },
+    {
+      key: 'available',
+      label: 'Status',
+      sortable: true,
+      width: '100px',
+      render: (p) => (
+        <label className="ff-toggle" onClick={(e) => { e.preventDefault(); toggleAvailable(p); }}>
+          <div className={`ff-toggle-track${p.available ? ' on' : ''}`}>
+            <div className="ff-toggle-thumb" />
+          </div>
+          <span className="ff-toggle-label">{p.available ? 'Ativo' : 'Inativo'}</span>
+        </label>
+      ),
+    },
+    {
+      key: 'featured',
+      label: 'Destaque',
+      sortable: true,
+      width: '80px',
+      align: 'center',
+      className: 'ff-hide-mobile',
+      render: (p) => (
+        <button
+          type="button"
+          className={`ff-feature-toggle${p.featured ? ' on' : ''}`}
+          onClick={() => toggleFeatured(p)}
+          title={p.featured ? 'Remover destaque' : 'Marcar como destaque'}
+        >
+          <i className={`bi bi-star${p.featured ? '-fill' : ''}`} />
+        </button>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      label: 'Atualizado',
+      sortable: true,
+      width: '110px',
+      className: 'ff-hide-mobile',
+      render: (p) => <span className="ff-table-date">{formatDate(p.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      label: '',
+      width: '72px',
+      align: 'right',
+      render: (p) => (
+        <div className="ff-table-actions">
+          <AdminIconButton
+            icon="bi-pencil"
+            variant="ghost"
+            size="sm"
+            title="Editar produto"
+            onClick={() => openEdit(p)}
+          />
+          <AdminActionMenu items={[
+            {
+              key: 'toggle',
+              label: p.available ? 'Desativar' : 'Ativar',
+              icon: p.available ? 'bi-toggle-off' : 'bi-toggle-on',
+              onClick: () => toggleAvailable(p),
+            },
+            {
+              key: 'featured',
+              label: p.featured ? 'Remover destaque' : 'Marcar destaque',
+              icon: 'bi-star',
+              onClick: () => toggleFeatured(p),
+            },
+          ]} />
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div>
+    <div className={viewMode === 'table' ? 'ff-table-view' : undefined}>
       <div className="ff-products-sticky-bar">
         <AdminPageHeader
           title="Produtos"
@@ -93,10 +238,24 @@ export function Products() {
             placeholder="Buscar produto..."
           />
           <AdminFilterBar options={catOptions} value={catFilter} onChange={setCatFilter} />
+          <div className="ff-admin-toolbar-right">
+            <ViewToggle mode={viewMode} onChange={setViewMode} />
+          </div>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {viewMode === 'table' ? (
+        <AdminTable
+          columns={productColumns}
+          rows={tableRows}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={handleSort}
+          emptyIcon="bi-box"
+          emptyTitle="Nenhum produto encontrado"
+          emptyMessage="Tente mudar os filtros ou crie um novo produto."
+        />
+      ) : filtered.length === 0 ? (
         <AdminEmptyState
           icon="bi-box"
           title="Nenhum produto encontrado"

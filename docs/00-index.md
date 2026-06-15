@@ -14,6 +14,8 @@ docs/02-ui-component-standard.md
 docs/03-api-integration-standard.md
 docs/04-modal-toast-standard.md
 docs/05-testing-strategy.md
+docs/UI_STANDARDS.md
+docs/DESIGN_SYSTEM.md
 docs/planning/frontend-masterplan-prs.md
 docs/tickets/pr-ticket-template.md
 docs/tickets/prompt-create-ticket.md
@@ -31,6 +33,17 @@ Canonical rules for folder structure, feature organization, page/component bound
 ### `02-ui-component-standard.md`
 
 Canonical rules for components, Bootstrap usage, styling, naming and UI consistency.
+
+### `UI_STANDARDS.md`
+
+Global layout and interaction standard. Defines the screen-type taxonomy, desktop/mobile
+layout rules, sticky behavior, table rules, and the acceptance checklist every new screen
+must pass. Read this before building any screen.
+
+### `DESIGN_SYSTEM.md`
+
+The shared component catalog: standard-name → real-component mapping, props, imports and
+usage snippets. Reuse these components instead of writing custom page shells.
 
 ### `03-api-integration-standard.md`
 

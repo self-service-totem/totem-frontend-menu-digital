@@ -11,6 +11,7 @@ export interface AdminTableColumn<T> {
   render: (row: T) => ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
+  className?: string;
 }
 
 export function AdminTable<T extends { id: string }>({
@@ -99,7 +100,7 @@ export function AdminTable<T extends { id: string }>({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={col.align ? `ff-admin-table-cell--${col.align}` : undefined}
+                    className={[col.align ? `ff-admin-table-cell--${col.align}` : '', col.className ?? ''].filter(Boolean).join(' ') || undefined}
                   >
                     {col.render(row)}
                   </td>

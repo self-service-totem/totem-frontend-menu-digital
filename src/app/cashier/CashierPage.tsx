@@ -110,7 +110,7 @@ function PayModal({ title, subtitle, totalDue, paidAmount, onClose, onPay }: Pay
 
   return (
     <div style={OVERLAY_STYLE} onClick={onClose}>
-      <div style={{ ...MODAL_STYLE, width: 460 }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ ...MODAL_STYLE, width: '100%', maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -270,7 +270,7 @@ function PayModal({ title, subtitle, totalDue, paidAmount, onClose, onPay }: Pay
 function ReceiptModal({ receipt, onClose }: { receipt: Receipt; onClose: () => void }) {
   return (
     <div style={OVERLAY_STYLE} onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: 360, fontFamily: 'monospace', fontSize: 13 }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 360, fontFamily: 'monospace', fontSize: 13 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: '#6b7280' }}>Recibo</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a1a', margin: '4px 0' }}>{receipt.number}</div>
@@ -704,6 +704,7 @@ function SortTh({ label, colKey, sort, onSort }: {
 export function CashierPage() {
   const location = useLocation();
   const [tab, setTab] = useState<Tab>(() => tabFromPath(location.pathname));
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [tableGroups, setTableGroups] = useState<TableGroup[]>([]);
   const [tables, setTables] = useState<DbTable[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -875,21 +876,28 @@ export function CashierPage() {
       `}</style>
 
       <div className="ff-area-layout" style={{ height: '100vh', overflow: 'hidden' }}>
+        {drawerOpen && (
+          <div className="ff-area-drawer-backdrop ff-area-drawer-backdrop--open" onClick={() => setDrawerOpen(false)} />
+        )}
+
         {/* Sidebar */}
-        <aside className="ff-area-sidebar">
+        <aside className={`ff-area-sidebar${drawerOpen ? ' ff-area-sidebar--open' : ''}`}>
+          <button className="ff-area-sidebar-close" onClick={() => setDrawerOpen(false)} aria-label="Fechar menu">
+            <i className="bi bi-x-lg" />
+          </button>
           <div className="ff-area-sidebar-logo">
             <i className="bi bi-cash-register me-2" />Caixa
           </div>
           <nav className="ff-area-sidebar-nav">
             {navItems.map((n) => (
-              <button key={n.value} className={`ff-nav-item ${tab === n.value ? 'active' : ''}`} onClick={() => setTab(n.value)}>
+              <button key={n.value} className={`ff-nav-item ${tab === n.value ? 'active' : ''}`} onClick={() => { setTab(n.value); setDrawerOpen(false); }}>
                 <i className={`bi ${n.icon}`} />{n.label}
                 {n.value === 'orders' && payments.length > 0 && (
                   <span className="badge bg-danger ms-auto">{payments.length}</span>
                 )}
               </button>
             ))}
-            <button className="ff-nav-item" onClick={() => navigate('/')}>
+            <button className="ff-nav-item" onClick={() => { navigate('/'); setDrawerOpen(false); }}>
               <i className="bi bi-house" />Hub
             </button>
           </nav>
@@ -902,6 +910,9 @@ export function CashierPage() {
           <div style={{ flexShrink: 0, background: '#fff', boxShadow: scrolled ? '0 2px 12px rgba(0,0,0,.08)' : 'none', transition: 'box-shadow .2s', zIndex: 10 }}>
             {/* Topbar */}
             <div className="ff-area-topbar" style={{ borderBottom: '1px solid #e5e7eb' }}>
+              <button className="ff-area-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Abrir menu">
+                <i className="bi bi-list" />
+              </button>
               <span className="ff-area-topbar-title">Caixa / Pagamentos</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#059669', fontWeight: 600 }}>
@@ -915,7 +926,7 @@ export function CashierPage() {
             </div>
 
             {/* Summary cards */}
-            <div style={{ padding: '16px 24px 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            <div className="ff-cashier-summary-grid" style={{ padding: '16px 24px 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               <CashierMetric
                 icon="bi-cash-stack" iconColor="#059669" iconBg="#ecfdf5"
                 label="Recebido hoje" value={formatBRL(summary.totalPaid)} valueColor="#059669"
@@ -936,7 +947,7 @@ export function CashierPage() {
 
             {/* Search + filters + controls */}
             {tab === 'orders' && (
-              <div style={{ padding: '14px 24px 14px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div className="ff-cashier-filter-bar" style={{ padding: '14px 24px 14px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 {/* Search */}
                 <div style={{ position: 'relative', width: 200, flexShrink: 0 }}>
                   <i className="bi bi-search" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 13, pointerEvents: 'none' }} />
@@ -1037,6 +1048,7 @@ export function CashierPage() {
                 {allPayments.length === 0 && (
                   <div className="text-center text-muted py-4">Nenhum pagamento</div>
                 )}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className="ff-orders-table">
                   <thead>
                     <tr>
@@ -1085,6 +1097,7 @@ export function CashierPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
 
@@ -1093,6 +1106,7 @@ export function CashierPage() {
               <div className="ff-data-card">
                 <div className="ff-data-card-header"><span className="ff-data-card-title">Recibos</span></div>
                 {receipts.length === 0 && <div className="text-center text-muted py-4">Nenhum recibo gerado</div>}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className="ff-orders-table">
                   <thead>
                     <tr>
@@ -1119,6 +1133,7 @@ export function CashierPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
 
@@ -1127,6 +1142,7 @@ export function CashierPage() {
               <div className="ff-data-card">
                 <div className="ff-data-card-header"><span className="ff-data-card-title">Notas fiscais</span></div>
                 {invoices.length === 0 && <div className="text-center text-muted py-4">Nenhuma nota fiscal gerada</div>}
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table className="ff-orders-table">
                   <thead>
                     <tr>
@@ -1149,6 +1165,7 @@ export function CashierPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
 

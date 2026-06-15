@@ -88,7 +88,8 @@ export const router = createBrowserRouter([
 
   // ─── New features ─────────────────────────────────────────────────────────
   { path: '/login', element: <LoginPage /> },
-  { path: '/reports', element: <ReportsPage /> },
+  { path: '/reports', element: <Navigate to="/reports/dashboard" replace /> },
+  { path: '/reports/:section', element: <ReportsPage /> },
   { path: '/reservations', element: <ReservationsPage /> },
   { path: '/delivery', element: <DeliveryPage /> },
 ]);

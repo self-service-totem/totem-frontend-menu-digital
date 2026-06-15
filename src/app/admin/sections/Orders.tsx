@@ -4,11 +4,9 @@ import { useNotify } from '@/lib/notifications';
 import type { DbOrder, FullOrderStatus } from '@/lib/types';
 import { formatBRL } from '../adminUtils';
 import {
-  AdminPageHeader,
   OrderStatusBadge,
   PaymentStatusBadge,
   AdminTable,
-  AdminMetricCard,
   AdminSearchInput,
   AdminFilterBar,
   useSortable,
@@ -61,6 +59,7 @@ const FILTER_TABS = [
   { key: 'READY',           label: 'Prontos' },
   { key: 'DELIVERED',       label: 'Entregues' },
   { key: 'PAID',            label: 'Pagos' },
+  { key: 'UNPAID',          label: 'Não pagos' },
 ];
 
 function OrderDrawer({ order, onClose, onAdvance }: {
@@ -280,15 +279,9 @@ export function Orders() {
   const counts: Record<string, number> = {};
   orders.forEach((o) => {
     counts[o.status] = (counts[o.status] ?? 0) + 1;
-    if (o.paymentStatus === 'PAID') counts['PAID'] = (counts['PAID'] ?? 0) + 1;
+    if (o.paymentStatus === 'PAID')   counts['PAID']   = (counts['PAID']   ?? 0) + 1;
+    if (o.paymentStatus === 'UNPAID') counts['UNPAID'] = (counts['UNPAID'] ?? 0) + 1;
   });
-
-  const inKitchen  = (counts['SENT_TO_KITCHEN'] ?? 0);
-  const preparing  = (counts['PREPARING'] ?? 0);
-  const ready      = (counts['READY'] ?? 0);
-  const delivered  = (counts['DELIVERED'] ?? 0);
-  const paid       = (counts['PAID'] ?? 0);
-  const unpaid     = orders.filter((o) => o.paymentStatus === 'UNPAID').length;
 
   const filterOptions = FILTER_TABS.map((tab) => ({
     key: tab.key,
@@ -309,47 +302,36 @@ export function Orders() {
 
   return (
     <div className="ff-orders-screen">
-      <AdminPageHeader title="Pedidos" subtitle="Acompanhamento de pedidos em tempo real" />
-
-      {/* Metrics */}
-      <div className="ff-admin-metrics-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
-        <AdminMetricCard label="Total hoje" value={orders.length} icon="bi-receipt" color="slate" />
-        <AdminMetricCard label="Na cozinha" value={inKitchen} icon="bi-fire" color="amber" />
-        <AdminMetricCard label="Preparando" value={preparing} icon="bi-hourglass-split" color="amber" />
-        <AdminMetricCard label="Prontos" value={ready} icon="bi-check-circle" color="green" />
-        <AdminMetricCard label="Entregues" value={delivered} icon="bi-bag-check" color="purple" />
-        <AdminMetricCard label="Pagos" value={paid} icon="bi-credit-card" color="green" />
-        <AdminMetricCard label="Não pagos" value={unpaid} icon="bi-exclamation-circle" color="red" />
+      {/* Compact op-bar: title + search + filter chips (replaces header + metric cards) */}
+      <div className="ff-admin-op-bar">
+        <div className="ff-admin-op-bar-head">
+          <h1 className="ff-admin-op-bar-title">Pedidos</h1>
+          <AdminSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar pedido, cliente ou mesa..."
+          />
+        </div>
+        <AdminFilterBar options={filterOptions} value={filter} onChange={setFilter} />
       </div>
 
       <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <div className="ff-orders-screen-main">
-          {/* Toolbar */}
-          <div className="ff-admin-toolbar">
-            <AdminSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Buscar pedido, cliente ou mesa..."
-              className="ff-admin-search--orders"
-            />
-            <AdminFilterBar options={filterOptions} value={filter} onChange={setFilter} />
-          </div>
-
           {/* Table */}
           <div className="ff-admin-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
-            <AdminTable<DbOrder>
-              columns={columnsWithHighlight}
-              rows={sorted}
-              sortBy={sortBy}
-              sortDir={sortDir}
-              onSort={handleSort}
-              onRowClick={(o) => setSelected(selected?.id === o.id ? null : o)}
-              selectedId={selected?.id}
-              emptyIcon="bi-receipt"
-              emptyTitle="Nenhum pedido encontrado"
-              emptyMessage="Nenhum pedido corresponde aos filtros selecionados."
-            />
+              <AdminTable<DbOrder>
+                columns={columnsWithHighlight}
+                rows={sorted}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                onSort={handleSort}
+                onRowClick={(o) => setSelected(selected?.id === o.id ? null : o)}
+                selectedId={selected?.id}
+                emptyIcon="bi-receipt"
+                emptyTitle="Nenhum pedido encontrado"
+                emptyMessage="Nenhum pedido corresponde aos filtros selecionados."
+              />
             </div>
           </div>
         </div>

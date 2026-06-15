@@ -4,9 +4,9 @@ import { useNotify } from '@/lib/notifications';
 import type { Branch, Tenant } from '@/lib/types';
 import {
   AdminPageHeader,
-  AdminButton,
   AdminFormSection,
   AdminFormRow,
+  DirtySaveBar,
 } from '@/components/admin';
 
 type TenantForm = {
@@ -105,20 +105,11 @@ export function RestaurantSettings() {
       setBranchForm((f) => ({ ...f, [field]: e.target.value }));
 
   return (
-    <div style={{ maxWidth: 760, paddingBottom: isDirty ? 80 : 0 }}>
+    <div className="ff-settings-screen">
       <AdminPageHeader
         title="Configurações"
         subtitle="Identidade, filial, operação e integração"
-        actions={
-          isDirty ? (
-            <AdminButton variant="primary" loading={saving} onClick={handleSave}>
-              Salvar alterações
-            </AdminButton>
-          ) : undefined
-        }
       />
-
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {/* ── Identity ── */}
         <AdminFormSection
           title="Identidade do restaurante"
@@ -261,20 +252,14 @@ export function RestaurantSettings() {
             />
           </AdminFormRow>
         </AdminFormSection>
-      </div>
 
       {/* Sticky save bar */}
-      {isDirty && (
-        <div className="ff-admin-save-bar">
-          <span className="ff-admin-save-bar-text">Você tem alterações não salvas</span>
-          <div className="ff-admin-save-bar-actions">
-            <AdminButton variant="ghost" onClick={handleDiscard}>Descartar</AdminButton>
-            <AdminButton variant="primary" loading={saving} onClick={handleSave}>
-              Salvar alterações
-            </AdminButton>
-          </div>
-        </div>
-      )}
+      <DirtySaveBar
+        visible={isDirty}
+        saving={saving}
+        onCancel={handleDiscard}
+        onSave={handleSave}
+      />
     </div>
   );
 }

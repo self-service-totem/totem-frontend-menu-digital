@@ -1110,6 +1110,11 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
 
 // ─── OccupancyView ────────────────────────────────────────────────────────────
 
+const TABLE_CHIP_PALETTE = [
+  '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444',
+  '#8b5cf6', '#14b8a6', '#ec4899', '#f97316',
+];
+
 interface OccupancyViewProps {
   tables: DbTable[];
   settings: ReservationSettings | null;
@@ -1125,7 +1130,9 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
   const [occReservations, setOccReservations] = useState<Reservation[]>([]);
   const [quickReserve, setQuickReserve] = useState<{ tableId: string; tableNumber: string } | null>(null);
   const [editOccTarget, setEditOccTarget] = useState<Reservation | null>(null);
+  const [viewOccTarget, setViewOccTarget] = useState<Reservation | null>(null);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const notify = useNotify();
 
   async function loadOccReservations() {
@@ -1135,6 +1142,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
   useEffect(() => { loadOccReservations(); }, []);
 
   const activeTables = tables.filter((t) => t.active);
+  const viewTables   = selectedTableId ? activeTables.filter((t) => t.id === selectedTableId) : activeTables;
   const opening        = settings?.openingTime ?? '11:00';
   const closing        = settings?.closingTime ?? '23:00';
   const interval       = settings?.slotIntervalMinutes ?? 30;
@@ -1144,7 +1152,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
 
   function getOccupancy(date: string, time: string) {
     const slotStart = toMins(time);
-    const occupied = activeTables.filter((t) =>
+    const occupied = viewTables.filter((t) =>
       occReservations.some((r) => {
         if (r.date !== date) return false;
         if (r.tableId !== t.id && r.tableNumber !== t.number) return false;
@@ -1154,11 +1162,11 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
         return slotStart >= rStart && slotStart < rEnd;
       })
     );
-    const total = activeTables.length;
+    const total = viewTables.length;
     const pct   = total > 0 ? Math.round((occupied.length / total) * 100) : 0;
     return {
       occupied,
-      available: activeTables.filter((t) => !occupied.includes(t)),
+      available: viewTables.filter((t) => !occupied.includes(t)),
       total,
       pct,
     };
@@ -1189,7 +1197,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
       const occ = getOccupancy(date, slot);
       if (occ.pct > maxPct) { maxPct = occ.pct; maxOccupied = occ.occupied.length; }
     }
-    return { pct: maxPct, occupied: maxOccupied, total: activeTables.length };
+    return { pct: maxPct, occupied: maxOccupied, total: viewTables.length };
   }
 
   async function handleCancelFromOcc(resId: string) {
@@ -1244,6 +1252,82 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Table filter chips */}
+      {activeTables.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            flexWrap: 'wrap',
+            background: '#f8fafc',
+            border: '1px solid #e5e7eb',
+            borderRadius: 12,
+            padding: '10px 14px',
+          }}
+        >
+          <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0, marginRight: 2 }}>
+            <i className="bi bi-grid-3x3-gap me-1" />Mesa
+          </span>
+
+          {/* All-tables chip */}
+          <button
+            style={{
+              background: selectedTableId === null ? '#1d4ed8' : '#fff',
+              color: selectedTableId === null ? '#fff' : '#374151',
+              border: `1.5px solid ${selectedTableId === null ? '#1d4ed8' : '#d1d5db'}`,
+              borderRadius: 20,
+              padding: '5px 15px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all .14s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+            onClick={() => { setSelectedTableId(null); setSelectedSlot(null); }}
+          >
+            <i className={`bi ${selectedTableId === null ? 'bi-check2' : 'bi-table'}`} style={{ fontSize: 12 }} />
+            Todas
+          </button>
+
+          {/* Per-table chips */}
+          {activeTables.map((t, idx) => {
+            const col = TABLE_CHIP_PALETTE[idx % TABLE_CHIP_PALETTE.length];
+            const isSelected = selectedTableId === t.id;
+            return (
+              <button
+                key={t.id}
+                style={{
+                  background: isSelected ? col : '#fff',
+                  color: isSelected ? '#fff' : '#374151',
+                  border: `1.5px solid ${isSelected ? col : '#d1d5db'}`,
+                  borderRadius: 20,
+                  padding: '5px 13px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all .14s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  whiteSpace: 'nowrap',
+                }}
+                onClick={() => { setSelectedTableId(isSelected ? null : t.id); setSelectedSlot(null); }}
+              >
+                {t.number}
+                {t.zoneName && (
+                  <span style={{ fontWeight: 400, opacity: 0.8, fontSize: 11 }}>
+                    {t.zoneName}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Controls bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {/* Week / Day / Month toggle */}
@@ -1565,7 +1649,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
 
               {/* Table list */}
               <div className="ff-occ-panel-body">
-                {activeTables.length === 0 && (
+                {viewTables.length === 0 && (
                   <div className="ff-empty-state" style={{ padding: '24px 16px' }}>
                     <i className="bi bi-grid-3x3-gap ff-empty-state-icon" />
                     <div className="ff-empty-state-title">Nenhuma mesa ativa</div>
@@ -1629,7 +1713,22 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
 
                             {/* Actions for occupied table */}
                             {!isCanceling && res && (
-                              <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                              <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                                <button
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    padding: '3px 8px',
+                                    borderRadius: 5,
+                                    background: '#f3f4f6',
+                                    color: '#374151',
+                                    border: '1px solid #d1d5db',
+                                    cursor: 'pointer',
+                                  }}
+                                  onClick={(e) => { e.stopPropagation(); setViewOccTarget(res); }}
+                                >
+                                  <i className="bi bi-eye me-1" />Ver
+                                </button>
                                 <button
                                   style={{
                                     fontSize: 10,
@@ -1754,6 +1853,29 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
           onClose={() => setEditOccTarget(null)}
         />
       )}
+
+      {/* View (read-only) from occupancy */}
+      {viewOccTarget && (
+        <ReservationModal
+          title="Detalhes da reserva"
+          initial={{
+            customerName:  viewOccTarget.customerName,
+            customerPhone: viewOccTarget.customerPhone,
+            partySize:     String(viewOccTarget.partySize),
+            date:          viewOccTarget.date,
+            time:          viewOccTarget.time,
+            notes:         viewOccTarget.notes ?? '',
+            tableId:       viewOccTarget.tableId ?? '',
+            source:        viewOccTarget.source ?? 'PHONE',
+            duration:      String(viewOccTarget.duration ?? 90),
+            tags:          viewOccTarget.tags ?? [],
+          }}
+          tables={tables}
+          onConfirm={() => {}}
+          onClose={() => setViewOccTarget(null)}
+          readOnly
+        />
+      )}
     </div>
   );
 }
@@ -1773,6 +1895,7 @@ export function ReservationsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Reservation | null>(null);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const notify = useNotify();
   const navigate = useNavigate();
 
@@ -1897,8 +2020,15 @@ export function ReservationsPage() {
 
   return (
     <div className="ff-area-layout">
+      {drawerOpen && (
+        <div className="ff-area-drawer-backdrop ff-area-drawer-backdrop--open" onClick={() => setDrawerOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="ff-area-sidebar">
+      <aside className={`ff-area-sidebar${drawerOpen ? ' ff-area-sidebar--open' : ''}`}>
+        <button className="ff-area-sidebar-close" onClick={() => setDrawerOpen(false)} aria-label="Fechar menu">
+          <i className="bi bi-x-lg" />
+        </button>
         <div className="ff-area-sidebar-logo">
           <i className="bi bi-calendar-check me-2" />Reservas
         </div>
@@ -1907,7 +2037,7 @@ export function ReservationsPage() {
             <button
               key={t.id}
               className={`ff-nav-item${tab === t.id ? ' active' : ''}`}
-              onClick={() => setTab(t.id)}
+              onClick={() => { setTab(t.id); setDrawerOpen(false); }}
             >
               <i className={`bi ${t.icon}`} />
               {t.label}
@@ -1917,7 +2047,7 @@ export function ReservationsPage() {
             </button>
           ))}
           <hr style={{ margin: '8px 0', borderColor: 'rgba(255,255,255,.1)' }} />
-          <button className="ff-nav-item" onClick={() => navigate('/')}>
+          <button className="ff-nav-item" onClick={() => { navigate('/'); setDrawerOpen(false); }}>
             <i className="bi bi-house" />Hub
           </button>
         </nav>
@@ -1927,6 +2057,9 @@ export function ReservationsPage() {
       <div className="ff-area-main">
         {/* Topbar — sticky */}
         <div className="ff-area-topbar ff-res-topbar-sticky">
+          <button className="ff-area-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Abrir menu">
+            <i className="bi bi-list" />
+          </button>
           <span className="ff-area-topbar-title">
             {tab === 'today'     && 'Reservas do dia'}
             {tab === 'all'       && 'Todas as reservas'}

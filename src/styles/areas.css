@@ -152,6 +152,12 @@
   text-align: center;
 }
 
+.ff-area-sidebar-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
 .ff-area-main {
   flex: 1;
   display: flex;
@@ -4186,6 +4192,164 @@ html.ff-kiosk-a11y body::before {
   padding: 0 !important;
 }
 
+/* ─── ViewToggle ─────────────────────────────────────────────────────────── */
+.ff-view-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ff-view-toggle-btn {
+  width: 30px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s, color .12s;
+}
+
+.ff-view-toggle-btn.active {
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 1px 4px rgba(0,0,0,.10);
+}
+
+/* ─── Table cell accessories ─────────────────────────────────────────────── */
+.ff-table-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ff-table-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ff-table-thumb-ph {
+  width: 100%;
+  height: 100%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  font-size: 16px;
+}
+
+.ff-table-row-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.ff-table-row-sub {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+.ff-table-row-tag {
+  display: inline-block;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.ff-table-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ff-primary);
+}
+
+.ff-table-date {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ff-feature-toggle {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #d1d5db;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color .12s, background .12s;
+}
+
+.ff-feature-toggle:hover { background: #fffbeb; color: #f59e0b; }
+.ff-feature-toggle.on    { color: #f59e0b; }
+
+.ff-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+/* ─── Mobile: table view → compact list cards ────────────────────────────── */
+@media (max-width: 640px) {
+  .ff-table-view .ff-admin-table-wrapper { overflow-x: visible; }
+  .ff-table-view .ff-admin-table,
+  .ff-table-view .ff-admin-table tbody { display: block; }
+  .ff-table-view .ff-admin-table thead { display: none; }
+  .ff-table-view .ff-admin-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ff-table-view .ff-admin-table tbody tr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  }
+  .ff-table-view .ff-admin-table tbody td {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    border: none;
+    background: none !important;
+  }
+  .ff-table-view .ff-admin-table tbody tr:hover td,
+  .ff-table-view .ff-admin-table tbody tr:nth-child(even) td { background: none !important; }
+  .ff-table-view .ff-admin-table tbody td.ff-hide-mobile { display: none; }
+  .ff-table-view .ff-admin-table tbody td:first-child { flex-shrink: 0; }
+  .ff-table-view .ff-admin-table tbody td:nth-child(2) { flex: 1; min-width: 0; }
+  .ff-table-view .ff-admin-table tbody td:last-child   { flex-shrink: 0; margin-left: auto; }
+}
+
 /* ─── AdminMetricCard ────────────────────────────────────────────────────── */
 .ff-admin-metrics-grid {
   display: grid;
@@ -4796,11 +4960,40 @@ html.ff-kiosk-a11y body::before {
   min-width: 240px;
 }
 
+/* ─── Operational page bar: compact title + search + filter chips ────────── */
+.ff-admin-op-bar {
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+}
+
+.ff-admin-op-bar-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ff-admin-op-bar-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ff-admin-op-bar-head .ff-admin-search {
+  flex: 1;
+}
+
 /* ─── Orders screen layout ───────────────────────────────────────────────── */
 .ff-orders-screen {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   height: 100%;
   min-height: 0;
 }
@@ -4811,7 +5004,6 @@ html.ff-kiosk-a11y body::before {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
 /* ─── Queue screen layout ────────────────────────────────────────────────── */
@@ -4827,6 +5019,362 @@ html.ff-kiosk-a11y body::before {
   grid-template-columns: 1fr auto;
   gap: 14px;
   align-items: flex-end;
+}
+
+.ff-queue-metrics-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ─── Kiosks screen layout ───────────────────────────────────────────────── */
+.ff-kiosks-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sticky bar: header + toolbar + tab strip */
+.ff-kiosks-sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f3f4f6;
+  margin: -24px -24px 0;
+  padding: 24px 24px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+.ff-kiosks-sticky-bar .ff-admin-page-header {
+  margin-bottom: 12px;
+}
+
+.ff-kiosks-sticky-bar .ff-admin-toolbar {
+  margin-bottom: 12px;
+}
+
+/* Tab strip */
+.ff-kiosks-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1.5px solid #e5e7eb;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ff-kiosks-tabs::-webkit-scrollbar { display: none; }
+
+.ff-kiosks-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  background: none;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+  margin-bottom: -1.5px;
+}
+
+.ff-kiosks-tab i { font-size: 14px; }
+.ff-kiosks-tab:hover { color: #374151; }
+
+.ff-kiosks-tab--active {
+  color: var(--ff-primary);
+  border-bottom-color: var(--ff-primary);
+}
+
+/* ─── Devices tab: master-detail split ───────────────────────────────────── */
+.ff-kiosks-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.ff-kiosks-split--with-panel {
+  grid-template-columns: 1fr 300px;
+}
+
+.ff-kiosks-split-main { min-width: 0; }
+
+.ff-kiosks-device-id {
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* ─── Device detail panel ────────────────────────────────────────────────── */
+.ff-kiosks-detail-panel {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  align-self: start;
+  position: sticky;
+  top: 190px;
+}
+
+.ff-kiosks-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.ff-kiosks-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-kiosks-detail-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ff-kiosks-detail-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ff-kiosks-detail-lastseen {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.ff-kiosks-detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ff-kiosks-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ff-kiosks-detail-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #9ca3af;
+}
+
+.ff-kiosks-detail-field-value {
+  font-size: 13px;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-kiosks-detail-field-value--mono {
+  font-family: monospace;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.ff-kiosks-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Attract screen tab: form + preview split ───────────────────────────── */
+.ff-kiosks-attract-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 32px;
+  margin-top: 20px;
+  align-items: start;
+}
+
+.ff-kiosks-attract-form { min-width: 0; }
+
+/* Slider row in attract form */
+.ff-kiosks-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ff-kiosks-slider {
+  flex: 1;
+}
+
+.ff-kiosks-slider-label {
+  font-size: 12px;
+  color: #9ca3af;
+  width: 34px;
+  flex-shrink: 0;
+}
+
+/* ─── Attract screen preview ─────────────────────────────────────────────── */
+.ff-kiosks-attract-preview {
+  position: sticky;
+  top: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ff-kiosks-preview-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ff-kiosks-preview-screen {
+  background: linear-gradient(155deg, #1a1a2e 0%, #16213e 55%, #0f3460 100%);
+  border-radius: 16px;
+  aspect-ratio: 9 / 16;
+  max-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,.25);
+}
+
+.ff-kiosks-preview-content {
+  text-align: center;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ff-kiosks-preview-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+
+.ff-kiosks-preview-slogan {
+  font-size: 13px;
+  color: rgba(255,255,255,.75);
+}
+
+.ff-kiosks-preview-cta {
+  margin-top: 16px;
+  font-size: 11px;
+  color: rgba(255,255,255,.5);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px;
+  padding: 6px 14px;
+}
+
+.ff-kiosks-preview-off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,.35);
+}
+
+.ff-kiosks-preview-off i { font-size: 32px; }
+.ff-kiosks-preview-off span { font-size: 13px; }
+
+.ff-kiosks-preview-note {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  margin: 0;
+}
+
+/* ─── Placeholder tabs ───────────────────────────────────────────────────── */
+.ff-kiosks-placeholder-tab {
+  margin-top: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #d1d5db;
+  font-size: 40px;
+}
+
+.ff-kiosks-placeholder-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ff-kiosks-placeholder-text {
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+  max-width: 320px;
+  margin: 0;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .ff-kiosks-split--with-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .ff-kiosks-detail-panel {
+    position: static;
+  }
+
+  .ff-kiosks-attract-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ff-kiosks-attract-preview {
+    position: static;
+    order: -1;
+  }
+
+  .ff-kiosks-preview-screen {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ff-kiosks-sticky-bar {
+    padding: 16px 16px 0;
+    margin: -24px -24px 0;
+  }
+
+  .ff-kiosks-sticky-bar .ff-admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ff-kiosks-tabs .ff-kiosks-tab {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ─── Settings/form screen layout ───────────────────────────────────────── */
+.ff-settings-screen {
+  max-width: 760px;
 }
 
 /* ─── Reports Dashboard (ff-rep-*) ──────────────────────────────────────── */
@@ -5704,5 +6252,280 @@ html.ff-kiosk-a11y body::before {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — all operational / admin screens
+   Breakpoint: 768px  (phone + small tablet portrait)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Hamburger toggle — hidden on desktop, shown on mobile ───────── */
+.ff-area-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 9px;
+  cursor: pointer;
+  color: #374151;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: background .15s;
+  order: -1;
+}
+.ff-area-hamburger:hover { background: #e5e7eb; }
+.ff-area-hamburger:active { background: #d1d5db; }
+
+/* ── Drawer backdrop ─────────────────────────────────────────────── */
+.ff-area-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .48);
+  z-index: 1039;
+}
+.ff-area-drawer-backdrop--open {
+  display: block;
+  animation: ff-backdrop-in .2s ease both;
+}
+@keyframes ff-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Sidebar close button (inside drawer on mobile) ─────────────── */
+.ff-area-sidebar-close {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: rgba(255,255,255,.12);
+  border-radius: 7px;
+  color: #e5e7eb;
+  font-size: 15px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.ff-area-sidebar-close:hover { background: rgba(255,255,255,.2); }
+
+@media (max-width: 768px) {
+  /* ── Show hamburger on mobile ──────────────────────────────────── */
+  .ff-area-hamburger { display: flex; }
+  .ff-area-sidebar-close { display: flex; }
+
+  /* ── Sidebar: off-canvas drawer ────────────────────────────────── */
+  .ff-area-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 240px;
+    height: 100%;
+    height: 100dvh;
+    z-index: 1040;
+    transition: left .25s cubic-bezier(.4, 0, .2, 1),
+                box-shadow .25s ease;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .ff-area-sidebar--open {
+    left: 0;
+    box-shadow: 4px 0 32px rgba(0, 0, 0, .28);
+  }
+
+  /* ── Logo area needs room for close button ──────────────────────── */
+  .ff-area-sidebar-logo {
+    padding-right: 44px;
+    position: relative;
+  }
+
+  /* ── Main area fills full width (sidebar is out of flow) ─────────── */
+  .ff-area-main {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  /* ── Topbar: compact + hamburger ──────────────────────────────── */
+  .ff-area-topbar {
+    padding: 0 10px;
+    min-height: 48px;
+    height: auto;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  /* Hide decorative topbar elements to save space on mobile */
+  .ff-area-topbar-clock,
+  .ff-area-topbar-avatar,
+  .ff-area-status-badge {
+    display: none !important;
+  }
+
+  /* Breadcrumb: show only the active page name */
+  .ff-area-topbar-breadcrumb > span:not(.ff-area-topbar-breadcrumb-active),
+  .ff-area-topbar-breadcrumb-sep {
+    display: none;
+  }
+  .ff-area-topbar-breadcrumb-active {
+    font-size: 14px;
+  }
+
+  /* ── Content area: tighter padding on mobile ──────────────────── */
+  .ff-area-content {
+    padding: 12px;
+  }
+
+  /* ── Tables: horizontal scroll wrapper ──────────────────────────── */
+  .ff-orders-table {
+    min-width: 560px;
+  }
+
+  /* ── Reports: responsive KPI / row grids ──────────────────────── */
+  .ff-rep-kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .ff-rep-row,
+  .ff-rep-row-2,
+  .ff-rep-row-3-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Cashier: 2-col summary metrics ────────────────────────────── */
+  .ff-cashier-summary-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ── Cashier: compact filter bar ────────────────────────────────── */
+  .ff-cashier-filter-bar {
+    padding: 10px 12px !important;
+    gap: 8px;
+  }
+  .ff-cashier-filter-bar > div:last-child {
+    display: none; /* collapse/expand buttons less useful on small screen */
+  }
+
+  /* ── Reservations topbar: wrap controls to second line ─────────── */
+  .ff-res-topbar-sticky {
+    height: auto !important;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .ff-res-topbar-sticky .form-control,
+  .ff-res-topbar-sticky .form-select {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+
+  /* ── Reservations: sticky controls ──────────────────────────────── */
+  .ff-res-controls {
+    top: auto;
+    padding: 10px 12px;
+    position: static; /* don't double-stack sticky on mobile */
+  }
+
+  /* ── MetricsRow in reservations: horizontally scrollable ──────── */
+  .ff-res-metrics-row {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .ff-res-metrics-row > * {
+    flex-shrink: 0;
+  }
+
+  /* ── Reservation card: stack action area on mobile ─────────────── */
+  .ff-res-card > div:last-child {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: 0 !important;
+    width: 100%;
+    padding-top: 0;
+    padding-bottom: 12px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .ff-res-card > div:last-child > button {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+/* ─── MetricChip — compact inline metric for operational pages ────────────── */
+.ff-admin-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ff-admin-metric-chip-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.ff-admin-metric-chip-icon.blue   { background: #eff6ff; color: #1d4ed8; }
+.ff-admin-metric-chip-icon.green  { background: #ecfdf5; color: #059669; }
+.ff-admin-metric-chip-icon.amber  { background: #fffbeb; color: #d97706; }
+.ff-admin-metric-chip-icon.purple { background: #f5f3ff; color: #7c3aed; }
+.ff-admin-metric-chip-icon.slate  { background: #f8fafc; color: #475569; }
+.ff-admin-metric-chip-icon.red    { background: #fef2f2; color: #dc2626; }
+
+.ff-admin-metric-chip-value {
+  font-weight: 800;
+  color: #111827;
+}
+
+.ff-admin-metric-chip-label {
+  color: #6b7280;
+}
+
+/* ─── PublicDisplayLayout — full-screen customer display shell ─────────────── */
+.ff-public-display {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ff-bg, #0b0f17);
+  color: #fff;
+}
+
+.ff-public-display-header,
+.ff-public-display-footer {
+  flex-shrink: 0;
+}
+
+.ff-public-display-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  align-content: start;
+  padding: 24px;
 }
 

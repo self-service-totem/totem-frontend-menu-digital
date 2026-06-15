@@ -17,6 +17,8 @@ docs/02-ui-component-standard.md
 docs/03-api-integration-standard.md
 docs/04-modal-toast-standard.md
 docs/05-testing-strategy.md
+docs/UI_STANDARDS.md
+docs/DESIGN_SYSTEM.md
 docs/planning/frontend-masterplan-prs.md
 docs/tickets/pr-ticket-template.md
 ```
@@ -53,6 +55,7 @@ Mocks currently under src/mocks
 8. Do not duplicate API types in multiple places.
 9. Keep mocks aligned with backend contracts.
 10. Do not rewrite unrelated screens while implementing one PR.
+11. Every new screen must pick a documented layout type and reuse shared layout/components — see docs/UI_STANDARDS.md and docs/DESIGN_SYSTEM.md. Do not hand-roll page shells (sidebar/topbar/grid wrappers).
 ```
 
 ---

@@ -131,7 +131,7 @@ img {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--ff-text-muted);
 }
@@ -208,7 +208,7 @@ img {
   border: none;
   outline: none;
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 1rem;
   background: transparent;
   color: var(--ff-text);
 }
@@ -284,7 +284,7 @@ img {
 }
 
 .ff-category__name {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   text-align: center;
   color: var(--ff-text);
   line-height: 1.2;
@@ -320,7 +320,7 @@ img {
 }
 
 .ff-promo__subtitle {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   opacity: 0.9;
   margin: 0;
 }
@@ -331,7 +331,7 @@ img {
   color: #fff;
   border-radius: var(--ff-radius-pill);
   padding: 6px 12px;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -487,7 +487,7 @@ img {
 .ff-cat-banner__title {
   color: #fff;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
   letter-spacing: 0.02em;
   text-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
@@ -521,7 +521,7 @@ img {
 
 .ff-cat-empty {
   padding: 12px 16px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--ff-text-muted);
   margin: 0;
 }
@@ -559,7 +559,7 @@ img {
 
 .ff-product-row__name {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.25;
   color: #1a1a1a;
@@ -567,7 +567,7 @@ img {
 
 .ff-product-row__desc {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--ff-text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -579,7 +579,7 @@ img {
 .ff-product-row__price {
   font-weight: 600;
   color: #1a1a1a;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   margin-top: 4px;
 }
 
@@ -614,9 +614,9 @@ img {
 }
 
 .ff-product__body { flex: 1; min-width: 0; }
-.ff-product__name { margin: 0 0 4px; font-size: 0.9rem; font-weight: 600; }
-.ff-product__desc { margin: 0 0 6px; font-size: 0.78rem; color: var(--ff-text-muted); }
-.ff-product__price { font-weight: 700; font-size: 0.9rem; }
+.ff-product__name { margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; }
+.ff-product__desc { margin: 0 0 6px; font-size: 0.84rem; color: var(--ff-text-muted); }
+.ff-product__price { font-weight: 700; font-size: 0.95rem; }
 .ff-product__add { width: 36px; height: 36px; border-radius: 50%; background: var(--ff-primary); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex: 0 0 auto; cursor: pointer; }
 
 /* Buttons */
@@ -733,7 +733,7 @@ img {
   border: none;
   background: transparent;
   color: var(--ff-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   padding: 6px 0;
@@ -757,7 +757,7 @@ img {
   flex: 0 0 62px;
   margin-top: -24px;
   box-shadow: 0 6px 20px rgba(225, 29, 42, 0.45);
-  font-size: 0.68rem;
+  font-size: 0.73rem;
   font-weight: 700;
   letter-spacing: 0;
   border: 3px solid #fff;
@@ -769,7 +769,7 @@ img {
 }
 
 .ff-bottom-nav__item--center span {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
 }
 
 .ff-bottom-nav__item--center.ff-bottom-nav__item--active {
@@ -785,7 +785,7 @@ img {
   color: var(--ff-primary);
   border: 2px solid var(--ff-primary);
   border-radius: var(--ff-radius-pill);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   padding: 0 6px;
   min-width: 18px;
   height: 18px;
@@ -862,12 +862,12 @@ img {
 .ff-cart-item__name {
   margin: 0 0 4px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .ff-cart-item__note {
   margin: 0 0 6px;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--ff-text-muted);
   font-style: italic;
 }
@@ -908,12 +908,12 @@ img {
 }
 
 .ff-customer-card__label {
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: var(--ff-text-muted);
 }
 
 .ff-customer-card__value {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -922,7 +922,7 @@ img {
   border: none;
   color: var(--ff-primary);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
   padding: 0;
 }
@@ -939,7 +939,7 @@ img {
 .ff-summary__row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   padding: 4px 0;
 }
 
@@ -965,7 +965,7 @@ img {
   background: transparent;
   padding: 12px 8px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--ff-text-muted);
   cursor: pointer;
   display: flex;
@@ -1070,7 +1070,7 @@ img {
 .ff-rating-head__sub {
   margin: 0;
   color: var(--ff-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .ff-rating-score {
@@ -1117,7 +1117,7 @@ img {
 .ff-rating-thanks__desc {
   margin: 0;
   color: var(--ff-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .ff-textarea {
@@ -1145,7 +1145,7 @@ img {
 }
 
 .ff-cashback-hero__label {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   opacity: 0.9;
 }
 
@@ -1156,7 +1156,7 @@ img {
 }
 
 .ff-cashback-hero__note {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   opacity: 0.9;
 }
 
@@ -1198,11 +1198,11 @@ img {
 
 .ff-row__main {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .ff-row__sub {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--ff-text-muted);
 }
 
@@ -1249,7 +1249,7 @@ img {
 
 .ff-account-profile__phone {
   color: var(--ff-text-muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
 /* Loyalty card */
@@ -1276,13 +1276,13 @@ img {
 }
 
 .ff-account-loyalty__count {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   opacity: 0.85;
 }
 
 .ff-account-loyalty__note {
   margin-top: 10px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   opacity: 0.92;
 }
 
@@ -1312,11 +1312,11 @@ img {
 
 .ff-order-card__number {
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .ff-order-card__items {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--ff-text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1335,13 +1335,13 @@ img {
 }
 
 .ff-order-card__meta {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--ff-text-muted);
 }
 
 .ff-order-card__total {
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .ff-order-card--skeleton {
@@ -1353,7 +1353,7 @@ img {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   padding: 3px 9px;
   border-radius: var(--ff-radius-pill);
@@ -1488,7 +1488,7 @@ img {
 .ff-product-modal__desc {
   margin: 0;
   color: var(--ff-text-muted);
-  font-size: 0.88rem;
+  font-size: 0.93rem;
   line-height: 1.4;
 }
 
@@ -1512,11 +1512,11 @@ img {
   align-items: center;
   gap: 6px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .ff-modgroup__req {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -1532,7 +1532,7 @@ img {
 }
 
 .ff-modgroup__hint {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 500;
   color: var(--ff-text-muted);
 }
@@ -1549,7 +1549,7 @@ img {
   border: 1.5px solid var(--ff-border);
   background: #fff;
   color: var(--ff-text);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.12s ease;
 }
@@ -1567,7 +1567,7 @@ img {
 
 .ff-modchip__price {
   margin-left: 4px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: inherit;
   opacity: 0.85;
 }
@@ -1583,7 +1583,7 @@ img {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--ff-text-muted);
   margin-bottom: 6px;
 }
@@ -1627,7 +1627,7 @@ img {
   border: none;
   background: none;
   color: var(--ff-primary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -1657,7 +1657,7 @@ img {
 
 .ff-cart-info__sub {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--ff-text-muted);
   line-height: 1.4;
 }
@@ -1684,7 +1684,7 @@ img {
 
 .ff-cart-items__title {
   margin: 0 0 12px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #1a1a1a;
 }
@@ -1715,24 +1715,24 @@ img {
 }
 
 .ff-cart-row__name {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #1a1a1a;
 }
 
 .ff-cart-row__note {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--ff-text-muted);
 }
 
 .ff-cart-row__mods {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--ff-text-muted);
   line-height: 1.3;
 }
 
 .ff-cart-row__price {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #1a1a1a;
   margin-top: 2px;
@@ -1741,7 +1741,7 @@ img {
 .ff-cart-row__unit {
   font-weight: 400;
   color: var(--ff-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .ff-cart-row__controls {
@@ -1791,7 +1791,7 @@ img {
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px solid #f3f4f6;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--ff-text-muted);
 }
 
@@ -1819,7 +1819,7 @@ img {
   color: var(--ff-primary);
   background: transparent;
   border-radius: var(--ff-radius-pill);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 700;
   padding: 5px 12px;
   cursor: pointer;
@@ -1897,7 +1897,7 @@ img {
   border: none;
   background: none;
   color: var(--ff-primary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -1958,7 +1958,7 @@ img {
 
 .ff-person__name {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   overflow: hidden;
@@ -1968,7 +1968,7 @@ img {
 
 .ff-person__you {
   flex: 0 0 auto;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1989,7 +1989,7 @@ img {
   justify-content: space-between;
   align-items: baseline;
   padding: 8px 14px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   border-top: 1px solid #f0f0f0;
   color: var(--ff-text-muted);
 }
@@ -2031,7 +2031,7 @@ img {
   border-radius: var(--ff-radius-pill);
   background: #fff;
   color: var(--ff-text);
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 600;
   padding: 6px 12px;
   cursor: pointer;
@@ -2115,7 +2115,7 @@ img {
   border: none;
   background: transparent;
   color: var(--ff-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -2178,7 +2178,7 @@ img {
 }
 
 .ff-menu-hero__table {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   opacity: 0.9;
   margin-top: 2px;
 }

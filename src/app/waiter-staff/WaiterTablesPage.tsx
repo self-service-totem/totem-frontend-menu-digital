@@ -55,38 +55,6 @@ function quickFilterCount(key: QuickFilter, tables: FloorTable[]): number {
   }
 }
 
-// ─── Dashboard summary ──────────────────────────────────────────────────────────
-
-function DashSummary({ tables, pendingCalls }: { tables: FloorTable[]; pendingCalls: number }) {
-  const active  = tables.filter((t) => t.status !== 'EMPTY' && t.status !== 'CLOSED').length;
-  const ready   = quickFilterCount('ready', tables);
-  const payment = quickFilterCount('payment', tables);
-  const empty   = quickFilterCount('empty', tables);
-
-  const pills = [
-    { icon: 'bi-grid-3x3-gap-fill',   label: 'Ativas',        value: active,        color: '#1d4ed8', bg: '#eff6ff' },
-    { icon: 'bi-megaphone-fill',       label: 'Chamados',      value: pendingCalls,  color: pendingCalls > 0 ? '#dc2626' : '#9ca3af', bg: pendingCalls > 0 ? '#fef2f2' : '#f9fafb' },
-    { icon: 'bi-check2-circle',        label: 'Prontas',       value: ready,         color: ready > 0 ? '#059669' : '#9ca3af',         bg: ready > 0 ? '#f0fdf4' : '#f9fafb' },
-    { icon: 'bi-credit-card-2-front',  label: 'Pgto. pend.',   value: payment,       color: payment > 0 ? '#7c3aed' : '#9ca3af',       bg: payment > 0 ? '#f5f3ff' : '#f9fafb' },
-    { icon: 'bi-circle',               label: 'Livres',        value: empty,         color: '#9ca3af', bg: '#f9fafb' },
-  ];
-
-  return (
-    <div style={{ display: 'flex', gap: 8, padding: '10px 20px', background: '#fff', borderBottom: '1px solid #f0f0f0', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
-      {pills.map((p) => (
-        <div
-          key={p.label}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: p.bg, border: `1px solid ${p.color}28`, borderRadius: 20, padding: '5px 14px', flexShrink: 0 }}
-        >
-          <i className={`bi ${p.icon}`} style={{ color: p.color, fontSize: '0.8rem' }} />
-          <span style={{ fontSize: '0.94rem', fontWeight: 800, color: p.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{p.value}</span>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: 500 }}>{p.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ─── Table card ─────────────────────────────────────────────────────────────────
 
 interface TableCardProps {
@@ -696,13 +664,10 @@ export function WaiterTablesPage() {
 
         {activeTab === 'floor' && (
           <>
-            {/* Dashboard summary */}
-            <DashSummary tables={floorTables} pendingCalls={pendingCalls.length} />
-
-            {/* Filter bar */}
-            <div style={{ padding: '10px 20px', borderBottom: '1px solid #e5e7eb', background: '#fafafa', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Quick status filters */}
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Filter bar — status chips + search/zone/waiter */}
+            <div style={{ padding: '8px 16px', borderBottom: '1px solid #e5e7eb', background: '#fafafa', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Status filter chips — also serve as operational summary */}
+              <div style={{ display: 'flex', gap: 5, overflowX: 'auto', alignItems: 'center', paddingBottom: 2 }}>
                 {QUICK_FILTER_DEFS.map((f) => {
                   const count    = quickFilterCount(f.key, floorTables);
                   const isActive = quickFilter === f.key;
@@ -717,16 +682,15 @@ export function WaiterTablesPage() {
                         border: `1.5px solid ${isActive ? color : 'transparent'}`,
                         borderRadius: 20, padding: '4px 12px',
                         fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all .12s',
+                        flexShrink: 0,
                       }}
                       onClick={() => setQuickFilter(f.key)}
                     >
                       <i className={`bi ${f.icon}`} style={{ fontSize: '0.72rem' }} />
                       {f.label}
-                      {count > 0 && (
-                        <span style={{ background: isActive ? 'rgba(255,255,255,.25)' : `${color}20`, color: isActive ? '#fff' : color, borderRadius: 10, padding: '0 6px', fontSize: '0.7rem', fontWeight: 800 }}>
-                          {count}
-                        </span>
-                      )}
+                      <span style={{ background: isActive ? 'rgba(255,255,255,.25)' : `${color}20`, color: isActive ? '#fff' : color, borderRadius: 10, padding: '0 6px', fontSize: '0.7rem', fontWeight: 800, minWidth: 18, textAlign: 'center' }}>
+                        {count}
+                      </span>
                     </button>
                   );
                 })}

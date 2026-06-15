@@ -2,19 +2,27 @@ import { useEffect, useState } from 'react';
 import { categoryService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { DbCategory } from '@/lib/types';
+import { formatDate } from '../adminUtils';
 import { AdminModal } from '@/components/admin';
 import {
   AdminPageHeader,
   AdminButton,
   AdminIconButton,
   AdminEmptyState,
+  AdminTable,
+  ViewToggle,
+  useSortable,
 } from '@/components/admin';
+import type { AdminTableColumn, SortDir, ViewMode } from '@/components/admin';
 
 export function Categories() {
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [showModal, setShowModal]   = useState(false);
   const [editing, setEditing]       = useState<DbCategory | null>(null);
   const [form, setForm]             = useState({ name: '', imageUrl: '', active: true });
+  const [viewMode, setViewMode]     = useState<ViewMode>('card');
+  const [sortBy, setSortBy]         = useState('name');
+  const [sortDir, setSortDir]       = useState<SortDir>('asc');
   const notify = useNotify();
 
   async function load() { setCategories(await categoryService.list()); }
@@ -46,19 +54,114 @@ export function Categories() {
     load();
   }
 
-  return (
-    <div>
-      <AdminPageHeader
-        title="Categorias"
-        subtitle={`${categories.length} categoria${categories.length !== 1 ? 's' : ''} no catálogo`}
-        actions={
-          <AdminButton variant="primary" icon="bi-plus" onClick={openCreate}>
-            Nova categoria
-          </AdminButton>
-        }
-      />
+  function handleSort(key: string) {
+    if (sortBy === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      setSortDir('asc');
+    }
+  }
 
-      {categories.length === 0 ? (
+  const tableRows = useSortable(categories, sortBy, sortDir);
+
+  const categoryColumns: AdminTableColumn<DbCategory>[] = [
+    {
+      key: 'imageUrl',
+      label: '',
+      width: '52px',
+      render: (c) => (
+        <div className="ff-table-thumb">
+          {c.imageUrl
+            ? <img src={c.imageUrl} alt={c.name} className="ff-table-thumb-img" />
+            : <div className="ff-table-thumb-ph"><i className="bi bi-tags" /></div>
+          }
+        </div>
+      ),
+    },
+    {
+      key: 'name',
+      label: 'Categoria',
+      sortable: true,
+      render: (c) => <span className="ff-table-row-title">{c.name}</span>,
+    },
+    {
+      key: 'active',
+      label: 'Status',
+      sortable: true,
+      width: '100px',
+      render: (c) => (
+        <label className="ff-toggle" onClick={(e) => { e.preventDefault(); toggleActive(c); }}>
+          <div className={`ff-toggle-track${c.active ? ' on' : ''}`}>
+            <div className="ff-toggle-thumb" />
+          </div>
+          <span className="ff-toggle-label">{c.active ? 'Ativa' : 'Inativa'}</span>
+        </label>
+      ),
+    },
+    {
+      key: 'order',
+      label: 'Ordem',
+      sortable: true,
+      width: '70px',
+      align: 'center',
+      className: 'ff-hide-mobile',
+      render: (c) => <span className="ff-table-row-sub">{c.order}</span>,
+    },
+    {
+      key: 'updatedAt',
+      label: 'Atualizado',
+      sortable: true,
+      width: '110px',
+      className: 'ff-hide-mobile',
+      render: (c) => <span className="ff-table-date">{formatDate(c.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      label: '',
+      width: '52px',
+      align: 'right',
+      render: (c) => (
+        <AdminIconButton
+          icon="bi-pencil"
+          variant="ghost"
+          size="sm"
+          title="Editar categoria"
+          onClick={() => openEdit(c)}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className={viewMode === 'table' ? 'ff-table-view' : undefined}>
+      <div className="ff-admin-toolbar" style={{ marginBottom: 16 }}>
+        <AdminPageHeader
+          title="Categorias"
+          subtitle={`${categories.length} categoria${categories.length !== 1 ? 's' : ''} no catálogo`}
+          actions={
+            <AdminButton variant="primary" icon="bi-plus" onClick={openCreate}>
+              Nova categoria
+            </AdminButton>
+          }
+        />
+        <div className="ff-admin-toolbar-right">
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
+        </div>
+      </div>
+
+      {viewMode === 'table' ? (
+        <AdminTable
+          columns={categoryColumns}
+          rows={tableRows}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={handleSort}
+          emptyIcon="bi-tags"
+          emptyTitle="Nenhuma categoria ainda"
+          emptyMessage="Crie categorias para organizar seu cardápio."
+        />
+      ) : categories.length === 0 ? (
         <AdminEmptyState
           icon="bi-tags"
           title="Nenhuma categoria ainda"
