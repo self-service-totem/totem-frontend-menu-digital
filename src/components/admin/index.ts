@@ -24,3 +24,4 @@ export { AdminFormSection, AdminFormRow } from './AdminFormSection';
 export { DirtySaveBar } from './DirtySaveBar';
 export { ViewToggle } from './ViewToggle';
 export type { ViewMode } from './ViewToggle';
+export { AdminLanguageSelector } from './AdminLanguageSelector';

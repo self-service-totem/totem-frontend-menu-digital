@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useRole } from '@/app/RoleContext';
 import { getCollection } from '@/lib/mock-db';
 import type { MockUser, UserRole } from '@/lib/types';
+import { I18nProvider, useLabels } from '@/i18n/I18nContext';
+import { useAdminLanguage } from '@/i18n/useAdminLanguage';
+import { AdminLanguageSelector } from '@/components/admin/AdminLanguageSelector';
+import type { LabelKey, LanguageCode } from '@/i18n/labels';
 
 const ROLE_ICONS: Record<UserRole, string> = {
   OWNER: 'bi-crown',
@@ -13,13 +17,13 @@ const ROLE_ICONS: Record<UserRole, string> = {
   SUPPORT: 'bi-headset',
 };
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  OWNER: 'Proprietário',
-  MANAGER: 'Gerente',
-  CASHIER: 'Caixa',
-  WAITER: 'Garçom',
-  KITCHEN: 'Cozinha',
-  SUPPORT: 'Suporte',
+const ROLE_LABEL_KEYS: Record<UserRole, LabelKey> = {
+  OWNER: 'login.role.owner',
+  MANAGER: 'login.role.manager',
+  CASHIER: 'login.role.cashier',
+  WAITER: 'login.role.waiter',
+  KITCHEN: 'login.role.kitchen',
+  SUPPORT: 'login.role.support',
 };
 
 const ROLE_DESTINATIONS: Record<UserRole, string> = {
@@ -32,6 +36,16 @@ const ROLE_DESTINATIONS: Record<UserRole, string> = {
 };
 
 export function LoginPage() {
+  const { lang, setLang } = useAdminLanguage();
+  return (
+    <I18nProvider language={lang}>
+      <LoginInner lang={lang} onLangChange={setLang} />
+    </I18nProvider>
+  );
+}
+
+function LoginInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l: LanguageCode) => void }) {
+  const { t } = useLabels();
   const { login, currentUser, logout } = useRole();
   const navigate = useNavigate();
   const users = getCollection<MockUser>('mockUsers');
@@ -48,18 +62,21 @@ export function LoginPage() {
     return (
       <div className="ff-login-layout">
         <div className="ff-login-card">
-          <div className="ff-login-title">👋 Olá, {currentUser.name}</div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <AdminLanguageSelector language={lang} onChange={onLangChange} />
+          </div>
+          <div className="ff-login-title">{t('login.greeting', { name: currentUser.name })}</div>
           <div style={{ textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
-            Logado como <strong>{ROLE_LABELS[currentUser.role]}</strong>
+            {t('login.loggedAs')} <strong>{t(ROLE_LABEL_KEYS[currentUser.role])}</strong>
           </div>
           <button className="btn btn-primary" onClick={() => navigate(ROLE_DESTINATIONS[currentUser.role])}>
-            Ir para minha área
+            {t('login.goToArea')}
           </button>
           <button className="btn btn-outline-secondary" onClick={() => { logout(); navigate('/login'); }}>
-            Trocar usuário
+            {t('login.switchUser')}
           </button>
           <button className="btn btn-outline-secondary" onClick={() => navigate('/')}>
-            Hub
+            {t('login.hub')}
           </button>
         </div>
       </div>
@@ -70,10 +87,13 @@ export function LoginPage() {
     <div className="ff-login-layout">
       <div className="ff-login-card">
         <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <AdminLanguageSelector language={lang} onChange={onLangChange} />
+          </div>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🍽</div>
-          <div className="ff-login-title">Entrar no sistema</div>
+          <div className="ff-login-title">{t('login.title')}</div>
           <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 4 }}>
-            Selecione seu perfil (demonstração)
+            {t('login.subtitle')}
           </div>
         </div>
 
@@ -101,7 +121,7 @@ export function LoginPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</div>
-                <div style={{ fontSize: 12, color: '#9ca3af' }}>{ROLE_LABELS[user.role]}</div>
+                <div style={{ fontSize: 12, color: '#9ca3af' }}>{t(ROLE_LABEL_KEYS[user.role])}</div>
               </div>
               {selected === user.id && <i className="bi bi-check-circle-fill text-danger" />}
             </div>
@@ -109,7 +129,7 @@ export function LoginPage() {
         </div>
 
         <button className="btn btn-primary btn-lg" onClick={handleLogin} disabled={!selected}>
-          Entrar
+          {t('login.submit')}
         </button>
 
         <button
@@ -117,7 +137,7 @@ export function LoginPage() {
           onClick={() => navigate('/')}
           style={{ marginTop: -8 }}
         >
-          Continuar sem login (modo demo)
+          {t('login.continueDemo')}
         </button>
       </div>
     </div>

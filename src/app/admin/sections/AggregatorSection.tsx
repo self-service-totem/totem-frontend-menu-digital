@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { aggregatorService } from '@/lib/services/aggregatorService';
 import { useNotify } from '@/lib/notifications';
 import type { AggregatorSettings } from '@/lib/types';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminButton,
@@ -11,6 +12,7 @@ import {
 } from '@/components/admin';
 
 export function AggregatorSection() {
+  const { t } = useLabels();
   const [settings, setSettings] = useState<AggregatorSettings[]>([]);
   const notify = useNotify();
 
@@ -18,31 +20,36 @@ export function AggregatorSection() {
 
   async function handleToggle(s: AggregatorSettings) {
     await aggregatorService.updateSettings(s.id, { active: !s.active });
-    notify(`${aggregatorService.getPlatformName(s.platform)} ${!s.active ? 'ativado' : 'desativado'}`);
+    const platformName = aggregatorService.getPlatformName(s.platform);
+    notify(!s.active
+      ? t('adminAggregator.activatedToast', { platform: platformName })
+      : t('adminAggregator.deactivatedToast', { platform: platformName })
+    );
     aggregatorService.listSettings().then(setSettings);
   }
 
   async function handleSimulate(s: AggregatorSettings) {
     await aggregatorService.simulateIncomingOrder(s.platform);
-    notify(`Pedido simulado de ${aggregatorService.getPlatformName(s.platform)} enviado à cozinha`);
+    const platformName = aggregatorService.getPlatformName(s.platform);
+    notify(t('adminAggregator.simulatedToast', { platform: platformName }));
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 560 }}>
       <AdminPageHeader
-        title="Agregadores"
-        subtitle="Integrações com plataformas de delivery externas"
+        title={t('adminAggregator.title')}
+        subtitle={t('adminAggregator.subtitle')}
       />
 
       {settings.length === 0 ? (
         <AdminEmptyState
           icon="bi-phone"
-          title="Nenhum agregador configurado"
-          message="Configure integrações com iFood, Rappi e outras plataformas."
+          title={t('adminAggregator.noAggregators')}
+          message={t('adminAggregator.noAggregatorsDesc')}
         />
       ) : (
         settings.map((s) => {
-          const platformName = aggregatorService.getPlatformName(s.platform);
+          const platformName  = aggregatorService.getPlatformName(s.platform);
           const platformColor = aggregatorService.getPlatformColor(s.platform);
 
           return (
@@ -64,7 +71,7 @@ export function AggregatorSection() {
               headerRight={
                 <AdminBadge
                   variant={s.active ? 'active' : 'inactive'}
-                  label={s.active ? 'Ativo' : 'Inativo'}
+                  label={s.active ? t('common.active') : t('common.inactive')}
                 />
               }
             >
@@ -74,7 +81,7 @@ export function AggregatorSection() {
                   size="sm"
                   onClick={() => handleToggle(s)}
                 >
-                  {s.active ? 'Desativar' : 'Ativar'}
+                  {s.active ? t('common.disable') : t('common.enable')}
                 </AdminButton>
                 {s.active && (
                   <AdminButton
@@ -83,7 +90,7 @@ export function AggregatorSection() {
                     icon="bi-lightning"
                     onClick={() => handleSimulate(s)}
                   >
-                    Simular pedido
+                    {t('adminAggregator.simulateOrder')}
                   </AdminButton>
                 )}
               </div>

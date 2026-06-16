@@ -4,6 +4,7 @@ import { useNotify } from '@/lib/notifications';
 import type { DbCategory } from '@/lib/types';
 import { formatDate } from '../adminUtils';
 import { AdminModal } from '@/components/admin';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminButton,
@@ -16,6 +17,7 @@ import {
 import type { AdminTableColumn, SortDir, ViewMode } from '@/components/admin';
 
 export function Categories() {
+  const { t } = useLabels();
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [showModal, setShowModal]   = useState(false);
   const [editing, setEditing]       = useState<DbCategory | null>(null);
@@ -42,15 +44,15 @@ export function Categories() {
 
   async function handleSave() {
     const order = editing?.order ?? categories.length + 1;
-    if (editing) { await categoryService.update(editing.id, { ...form }); notify('Categoria atualizada'); }
-    else          { await categoryService.create({ ...form, order });      notify('Categoria criada'); }
+    if (editing) { await categoryService.update(editing.id, { ...form }); notify(t('adminCategories.updatedToast')); }
+    else          { await categoryService.create({ ...form, order });      notify(t('adminCategories.createdToast')); }
     setShowModal(false);
     load();
   }
 
   async function toggleActive(c: DbCategory) {
     await categoryService.update(c.id, { active: !c.active });
-    notify(c.active ? 'Categoria desativada' : 'Categoria ativada');
+    notify(c.active ? t('adminCategories.disabledToast') : t('adminCategories.enabledToast'));
     load();
   }
 
@@ -81,7 +83,7 @@ export function Categories() {
     },
     {
       key: 'name',
-      label: 'Categoria',
+      label: t('adminCategories.colCategory'),
       sortable: true,
       render: (c) => <span className="ff-table-row-title">{c.name}</span>,
     },
@@ -95,13 +97,13 @@ export function Categories() {
           <div className={`ff-toggle-track${c.active ? ' on' : ''}`}>
             <div className="ff-toggle-thumb" />
           </div>
-          <span className="ff-toggle-label">{c.active ? 'Ativa' : 'Inativa'}</span>
+          <span className="ff-toggle-label">{c.active ? t('adminCategories.statusActive') : t('adminCategories.statusInactive')}</span>
         </label>
       ),
     },
     {
       key: 'order',
-      label: 'Ordem',
+      label: t('adminCategories.colOrder'),
       sortable: true,
       width: '70px',
       align: 'center',
@@ -110,7 +112,7 @@ export function Categories() {
     },
     {
       key: 'updatedAt',
-      label: 'Atualizado',
+      label: t('common.updated'),
       sortable: true,
       width: '110px',
       className: 'ff-hide-mobile',
@@ -126,22 +128,26 @@ export function Categories() {
           icon="bi-pencil"
           variant="ghost"
           size="sm"
-          title="Editar categoria"
+          title={t('common.edit')}
           onClick={() => openEdit(c)}
         />
       ),
     },
   ];
 
+  const catCountLabel = categories.length === 1
+    ? `1 ${t('adminCategories.catSingular')} ${t('adminCategories.inCatalog')}`
+    : `${categories.length} ${t('adminCategories.catPlural')} ${t('adminCategories.inCatalog')}`;
+
   return (
     <div className={viewMode === 'table' ? 'ff-table-view' : undefined}>
       <div className="ff-admin-toolbar" style={{ marginBottom: 16 }}>
         <AdminPageHeader
-          title="Categorias"
-          subtitle={`${categories.length} categoria${categories.length !== 1 ? 's' : ''} no catálogo`}
+          title={t('adminCategories.title')}
+          subtitle={catCountLabel}
           actions={
             <AdminButton variant="primary" icon="bi-plus" onClick={openCreate}>
-              Nova categoria
+              {t('adminCategories.newCategory')}
             </AdminButton>
           }
         />
@@ -158,17 +164,17 @@ export function Categories() {
           sortDir={sortDir}
           onSort={handleSort}
           emptyIcon="bi-tags"
-          emptyTitle="Nenhuma categoria ainda"
-          emptyMessage="Crie categorias para organizar seu cardápio."
+          emptyTitle={t('adminCategories.noCategories')}
+          emptyMessage={t('adminCategories.noCategoriesDesc')}
         />
       ) : categories.length === 0 ? (
         <AdminEmptyState
           icon="bi-tags"
-          title="Nenhuma categoria ainda"
-          message="Crie categorias para organizar seu cardápio."
+          title={t('adminCategories.noCategories')}
+          message={t('adminCategories.noCategoriesDesc')}
           action={
             <AdminButton variant="primary" size="sm" icon="bi-plus" onClick={openCreate}>
-              Criar primeira categoria
+              {t('adminCategories.createFirst')}
             </AdminButton>
           }
         />
@@ -192,7 +198,7 @@ export function Categories() {
                     icon="bi-pencil"
                     variant="ghost"
                     size="sm"
-                    title="Editar categoria"
+                    title={t('common.edit')}
                     onClick={() => openEdit(c)}
                   />
                 </div>
@@ -204,16 +210,19 @@ export function Categories() {
 
       {showModal && (
         <AdminModal
-          title={editing ? 'Editar categoria' : 'Nova categoria'}
+          title={editing ? t('adminCategories.editTitle') : t('adminCategories.newTitle')}
           onClose={() => setShowModal(false)}
           footer={
             <>
-              <AdminButton variant="primary" onClick={handleSave} style={{ flex: 1 }}>Salvar</AdminButton>
-              <AdminButton variant="outline" onClick={() => setShowModal(false)}>Cancelar</AdminButton>
+              <AdminButton variant="primary" onClick={handleSave} style={{ flex: 1 }}>{t('common.save')}</AdminButton>
+              <AdminButton variant="outline" onClick={() => setShowModal(false)}>{t('common.cancel')}</AdminButton>
             </>
           }
         >
-          {([['Nome', 'name'], ['URL da imagem', 'imageUrl']] as const).map(([label, field]) => (
+          {([
+            [t('adminCategories.name'),     'name'],
+            [t('adminCategories.imageUrl'), 'imageUrl'],
+          ] as const).map(([label, field]) => (
             <div key={field} className="ff-admin-form-row">
               <label className="ff-admin-form-label">{label}</label>
               <input
@@ -225,7 +234,7 @@ export function Categories() {
           ))}
           <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
-            Ativa
+            {t('adminCategories.isActive')}
           </label>
         </AdminModal>
       )}

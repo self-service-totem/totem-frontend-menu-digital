@@ -52,20 +52,20 @@ const branch: Branch = {
 };
 
 const zones: Zone[] = [
-  { id: 'zone-1', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Salão Interno', order: 1, createdAt: NOW, updatedAt: NOW },
-  { id: 'zone-2', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Varanda',       order: 2, createdAt: NOW, updatedAt: NOW },
-  { id: 'zone-3', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Barra',         order: 3, createdAt: NOW, updatedAt: NOW },
+  { id: 'zone-1', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Salão Interno', order: 1, color: '#3b82f6', active: true, createdAt: NOW, updatedAt: NOW },
+  { id: 'zone-2', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Varanda',       order: 2, color: '#10b981', active: true, createdAt: NOW, updatedAt: NOW },
+  { id: 'zone-3', tenantId: TENANT_ID, branchId: BRANCH_ID, name: 'Barra',         order: 3, color: '#f59e0b', active: true, createdAt: NOW, updatedAt: NOW },
 ];
 
 const tables: DbTable[] = [
-  { id: 'table-1',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '1',   active: true,  validationCode: 'ABC1',  zoneName: 'Salão Interno', assignedWaiterName: 'Fernando', guestCount: 4, capacity: 4, status: 'READY_TO_SERVE',      createdAt: NOW, updatedAt: NOW },
-  { id: 'table-2',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '2',   active: true,  validationCode: 'ABC2',  zoneName: 'Salão Interno', assignedWaiterName: 'Fernando', guestCount: 3, capacity: 4, status: 'WAITING_FOR_PAYMENT', createdAt: NOW, updatedAt: NOW },
-  { id: 'table-3',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '3',   active: true,  validationCode: 'ABC3',  zoneName: 'Salão Interno', assignedWaiterName: 'Júnior',   guestCount: 2, capacity: 4, status: 'WAITING_FOR_PAYMENT', createdAt: NOW, updatedAt: NOW },
-  { id: 'table-4',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '4',   active: true,  validationCode: 'ABC4',  zoneName: 'Salão Interno', assignedWaiterName: 'Júnior',   guestCount: 5, capacity: 6, status: 'ORDER_IN_PROGRESS',   createdAt: NOW, updatedAt: NOW },
-  { id: 'table-5',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '5',   active: true,  validationCode: 'ABC5',  zoneName: 'Varanda',       assignedWaiterName: 'Rafael',   guestCount: 2, capacity: 2, status: 'WAITING_FOR_PAYMENT', createdAt: NOW, updatedAt: NOW },
-  { id: 'table-6',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '6',   active: true,  validationCode: 'ABC6',  zoneName: 'Varanda',       assignedWaiterName: 'Rafael',   guestCount: 0, capacity: 4, status: 'EMPTY',               createdAt: NOW, updatedAt: NOW },
-  { id: 'table-7',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '7',   active: true,  validationCode: 'ABC7',  zoneName: 'Varanda',       assignedWaiterName: 'Rafael',   guestCount: 3, capacity: 4, status: 'WAITING_FOR_KITCHEN', createdAt: NOW, updatedAt: NOW },
-  { id: 'table-140', tenantId: TENANT_ID, branchId: BRANCH_ID, number: '140', active: true,  validationCode: 'QR140', zoneName: 'Barra',         assignedWaiterName: 'Fernando', guestCount: 1, capacity: 2, status: 'EMPTY',               createdAt: NOW, updatedAt: NOW },
+  { id: 'table-1',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '1',   active: true,  validationCode: 'ABC1',  zoneId: 'zone-1', zoneName: 'Salão Interno', assignedWaiterName: 'Fernando', guestCount: 4, capacity: 4, status: 'READY_TO_SERVE',      createdAt: NOW, updatedAt: NOW },
+  { id: 'table-2',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '2',   active: true,  validationCode: 'ABC2',  zoneId: 'zone-1', zoneName: 'Salão Interno', assignedWaiterName: 'Fernando', guestCount: 3, capacity: 4, status: 'WAITING_FOR_PAYMENT', createdAt: NOW, updatedAt: NOW },
+  { id: 'table-3',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '3',   active: true,  validationCode: 'ABC3',  zoneId: 'zone-1', zoneName: 'Salão Interno', assignedWaiterName: 'Júnior',   guestCount: 2, capacity: 4, status: 'WAITING_FOR_PAYMENT', createdAt: NOW, updatedAt: NOW },
+  { id: 'table-4',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '4',   active: true,  validationCode: 'ABC4',  zoneId: 'zone-1', zoneName: 'Salão Interno', assignedWaiterName: 'Júnior',   guestCount: 5, capacity: 6, status: 'ORDER_IN_PROGRESS',   createdAt: NOW, updatedAt: NOW },
+  { id: 'table-5',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '5',   active: true,  validationCode: 'ABC5',  zoneId: 'zone-2', zoneName: 'Varanda',       assignedWaiterName: 'Rafael',   guestCount: 2, capacity: 2, status: 'WAITING_FOR_PAYMENT', createdAt: NOW, updatedAt: NOW },
+  { id: 'table-6',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '6',   active: true,  validationCode: 'ABC6',  zoneId: 'zone-2', zoneName: 'Varanda',       assignedWaiterName: 'Rafael',   guestCount: 0, capacity: 4, status: 'EMPTY',               createdAt: NOW, updatedAt: NOW },
+  { id: 'table-7',   tenantId: TENANT_ID, branchId: BRANCH_ID, number: '7',   active: true,  validationCode: 'ABC7',  zoneId: 'zone-2', zoneName: 'Varanda',       assignedWaiterName: 'Rafael',   guestCount: 3, capacity: 4, status: 'WAITING_FOR_KITCHEN', createdAt: NOW, updatedAt: NOW },
+  { id: 'table-140', tenantId: TENANT_ID, branchId: BRANCH_ID, number: '140', active: true,  validationCode: 'QR140', zoneId: 'zone-3', zoneName: 'Barra',         assignedWaiterName: 'Fernando', guestCount: 1, capacity: 2, status: 'EMPTY',               createdAt: NOW, updatedAt: NOW },
 ];
 
 const categories: DbCategory[] = [

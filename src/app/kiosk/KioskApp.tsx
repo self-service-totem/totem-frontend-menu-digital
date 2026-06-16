@@ -7,6 +7,7 @@ import { LanguageSelector } from '@/components/common/LanguageSelector';
 import { loadAttractConfig } from './attractConfig';
 import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder } from '@/lib/types';
 import type { LabelKey } from '@/i18n/labels';
+import { formatCurrency as formatBRL } from '@/utils/format';
 
 const IDLE_COUNTDOWN_S = 10;
 
@@ -106,10 +107,6 @@ function KioskA11yToggle() {
       <i className="bi bi-universal-access" />
     </button>
   );
-}
-
-function formatBRL(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function getCategoryIcon(name: string): string {

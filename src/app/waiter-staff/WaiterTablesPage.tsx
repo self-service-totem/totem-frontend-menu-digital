@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { I18nProvider } from '@/i18n/I18nContext';
+import { useAdminLanguage } from '@/i18n/useAdminLanguage';
+import { AdminLanguageSelector } from '@/components/admin/AdminLanguageSelector';
 import { waiterStaffService, type FloorTable } from '@/lib/services/waiterStaffService';
 import { useNotify } from '@/lib/notifications';
 import { getTableStatusUI } from '@/lib/utils/tableStatusUI';
 import { useElapsed, elapsedMins, fmtElapsed, ageSeverity, SEVERITY_STYLE } from '@/lib/utils/useElapsed';
 import type { WaiterCall, MockUser } from '@/lib/types';
+import { formatCurrency as formatBRL } from '@/utils/format';
 
 // ─── Types & constants ─────────────────────────────────────────────────────────
 
@@ -27,11 +31,6 @@ const QUICK_FILTER_DEFS: { key: QuickFilter; label: string; icon: string; color?
 ];
 
 // ─── Utils ──────────────────────────────────────────────────────────────────────
-
-function formatBRL(v: number) {
-  if (!v) return null;
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 function initials(name: string): string {
   return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
@@ -494,10 +493,12 @@ function CallCard({ call, onAck, onResolve, onViewTable }: {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export function WaiterTablesPage() {
+  const { lang, setLang } = useAdminLanguage();
   const [floorTables,     setFloorTables]     = useState<FloorTable[]>([]);
   const [calls,           setCalls]           = useState<WaiterCall[]>([]);
   const [waiters,         setWaiters]         = useState<MockUser[]>([]);
-  const [activeTab,       setActiveTab]       = useState<'floor' | 'calls'>('floor');
+  const location = useLocation();
+  const [activeTab,       setActiveTab]       = useState<'floor' | 'calls'>(() => location.pathname.includes('/calls') ? 'calls' : 'floor');
   const [search,          setSearch]          = useState('');
   const [zoneFilter,      setZoneFilter]      = useState('all');
   const [waiterFilter,    setWaiterFilter]    = useState('all');
@@ -620,6 +621,7 @@ export function WaiterTablesPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
+    <I18nProvider language={lang}>
     <div className="ff-area-layout">
       {/* Sidebar */}
       <aside className="ff-area-sidebar ff-area-sidebar--mobile-bottom">
@@ -659,6 +661,7 @@ export function WaiterTablesPage() {
             <button className="btn btn-sm btn-outline-secondary" style={{ borderRadius: 8, padding: '5px 10px' }} onClick={load} title="Atualizar">
               <i className="bi bi-arrow-clockwise" />
             </button>
+            <AdminLanguageSelector language={lang} onChange={setLang} />
           </div>
         </div>
 
@@ -820,5 +823,6 @@ export function WaiterTablesPage() {
         />
       )}
     </div>
+    </I18nProvider>
   );
 }

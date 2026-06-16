@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { reservationService } from '@/lib/services/reservationService';
 import { tableService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
+import { AdminTable, useSortable, AdminActionMenu, AdminLanguageSelector } from '@/components/admin';
+import type { AdminTableColumn, SortDir, ActionMenuItem } from '@/components/admin';
+import { I18nProvider, useLabels } from '@/i18n/I18nContext';
+import { useAdminLanguage } from '@/i18n/useAdminLanguage';
+import type { LabelKey, LanguageCode } from '@/i18n/labels';
 import type {
   Reservation,
   ReservationStatus,
@@ -13,35 +18,39 @@ import type {
   ReservationSettings,
 } from '@/lib/types';
 
+type Translate = (key: LabelKey, params?: Record<string, string | number>) => string;
+
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
   ReservationStatus,
-  { label: string; color: string; bg: string; border: string; accent: string; icon: string }
+  { labelKey: LabelKey; color: string; bg: string; border: string; accent: string; icon: string }
 > = {
-  PENDING:   { label: 'Pendente',   color: '#b45309', bg: '#fffbeb', border: '#fde68a', accent: '#d97706', icon: 'bi-hourglass-split' },
-  CONFIRMED: { label: 'Confirmada', color: '#065f46', bg: '#ecfdf5', border: '#6ee7b7', accent: '#059669', icon: 'bi-check-circle-fill' },
-  SEATED:    { label: 'Sentado',    color: '#1e40af', bg: '#eff6ff', border: '#93c5fd', accent: '#2563eb', icon: 'bi-person-check-fill' },
-  COMPLETED: { label: 'Concluída',  color: '#374151', bg: '#f3f4f6', border: '#d1d5db', accent: '#9ca3af', icon: 'bi-check2-all' },
-  CANCELED:  { label: 'Cancelada',  color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', accent: '#d1d5db', icon: 'bi-x-circle' },
-  NO_SHOW:   { label: 'Não veio',   color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', accent: '#dc2626', icon: 'bi-person-x-fill' },
+  PENDING:   { labelKey: 'res.status.pending',   color: '#b45309', bg: '#fffbeb', border: '#fde68a', accent: '#d97706', icon: 'bi-hourglass-split' },
+  CONFIRMED: { labelKey: 'res.status.confirmed', color: '#065f46', bg: '#ecfdf5', border: '#6ee7b7', accent: '#059669', icon: 'bi-check-circle-fill' },
+  SEATED:    { labelKey: 'res.status.seated',    color: '#1e40af', bg: '#eff6ff', border: '#93c5fd', accent: '#2563eb', icon: 'bi-person-check-fill' },
+  COMPLETED: { labelKey: 'res.status.completed', color: '#374151', bg: '#f3f4f6', border: '#d1d5db', accent: '#9ca3af', icon: 'bi-check2-all' },
+  CANCELED:  { labelKey: 'res.status.canceled',  color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', accent: '#d1d5db', icon: 'bi-x-circle' },
+  NO_SHOW:   { labelKey: 'res.status.noShow',    color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', accent: '#dc2626', icon: 'bi-person-x-fill' },
 };
 
-const TAG_CONFIG: Record<ReservationTag, { label: string; color: string; bg: string }> = {
-  BIRTHDAY:    { label: '🎂 Aniversário',     color: '#9d174d', bg: '#fdf2f8' },
-  VIP:         { label: '⭐ VIP',             color: '#4c1d95', bg: '#f5f3ff' },
-  ALLERGY:     { label: '⚠️ Alergia',         color: '#991b1b', bg: '#fef2f2' },
-  ANNIVERSARY: { label: '💍 Casal',           color: '#831843', bg: '#fdf2f8' },
-  LATE:        { label: '⏰ Atraso',          color: '#92400e', bg: '#fffbeb' },
+const TAG_CONFIG: Record<ReservationTag, { labelKey: LabelKey; color: string; bg: string }> = {
+  BIRTHDAY:    { labelKey: 'res.tag.birthday',    color: '#9d174d', bg: '#fdf2f8' },
+  VIP:         { labelKey: 'res.tag.vip',         color: '#4c1d95', bg: '#f5f3ff' },
+  ALLERGY:     { labelKey: 'res.tag.allergy',     color: '#991b1b', bg: '#fef2f2' },
+  ANNIVERSARY: { labelKey: 'res.tag.anniversary', color: '#831843', bg: '#fdf2f8' },
+  LATE:        { labelKey: 'res.tag.late',        color: '#92400e', bg: '#fffbeb' },
 };
 
-const SOURCE_CONFIG: Record<ReservationSource, { label: string; icon: string }> = {
-  PHONE:   { label: 'Telefone',   icon: 'bi-telephone-fill' },
-  WALK_IN: { label: 'Presencial', icon: 'bi-person-walking' },
-  ONLINE:  { label: 'Online',     icon: 'bi-globe2' },
+const SOURCE_CONFIG: Record<ReservationSource, { labelKey: LabelKey; icon: string }> = {
+  PHONE:   { labelKey: 'res.source.phone',  icon: 'bi-telephone-fill' },
+  WALK_IN: { labelKey: 'res.source.walkIn', icon: 'bi-person-walking' },
+  ONLINE:  { labelKey: 'res.source.online', icon: 'bi-globe2' },
 };
 
-type Tab = 'today' | 'all' | 'walkin' | 'occupancy' | 'settings';
+type Tab = 'reservations' | 'walkin' | 'occupancy' | 'settings';
+type View = 'agenda' | 'table' | 'by-table';
+type DateScope = 'today' | 'date' | 'all';
 
 const ALL_TAGS: ReservationTag[] = ['BIRTHDAY', 'VIP', 'ALLERGY', 'ANNIVERSARY', 'LATE'];
 
@@ -60,12 +69,11 @@ const EMPTY_FORM = {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: Translate): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return 'agora';
-  if (mins === 1) return '1 min';
-  if (mins < 60) return `${mins} min`;
-  return `${Math.floor(mins / 60)}h`;
+  if (mins < 1) return t('res.timeNow');
+  if (mins < 60) return t('res.minN', { n: mins });
+  return t('res.hoursN', { n: Math.floor(mins / 60) });
 }
 
 function toMins(time: string): number {
@@ -98,10 +106,9 @@ function addMonths(dateStr: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function fmtMonthYear(monthStart: string): string {
+function fmtMonthYear(monthStart: string, locale: string): string {
   const d = new Date(monthStart + 'T12:00:00');
-  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 }
 
 function getMonthDays(monthStart: string): string[] {
@@ -125,17 +132,22 @@ function generateSlots(opening: string, closing: string, intervalMin: number): s
   return slots;
 }
 
-const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const WEEKDAY_FULL  = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-function fmtShortDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00');
-  return `${WEEKDAY_SHORT[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+function weekdayShortNames(locale: string): string[] {
+  // 2024-01-07 is a Sunday → Sun..Sat localized
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(Date.UTC(2024, 0, 7 + i, 12)).toLocaleDateString(locale, { weekday: 'short' }),
+  );
 }
 
-function fmtFullDate(dateStr: string): string {
+function fmtShortDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T12:00:00');
-  return `${WEEKDAY_FULL[d.getDay()]}, ${d.getDate()} de ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]}`;
+  const wd = d.toLocaleDateString(locale, { weekday: 'short' });
+  return `${wd} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function fmtFullDate(dateStr: string, locale: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
 }
 
 function occColor(pct: number): { bg: string; text: string } {
@@ -148,7 +160,7 @@ function occColor(pct: number): { bg: string; text: string } {
 
 type UrgencyKind = 'overdue' | 'upcoming' | 'no-table' | 'vip' | 'large';
 
-function getUrgencySignal(r: Reservation): { kind: UrgencyKind; label: string } | null {
+function getUrgencySignal(r: Reservation, t: Translate): { kind: UrgencyKind; label: string } | null {
   const closed = ['COMPLETED', 'CANCELED', 'NO_SHOW'] as ReservationStatus[];
   if (closed.includes(r.status)) return null;
 
@@ -161,19 +173,19 @@ function getUrgencySignal(r: Reservation): { kind: UrgencyKind; label: string } 
   const diff = resM - nowM;
 
   if (diff < 0 && diff > -45 && r.status !== 'SEATED') {
-    return { kind: 'overdue', label: `Atrasada ${Math.abs(diff)}min` };
+    return { kind: 'overdue', label: t('res.urgency.overdue', { n: Math.abs(diff) }) };
   }
   if (diff >= 0 && diff <= 15) {
-    return { kind: 'upcoming', label: `Em ${diff === 0 ? 'agora' : `${diff}min`}` };
+    return { kind: 'upcoming', label: diff === 0 ? t('res.urgency.now') : t('res.urgency.inMin', { n: diff }) };
   }
   if (!r.tableId && !r.tableNumber && r.status === 'CONFIRMED') {
-    return { kind: 'no-table', label: 'Sem mesa' };
+    return { kind: 'no-table', label: t('res.noTable') };
   }
   if ((r.tags ?? []).includes('VIP')) {
-    return { kind: 'vip', label: 'VIP' };
+    return { kind: 'vip', label: t('res.urgency.vip') };
   }
   if (r.partySize >= 8) {
-    return { kind: 'large', label: `${r.partySize} pessoas` };
+    return { kind: 'large', label: t('res.guestsN', { n: r.partySize }) };
   }
   return null;
 }
@@ -181,6 +193,7 @@ function getUrgencySignal(r: Reservation): { kind: UrgencyKind; label: string } 
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: ReservationStatus }) {
+  const { t } = useLabels();
   const cfg = STATUS_CONFIG[status];
   return (
     <span
@@ -188,7 +201,7 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
       style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}
     >
       <i className={`bi ${cfg.icon}`} style={{ fontSize: 10 }} />
-      {cfg.label}
+      {t(cfg.labelKey)}
     </span>
   );
 }
@@ -196,6 +209,7 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
 // ─── MetricsRow ───────────────────────────────────────────────────────────────
 
 function MetricsRow({ reservations }: { reservations: Reservation[] }) {
+  const { t } = useLabels();
   const counts = {
     total:     reservations.length,
     confirmed: reservations.filter((r) => r.status === 'CONFIRMED').length,
@@ -206,16 +220,16 @@ function MetricsRow({ reservations }: { reservations: Reservation[] }) {
   };
 
   const metrics = [
-    { label: 'Total',       value: counts.total,     color: '#1d4ed8', bg: '#eff6ff',  icon: 'bi-calendar3' },
-    { label: 'Confirmadas', value: counts.confirmed,  color: '#059669', bg: '#ecfdf5',  icon: 'bi-check-circle-fill' },
-    { label: 'Pendentes',   value: counts.pending,    color: '#d97706', bg: '#fffbeb',  icon: 'bi-hourglass-split' },
-    { label: 'Sentados',    value: counts.seated,     color: '#2563eb', bg: '#eff6ff',  icon: 'bi-person-check-fill' },
-    { label: 'Canceladas',  value: counts.canceled,   color: '#9ca3af', bg: '#f3f4f6',  icon: 'bi-x-circle' },
-    { label: 'Não vieram',  value: counts.noShow,     color: '#dc2626', bg: '#fef2f2',  icon: 'bi-person-x-fill' },
+    { label: t('res.metrics.total'),     value: counts.total,     color: '#1d4ed8', bg: '#eff6ff',  icon: 'bi-calendar3' },
+    { label: t('res.metrics.confirmed'), value: counts.confirmed,  color: '#059669', bg: '#ecfdf5',  icon: 'bi-check-circle-fill' },
+    { label: t('res.metrics.pending'),   value: counts.pending,    color: '#d97706', bg: '#fffbeb',  icon: 'bi-hourglass-split' },
+    { label: t('res.metrics.seated'),    value: counts.seated,     color: '#2563eb', bg: '#eff6ff',  icon: 'bi-person-check-fill' },
+    { label: t('res.metrics.canceled'),  value: counts.canceled,   color: '#9ca3af', bg: '#f3f4f6',  icon: 'bi-x-circle' },
+    { label: t('res.metrics.noShow'),    value: counts.noShow,     color: '#dc2626', bg: '#fef2f2',  icon: 'bi-person-x-fill' },
   ];
 
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+    <div className="ff-res-metrics-row">
       {metrics.map((m) => (
         <div
           key={m.label}
@@ -228,6 +242,7 @@ function MetricsRow({ reservations }: { reservations: Reservation[] }) {
             alignItems: 'center',
             gap: 10,
             minWidth: 108,
+            flexShrink: 0,
           }}
         >
           <div
@@ -263,29 +278,36 @@ interface ReservationCardProps {
   tables: DbTable[];
   onStatusChange: (id: string, status: ReservationStatus) => void;
   onEdit: (r: Reservation) => void;
-  showDate?: boolean;
 }
 
-function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: ReservationCardProps) {
-  const [dropOpen, setDropOpen] = useState(false);
-  const urgency = getUrgencySignal(r);
+function ReservationCard({ r, tables, onStatusChange, onEdit }: ReservationCardProps) {
+  const { t } = useLabels();
+  const urgency = getUrgencySignal(r, t);
 
   const tableLabel = r.tableNumber
-    ? `Mesa ${r.tableNumber}`
+    ? t('res.tableN', { n: r.tableNumber })
     : r.tableId
-    ? `Mesa ${tables.find((t) => t.id === r.tableId)?.number ?? r.tableId}`
+    ? t('res.tableN', { n: tables.find((tb) => tb.id === r.tableId)?.number ?? r.tableId })
     : null;
 
   const isActive = ['PENDING', 'CONFIRMED', 'SEATED'].includes(r.status);
 
   function getPrimaryAction(): { label: string; nextStatus: ReservationStatus; cls: string } | null {
-    if (r.status === 'PENDING')   return { label: 'Confirmar', nextStatus: 'CONFIRMED', cls: 'btn-success' };
-    if (r.status === 'CONFIRMED') return { label: 'Sentar',    nextStatus: 'SEATED',    cls: 'btn-primary' };
-    if (r.status === 'SEATED')    return { label: 'Concluir',  nextStatus: 'COMPLETED', cls: 'btn-success' };
+    if (r.status === 'PENDING')   return { label: t('res.action.confirm'),  nextStatus: 'CONFIRMED', cls: 'btn-success' };
+    if (r.status === 'CONFIRMED') return { label: t('res.action.seat'),     nextStatus: 'SEATED',    cls: 'btn-primary' };
+    if (r.status === 'SEATED')    return { label: t('res.action.complete'), nextStatus: 'COMPLETED', cls: 'btn-success' };
     return null;
   }
 
   const primary = getPrimaryAction();
+
+  const menuItems: ActionMenuItem[] = [];
+  if (r.status === 'PENDING') menuItems.push({ key: 'seat-direct', label: t('res.action.seatDirect'), icon: 'bi-person-check-fill', onClick: () => onStatusChange(r.id, 'SEATED') });
+  if (isActive) menuItems.push({ key: 'edit', label: t('res.action.editReservation'), icon: 'bi-pencil', onClick: () => onEdit(r) });
+  if (r.status === 'PENDING' || r.status === 'CONFIRMED') menuItems.push({ key: 'no-show', label: t('res.action.noShow'), icon: 'bi-person-x-fill', variant: 'destructive', onClick: () => onStatusChange(r.id, 'NO_SHOW') });
+  if (isActive) menuItems.push({ key: 'cancel', label: t('res.action.cancelReservation'), icon: 'bi-x-circle-fill', variant: 'destructive', onClick: () => onStatusChange(r.id, 'CANCELED') });
+  if (r.status === 'CANCELED' || r.status === 'NO_SHOW') menuItems.push({ key: 'reopen', label: t('res.action.reopenPending'), icon: 'bi-arrow-counterclockwise', onClick: () => onStatusChange(r.id, 'PENDING') });
+  if (!isActive) menuItems.push({ key: 'view', label: t('res.action.viewDetails'), icon: 'bi-eye', onClick: () => onEdit(r) });
 
   return (
     <div className={`ff-res-card s-${r.status.toLowerCase()}`}>
@@ -294,11 +316,6 @@ function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: Reserv
         <span className="ff-res-time-main">{r.time}</span>
         {r.duration && (
           <span style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 2 }}>{r.duration}min</span>
-        )}
-        {showDate && (
-          <span style={{ fontSize: '0.65rem', color: '#9ca3af', marginTop: 1, textAlign: 'center' }}>
-            {new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-          </span>
         )}
       </div>
 
@@ -321,7 +338,7 @@ function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: Reserv
                   fontWeight: 700,
                 }}
               >
-                {tc.label}
+                {t(tc.labelKey)}
               </span>
             );
           })}
@@ -329,7 +346,7 @@ function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: Reserv
 
         {/* Metadata row */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 10px', marginTop: 5, fontSize: '0.8rem', color: '#6b7280' }}>
-          <span><i className="bi bi-people-fill me-1" style={{ fontSize: 11 }} />{r.partySize} pessoas</span>
+          <span><i className="bi bi-people-fill me-1" style={{ fontSize: 11 }} />{t('res.guestsN', { n: r.partySize })}</span>
           {r.customerPhone && (
             <span><i className="bi bi-telephone-fill me-1" style={{ fontSize: 11 }} />{r.customerPhone}</span>
           )}
@@ -339,7 +356,7 @@ function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: Reserv
           {r.source && (
             <span>
               <i className={`bi ${SOURCE_CONFIG[r.source].icon} me-1`} style={{ fontSize: 11 }} />
-              {SOURCE_CONFIG[r.source].label}
+              {t(SOURCE_CONFIG[r.source].labelKey)}
             </span>
           )}
         </div>
@@ -383,7 +400,7 @@ function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: Reserv
           {!tableLabel && isActive && r.status === 'CONFIRMED' && !urgency && (
             <span className="ff-res-urgency no-table">
               <i className="bi bi-grid-3x3-gap" style={{ fontSize: 10 }} />
-              Sem mesa
+              {t('res.noTable')}
             </span>
           )}
         </div>
@@ -400,106 +417,328 @@ function ReservationCard({ r, tables, onStatusChange, onEdit, showDate }: Reserv
             {primary.label}
           </button>
         )}
-
-        {/* Overflow menu */}
-        <div style={{ position: 'relative' }}>
-          <button
-            className="btn btn-sm btn-outline-secondary"
-            style={{ fontSize: '0.78rem', padding: '4px 10px', width: primary ? '100%' : undefined }}
-            onClick={() => setDropOpen((v) => !v)}
-          >
-            <i className="bi bi-three-dots-vertical me-1" />
-            {!primary ? 'Ações' : 'Mais'}
-          </button>
-          {dropOpen && (
-            <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setDropOpen(false)} />
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '100%',
-                  marginTop: 4,
-                  background: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 10,
-                  boxShadow: '0 6px 24px rgba(0,0,0,.12)',
-                  zIndex: 100,
-                  minWidth: 190,
-                  overflow: 'hidden',
-                }}
-              >
-                {r.status === 'PENDING' && (
-                  <DropItem
-                    icon="bi-person-check-fill" label="Sentar diretamente"
-                    onClick={() => { onStatusChange(r.id, 'SEATED'); setDropOpen(false); }}
-                  />
-                )}
-                {isActive && (
-                  <DropItem
-                    icon="bi-pencil" label="Editar reserva"
-                    onClick={() => { onEdit(r); setDropOpen(false); }}
-                  />
-                )}
-                {(r.status === 'PENDING' || r.status === 'CONFIRMED') && (
-                  <DropItem
-                    icon="bi-person-x-fill" label="Não compareceu" danger
-                    onClick={() => { onStatusChange(r.id, 'NO_SHOW'); setDropOpen(false); }}
-                  />
-                )}
-                {isActive && (
-                  <DropItem
-                    icon="bi-x-circle-fill" label="Cancelar reserva" danger
-                    onClick={() => { onStatusChange(r.id, 'CANCELED'); setDropOpen(false); }}
-                  />
-                )}
-                {(r.status === 'CANCELED' || r.status === 'NO_SHOW') && (
-                  <DropItem
-                    icon="bi-arrow-counterclockwise" label="Reabrir como pendente"
-                    onClick={() => { onStatusChange(r.id, 'PENDING'); setDropOpen(false); }}
-                  />
-                )}
-                {(r.status === 'COMPLETED' || r.status === 'CANCELED' || r.status === 'NO_SHOW') && (
-                  <DropItem
-                    icon="bi-eye" label="Ver detalhes"
-                    onClick={() => { onEdit(r); setDropOpen(false); }}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </div>
+        {menuItems.length > 0 && <AdminActionMenu items={menuItems} />}
       </div>
     </div>
   );
 }
 
-function DropItem({ icon, label, onClick, danger }: { icon: string; label: string; onClick: () => void; danger?: boolean }) {
+// ─── AgendaView ───────────────────────────────────────────────────────────────
+
+interface AgendaViewProps {
+  filtered: Reservation[];
+  todayStr: string;
+  tables: DbTable[];
+  onStatusChange: (id: string, status: ReservationStatus) => void;
+  onEdit: (r: Reservation) => void;
+}
+
+function AgendaView({ filtered, todayStr, tables, onStatusChange, onEdit }: AgendaViewProps) {
+  const { t, language } = useLabels();
+  if (filtered.length === 0) {
+    return (
+      <div className="ff-empty-state">
+        <i className="bi bi-calendar-x ff-empty-state-icon" />
+        <div className="ff-empty-state-title">{t('res.empty.title')}</div>
+        <div className="ff-empty-state-desc">{t('res.empty.desc')}</div>
+      </div>
+    );
+  }
+
+  const dates = [...new Set(filtered.map((r) => r.date))].sort();
+
   return (
-    <button
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '9px 14px',
-        fontSize: '0.84rem',
-        width: '100%',
-        textAlign: 'left',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        color: danger ? '#dc2626' : '#374151',
-        fontWeight: 500,
-        borderBottom: '1px solid #f9fafb',
-        transition: 'background .1s',
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-      onClick={onClick}
-    >
-      <i className={`bi ${icon}`} style={{ fontSize: 13, flexShrink: 0 }} />
-      {label}
-    </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {dates.map((d) => {
+        const dayRes = filtered
+          .filter((r) => r.date === d)
+          .sort((a, b) => a.time.localeCompare(b.time));
+        const isToday = d === todayStr;
+        return (
+          <div key={d}>
+            <div style={{ fontWeight: 700, fontSize: '0.78rem', color: isToday ? '#1d4ed8' : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isToday && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1d4ed8', display: 'inline-block' }} />}
+              {isToday ? t('res.today') : fmtFullDate(d, language)}
+              <span style={{ fontWeight: 500, color: '#d1d5db', fontSize: '0.7rem' }}>
+                — {t('res.reservationsCountN', { n: dayRes.length })}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {dayRes.map((r) => (
+                <ReservationCard key={r.id} r={r} tables={tables} onStatusChange={onStatusChange} onEdit={onEdit} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── ReservationTableView ─────────────────────────────────────────────────────
+
+type ReservationRow = Reservation & { _dateTime: string };
+
+interface ReservationTableViewProps {
+  reservations: Reservation[];
+  tables: DbTable[];
+  onStatusChange: (id: string, status: ReservationStatus) => void;
+  onEdit: (r: Reservation) => void;
+}
+
+function ReservationTableView({ reservations, tables, onStatusChange, onEdit }: ReservationTableViewProps) {
+  const { t, language } = useLabels();
+  const [sortBy, setSortBy] = useState('_dateTime');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(key: string) {
+    if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(key); setSortDir('asc'); }
+  }
+
+  const rows: ReservationRow[] = reservations.map((r) => ({ ...r, _dateTime: `${r.date} ${r.time}` }));
+  const sorted = useSortable(rows, sortBy, sortDir);
+
+  function getTableLabel(r: Reservation): string {
+    if (r.tableNumber) return t('res.tableN', { n: r.tableNumber });
+    if (r.tableId) {
+      const tb = tables.find((x) => x.id === r.tableId);
+      if (tb) return t('res.tableN', { n: tb.number });
+    }
+    return '';
+  }
+
+  function buildMenu(r: Reservation): ActionMenuItem[] {
+    const isActive = ['PENDING', 'CONFIRMED', 'SEATED'].includes(r.status);
+    const items: ActionMenuItem[] = [];
+    if (r.status === 'PENDING')   items.push({ key: 'confirm',    label: t('res.action.confirm'),     icon: 'bi-check-circle',      onClick: () => onStatusChange(r.id, 'CONFIRMED') });
+    if (r.status === 'PENDING')   items.push({ key: 'seat-dir',   label: t('res.action.seatDirect'),  icon: 'bi-person-check-fill', onClick: () => onStatusChange(r.id, 'SEATED') });
+    if (r.status === 'CONFIRMED') items.push({ key: 'seat',       label: t('res.action.seat'),        icon: 'bi-person-check-fill', onClick: () => onStatusChange(r.id, 'SEATED') });
+    if (r.status === 'SEATED')    items.push({ key: 'complete',   label: t('res.action.complete'),    icon: 'bi-check2-all',        onClick: () => onStatusChange(r.id, 'COMPLETED') });
+    if (isActive)                 items.push({ key: 'edit',       label: t('res.action.edit'),        icon: 'bi-pencil',            onClick: () => onEdit(r) });
+    if (r.status === 'PENDING' || r.status === 'CONFIRMED') items.push({ key: 'no-show', label: t('res.action.noShow'), icon: 'bi-person-x-fill', variant: 'destructive', onClick: () => onStatusChange(r.id, 'NO_SHOW') });
+    if (isActive)                 items.push({ key: 'cancel',     label: t('res.action.cancel'),      icon: 'bi-x-circle-fill',     variant: 'destructive', onClick: () => onStatusChange(r.id, 'CANCELED') });
+    if (r.status === 'CANCELED' || r.status === 'NO_SHOW') items.push({ key: 'reopen', label: t('res.action.reopen'), icon: 'bi-arrow-counterclockwise', onClick: () => onStatusChange(r.id, 'PENDING') });
+    if (!isActive)                items.push({ key: 'view',       label: t('res.action.viewDetails'), icon: 'bi-eye',               onClick: () => onEdit(r) });
+    return items;
+  }
+
+  const columns: AdminTableColumn<ReservationRow>[] = [
+    {
+      key: '_dateTime', label: t('res.col.dateTime'), sortable: true, width: '130px',
+      render: (r) => (
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#6b7280' }}>{fmtFullDate(r.date, language)}</div>
+          <div style={{ fontWeight: 800, fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums', color: '#1f2937' }}>{r.time}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'customerName', label: t('res.col.customer'), sortable: true,
+      render: (r) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{r.customerName}</div>
+          {(r.tags ?? []).length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
+              {(r.tags ?? []).map((tag) => {
+                const tc = TAG_CONFIG[tag];
+                return <span key={tag} style={{ fontSize: '0.68rem', fontWeight: 700, background: tc.bg, color: tc.color, borderRadius: 4, padding: '1px 5px' }}>{t(tc.labelKey)}</span>;
+              })}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'customerPhone', label: t('res.col.phone'), width: '130px',
+      render: (r) => <span style={{ fontSize: '0.82rem', color: r.customerPhone ? '#374151' : '#d1d5db' }}>{r.customerPhone || '—'}</span>,
+    },
+    {
+      key: 'partySize', label: t('res.col.guests'), sortable: true, align: 'center', width: '74px',
+      render: (r) => <span style={{ fontWeight: 600 }}><i className="bi bi-people-fill me-1" style={{ fontSize: 11 }} />{r.partySize}</span>,
+    },
+    {
+      key: 'tableNumber', label: t('res.col.table'), sortable: true, width: '86px',
+      render: (r) => {
+        const lbl = getTableLabel(r);
+        return lbl ? <span style={{ fontWeight: 600 }}>{lbl}</span> : <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>{t('res.noTable')}</span>;
+      },
+    },
+    {
+      key: 'status', label: t('res.col.status'), sortable: true, width: '115px',
+      render: (r) => <StatusBadge status={r.status} />,
+    },
+    {
+      key: 'source', label: t('res.col.channel'), width: '90px',
+      render: (r) => r.source ? (
+        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+          <i className={`bi ${SOURCE_CONFIG[r.source].icon} me-1`} />{t(SOURCE_CONFIG[r.source].labelKey)}
+        </span>
+      ) : <span style={{ color: '#d1d5db' }}>—</span>,
+    },
+    {
+      key: 'notes', label: t('res.col.notes'), width: '140px',
+      render: (r) => r.notes ? (
+        <span style={{ fontSize: '0.78rem', color: '#92400e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', maxWidth: 140 }}>{r.notes}</span>
+      ) : <span style={{ color: '#d1d5db' }}>—</span>,
+    },
+    {
+      key: 'actions', label: '', width: '44px',
+      render: (r) => <AdminActionMenu items={buildMenu(r)} />,
+    },
+  ];
+
+  return (
+    <AdminTable
+      columns={columns}
+      rows={sorted}
+      sortBy={sortBy}
+      sortDir={sortDir}
+      onSort={handleSort}
+      emptyTitle={t('res.emptyTable.title')}
+      emptyMessage={t('res.empty.desc')}
+      emptyIcon="bi-calendar-x"
+    />
+  );
+}
+
+// ─── ByTableView ──────────────────────────────────────────────────────────────
+
+interface ByTableViewProps {
+  reservations: Reservation[];
+  tables: DbTable[];
+  settings: ReservationSettings | null;
+  onStatusChange: (id: string, status: ReservationStatus) => void;
+  onEdit: (r: Reservation) => void;
+}
+
+function ByTableView({ reservations, tables, settings, onStatusChange, onEdit }: ByTableViewProps) {
+  const { t, language } = useLabels();
+  const defaultDur = settings?.defaultDurationMinutes ?? 90;
+
+  function getConflictIds(group: Reservation[]): Set<string> {
+    const ids = new Set<string>();
+    const active = group.filter((r) => ['PENDING', 'CONFIRMED', 'SEATED'].includes(r.status));
+    for (let i = 0; i < active.length; i++) {
+      for (let j = i + 1; j < active.length; j++) {
+        const a = active[i], b = active[j];
+        if (a.date !== b.date) continue;
+        const aS = toMins(a.time), aE = aS + (a.duration ?? defaultDur);
+        const bS = toMins(b.time), bE = bS + (b.duration ?? defaultDur);
+        if (aS < bE && aE > bS) { ids.add(a.id); ids.add(b.id); }
+      }
+    }
+    return ids;
+  }
+
+  function matchesTable(r: Reservation, t: DbTable): boolean {
+    return r.tableId === t.id || r.tableNumber === t.number;
+  }
+
+  type TableGroup = { key: string; label: string; table: DbTable | null; reservations: Reservation[] };
+  const groups: TableGroup[] = [];
+  const assigned = new Set<string>();
+
+  tables.forEach((tb) => {
+    const res = reservations
+      .filter((r) => matchesTable(r, tb))
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+    res.forEach((r) => assigned.add(r.id));
+    groups.push({ key: tb.id, label: t('res.tableN', { n: tb.number }), table: tb, reservations: res });
+  });
+
+  const unassigned = reservations
+    .filter((r) => !assigned.has(r.id))
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+  if (unassigned.length > 0) {
+    groups.push({ key: '__no_table__', label: t('res.noTable'), table: null, reservations: unassigned });
+  }
+
+  if (groups.length === 0) {
+    return (
+      <div className="ff-empty-state">
+        <i className="bi bi-calendar-x ff-empty-state-icon" />
+        <div className="ff-empty-state-title">{t('res.emptyTable.title')}</div>
+        <div className="ff-empty-state-desc">{t('res.empty.desc')}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ff-res-by-table-grid">
+      {groups.map((g) => {
+        const conflicts = getConflictIds(g.reservations);
+        const hasConflict = conflicts.size > 0;
+        const activeCount = g.reservations.filter((r) => ['PENDING', 'CONFIRMED', 'SEATED'].includes(r.status)).length;
+
+        return (
+          <div key={g.key} className={`ff-res-by-table-card${hasConflict ? ' has-conflict' : ''}`}>
+            <div className="ff-res-by-table-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="ff-res-by-table-num">
+                  {g.table ? g.table.number : <i className="bi bi-dash" />}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.94rem' }}>{g.label}</div>
+                  {g.table?.zoneName && <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{g.table.zoneName}</div>}
+                  {g.table?.capacity && <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{t('res.seatsN', { n: g.table.capacity })}</div>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                {hasConflict && (
+                  <span className="ff-res-conflict-badge"><i className="bi bi-exclamation-triangle-fill" /> {t('res.conflict')}</span>
+                )}
+                {activeCount > 0 ? (
+                  <span style={{ fontSize: '0.72rem', background: '#eff6ff', color: '#1d4ed8', borderRadius: 10, padding: '2px 8px', fontWeight: 700 }}>
+                    {t('res.reservationsCountN', { n: activeCount })}
+                  </span>
+                ) : g.table ? (
+                  <span style={{ fontSize: '0.72rem', background: '#f0fdf4', color: '#15803d', borderRadius: 10, padding: '2px 8px', fontWeight: 700 }}>{t('res.free')}</span>
+                ) : null}
+              </div>
+            </div>
+
+            {g.reservations.length === 0 ? (
+              <div style={{ padding: '14px 16px', color: '#9ca3af', fontSize: '0.82rem', textAlign: 'center' }}>{t('res.empty.title')}</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {g.reservations.map((r, idx) => {
+                  const isConflict = conflicts.has(r.id);
+                  const rowMenu: ActionMenuItem[] = [];
+                  if (r.status === 'PENDING')   rowMenu.push({ key: 'confirm',  label: t('res.action.confirm'), icon: 'bi-check-circle',      onClick: () => onStatusChange(r.id, 'CONFIRMED') });
+                  if (['PENDING', 'CONFIRMED'].includes(r.status)) rowMenu.push({ key: 'seat', label: t('res.action.seat'), icon: 'bi-person-check-fill', onClick: () => onStatusChange(r.id, 'SEATED') });
+                  if (r.status === 'SEATED')    rowMenu.push({ key: 'complete', label: t('res.action.complete'), icon: 'bi-check2-all',         onClick: () => onStatusChange(r.id, 'COMPLETED') });
+                  rowMenu.push({ key: 'edit',   label: t('res.action.edit'),    icon: 'bi-pencil',            onClick: () => onEdit(r) });
+                  if (['PENDING', 'CONFIRMED'].includes(r.status)) rowMenu.push({ key: 'cancel', label: t('res.action.cancel'), icon: 'bi-x-circle-fill', variant: 'destructive', onClick: () => onStatusChange(r.id, 'CANCELED') });
+
+                  return (
+                    <div key={r.id} className={`ff-res-by-table-row${isConflict ? ' conflict' : ''}`} style={{ borderTop: idx > 0 ? '1px solid #f0f0f0' : 'none' }}>
+                      <div style={{ flexShrink: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.85rem', fontVariantNumeric: 'tabular-nums', color: '#1f2937' }}>{r.time}</div>
+                        <div style={{ fontSize: '0.68rem', color: '#9ca3af' }}>
+                          {new Date(r.date + 'T12:00:00').toLocaleDateString(language, { day: '2-digit', month: '2-digit' })}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.86rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customerName}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', gap: 8 }}>
+                          <span><i className="bi bi-people-fill me-1" style={{ fontSize: 10 }} />{r.partySize}</span>
+                          {isConflict && <span style={{ color: '#dc2626', fontWeight: 700 }}><i className="bi bi-exclamation-circle me-1" />{t('res.conflict')}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        <StatusBadge status={r.status} />
+                        <AdminActionMenu items={rowMenu} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -514,6 +753,7 @@ interface WalkInPanelProps {
 }
 
 function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
+  const { t } = useLabels();
   const waiting = walkIns.filter((w) => w.status === 'WAITING');
   const past    = walkIns.filter((w) => w.status !== 'WAITING');
 
@@ -522,7 +762,7 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: '1rem' }}>Fila de espera</span>
+          <span style={{ fontWeight: 700, fontSize: '1rem' }}>{t('res.walkin.queue')}</span>
           {waiting.length > 0 && (
             <span
               style={{
@@ -539,7 +779,7 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
           )}
         </div>
         <button className="btn btn-sm btn-primary" onClick={onAdd}>
-          <i className="bi bi-plus me-1" />Adicionar à fila
+          <i className="bi bi-plus me-1" />{t('res.walkin.add')}
         </button>
       </div>
 
@@ -547,8 +787,8 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
       {waiting.length === 0 && (
         <div className="ff-empty-state">
           <i className="bi bi-people ff-empty-state-icon" />
-          <div className="ff-empty-state-title">Fila vazia</div>
-          <div className="ff-empty-state-desc">Nenhum cliente aguardando no momento.</div>
+          <div className="ff-empty-state-title">{t('res.walkin.emptyTitle')}</div>
+          <div className="ff-empty-state-desc">{t('res.walkin.emptyDesc')}</div>
         </div>
       )}
 
@@ -582,7 +822,7 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: '0.93rem' }}>{w.customerName}</div>
                 <div style={{ fontSize: '0.8rem', color: '#6b7280', display: 'flex', gap: 10, marginTop: 2, flexWrap: 'wrap' }}>
-                  <span><i className="bi bi-people-fill me-1" />{w.partySize} pessoas</span>
+                  <span><i className="bi bi-people-fill me-1" />{t('res.guestsN', { n: w.partySize })}</span>
                   {w.customerPhone && <span><i className="bi bi-telephone-fill me-1" />{w.customerPhone}</span>}
                 </div>
                 <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -597,11 +837,11 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
                     }}
                   >
                     <i className="bi bi-clock me-1" />
-                    {isLong ? 'Aguardando há ' : 'Há '}{timeAgo(w.arrivedAt)}
+                    {isLong ? t('res.walkin.waitingSince') : t('res.walkin.since')}{timeAgo(w.arrivedAt, t)}
                   </span>
                   {w.estimatedWaitMinutes && (
                     <span style={{ fontSize: '0.74rem', color: '#9ca3af' }}>
-                      Espera estimada: ~{w.estimatedWaitMinutes}min
+                      {t('res.walkin.estWait', { n: w.estimatedWaitMinutes })}
                     </span>
                   )}
                 </div>
@@ -614,14 +854,14 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
                   style={{ fontSize: '0.78rem', fontWeight: 700 }}
                   onClick={() => onSeat(w.id)}
                 >
-                  <i className="bi bi-person-check-fill me-1" />Sentar
+                  <i className="bi bi-person-check-fill me-1" />{t('res.walkin.seat')}
                 </button>
                 <button
                   className="btn btn-sm btn-outline-secondary"
                   style={{ fontSize: '0.78rem' }}
                   onClick={() => onCancel(w.id)}
                 >
-                  Remover
+                  {t('res.walkin.remove')}
                 </button>
               </div>
             </div>
@@ -645,7 +885,7 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
             }}
           >
             <i className="bi bi-clock-history" />
-            Histórico de hoje ({past.length})
+            {t('res.walkin.historyToday', { n: past.length })}
           </summary>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
             {past.map((w) => (
@@ -665,11 +905,11 @@ function WalkInPanel({ walkIns, onSeat, onCancel, onAdd }: WalkInPanelProps) {
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: 600, fontSize: '0.87rem' }}>{w.customerName}</span>
                   <span style={{ fontSize: '0.78rem', color: '#9ca3af', marginLeft: 8 }}>
-                    {w.partySize} pessoas ·{' '}
+                    {t('res.guestsN', { n: w.partySize })} ·{' '}
                     {w.status === 'SEATED' ? (
-                      <span style={{ color: '#059669' }}>Sentado</span>
+                      <span style={{ color: '#059669' }}>{t('res.walkin.seated')}</span>
                     ) : (
-                      <span style={{ color: '#9ca3af' }}>Removido</span>
+                      <span style={{ color: '#9ca3af' }}>{t('res.walkin.removed')}</span>
                     )}
                   </span>
                 </div>
@@ -690,6 +930,7 @@ interface SettingsPanelProps {
 }
 
 function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
+  const { t } = useLabels();
   const [form, setForm] = useState({
     defaultDurationMinutes: String(settings?.defaultDurationMinutes ?? 90),
     lateToleranceMinutes:   String(settings?.lateToleranceMinutes ?? 15),
@@ -717,15 +958,15 @@ function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
     <div className="ff-settings-form">
       <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: 20, color: '#1a1a1a' }}>
         <i className="bi bi-gear-fill me-2" style={{ color: '#6b7280' }} />
-        Configurações de reservas
+        {t('res.settings.title')}
       </div>
 
       <div className="ff-modal-section" style={{ marginBottom: 16 }}>
-        <span className="ff-modal-section-label">Horários de funcionamento</span>
+        <span className="ff-modal-section-label">{t('res.settings.hours')}</span>
         <div className="ff-modal-section-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {[
-            { label: 'Abertura',   key: 'openingTime' as const, type: 'time' },
-            { label: 'Fechamento', key: 'closingTime' as const, type: 'time' },
+            { label: t('res.settings.opening'), key: 'openingTime' as const, type: 'time' },
+            { label: t('res.settings.closing'), key: 'closingTime' as const, type: 'time' },
           ].map((f) => (
             <div key={f.key}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4, color: '#374151' }}>
@@ -743,13 +984,13 @@ function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
       </div>
 
       <div className="ff-modal-section" style={{ marginBottom: 20 }}>
-        <span className="ff-modal-section-label">Parâmetros</span>
+        <span className="ff-modal-section-label">{t('res.settings.params')}</span>
         <div className="ff-modal-section-body">
           {[
-            { label: 'Duração padrão (min)',     key: 'defaultDurationMinutes' as const, hint: 'Duração padrão de cada reserva' },
-            { label: 'Tolerância de atraso (min)', key: 'lateToleranceMinutes' as const, hint: 'Antes de marcar como não compareceu' },
-            { label: 'Intervalo entre horários (min)', key: 'slotIntervalMinutes' as const, hint: 'Granularidade no mapa de ocupação' },
-            { label: 'Máximo de pessoas por reserva', key: 'maxPartySize' as const, hint: '' },
+            { label: t('res.settings.defaultDuration'), key: 'defaultDurationMinutes' as const, hint: t('res.settings.defaultDurationHint') },
+            { label: t('res.settings.lateTolerance'),   key: 'lateToleranceMinutes' as const, hint: t('res.settings.lateToleranceHint') },
+            { label: t('res.settings.slotInterval'),    key: 'slotIntervalMinutes' as const, hint: t('res.settings.slotIntervalHint') },
+            { label: t('res.settings.maxParty'),        key: 'maxPartySize' as const, hint: '' },
           ].map((f) => (
             <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
@@ -772,11 +1013,11 @@ function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button className="btn btn-primary" onClick={handleSave}>
-          <i className="bi bi-floppy me-1" />Salvar configurações
+          <i className="bi bi-floppy me-1" />{t('res.settings.save')}
         </button>
         {saved && (
           <span style={{ fontSize: '0.85rem', color: '#059669', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <i className="bi bi-check-circle-fill" />Salvo!
+            <i className="bi bi-check-circle-fill" />{t('res.settings.saved')}
           </span>
         )}
       </div>
@@ -796,6 +1037,7 @@ interface ReservationModalProps {
 }
 
 function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly }: ReservationModalProps) {
+  const { t } = useLabels();
   const [form, setForm] = useState(initial);
 
   function toggleTag(tag: ReservationTag) {
@@ -835,21 +1077,21 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
         <div className="ff-admin-modal-body" style={{ gap: 12 }}>
           {/* Customer details */}
           <div className="ff-modal-section">
-            <span className="ff-modal-section-label">Dados do cliente</span>
+            <span className="ff-modal-section-label">{t('res.modal.customerData')}</span>
             <div className="ff-modal-section-body">
               <div>
-                <span className="ff-admin-modal-label">Nome *</span>
+                <span className="ff-admin-modal-label">{t('res.modal.name')}</span>
                 <input
                   className="form-control form-control-sm"
                   value={form.customerName}
                   readOnly={readOnly}
                   onChange={(e) => field('customerName', e.target.value)}
-                  placeholder="Nome do cliente"
+                  placeholder={t('res.modal.namePlaceholder')}
                 />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
-                  <span className="ff-admin-modal-label">Telefone</span>
+                  <span className="ff-admin-modal-label">{t('res.modal.phone')}</span>
                   <input
                     className="form-control form-control-sm"
                     type="tel"
@@ -860,7 +1102,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                   />
                 </div>
                 <div>
-                  <span className="ff-admin-modal-label">Nº de pessoas</span>
+                  <span className="ff-admin-modal-label">{t('res.modal.guests')}</span>
                   <input
                     className="form-control form-control-sm"
                     type="number"
@@ -876,11 +1118,11 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
 
           {/* Reservation details */}
           <div className="ff-modal-section">
-            <span className="ff-modal-section-label">Detalhes da reserva</span>
+            <span className="ff-modal-section-label">{t('res.modal.details')}</span>
             <div className="ff-modal-section-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                 <div>
-                  <span className="ff-admin-modal-label">Data</span>
+                  <span className="ff-admin-modal-label">{t('res.modal.date')}</span>
                   <input
                     className="form-control form-control-sm"
                     type="date"
@@ -890,7 +1132,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                   />
                 </div>
                 <div>
-                  <span className="ff-admin-modal-label">Horário</span>
+                  <span className="ff-admin-modal-label">{t('res.modal.time')}</span>
                   <input
                     className="form-control form-control-sm"
                     type="time"
@@ -900,7 +1142,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                   />
                 </div>
                 <div>
-                  <span className="ff-admin-modal-label">Duração (min)</span>
+                  <span className="ff-admin-modal-label">{t('res.modal.duration')}</span>
                   <input
                     className="form-control form-control-sm"
                     type="number"
@@ -912,7 +1154,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                 </div>
               </div>
               <div>
-                <span className="ff-admin-modal-label">Origem</span>
+                <span className="ff-admin-modal-label">{t('res.modal.source')}</span>
                 <select
                   className="form-select form-select-sm"
                   value={form.source}
@@ -920,7 +1162,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                   onChange={(e) => field('source', e.target.value as ReservationSource)}
                 >
                   {Object.entries(SOURCE_CONFIG).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
+                    <option key={k} value={k}>{t(v.labelKey)}</option>
                   ))}
                 </select>
               </div>
@@ -929,7 +1171,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
 
           {/* Table assignment */}
           <div className="ff-modal-section">
-            <span className="ff-modal-section-label">Mesa <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></span>
+            <span className="ff-modal-section-label">{t('res.col.table')} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{t('res.modal.tableOptional')}</span></span>
             <div className="ff-modal-section-body">
               <select
                 className="form-select form-select-sm"
@@ -937,11 +1179,11 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                 disabled={readOnly}
                 onChange={(e) => field('tableId', e.target.value)}
               >
-                <option value="">— Sem mesa definida —</option>
-                {tables.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    Mesa {t.number}{t.capacity ? ` (${t.capacity} lugares)` : ''}
-                    {t.zoneName ? ` — ${t.zoneName}` : ''}
+                <option value="">{t('res.modal.noTableOption')}</option>
+                {tables.map((tb) => (
+                  <option key={tb.id} value={tb.id}>
+                    {t('res.tableN', { n: tb.number })}{tb.capacity ? ` (${t('res.seatsN', { n: tb.capacity })})` : ''}
+                    {tb.zoneName ? ` — ${tb.zoneName}` : ''}
                   </option>
                 ))}
               </select>
@@ -950,20 +1192,20 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
 
           {/* Notes & tags */}
           <div className="ff-modal-section">
-            <span className="ff-modal-section-label">Observações e tags</span>
+            <span className="ff-modal-section-label">{t('res.modal.notesTags')}</span>
             <div className="ff-modal-section-body">
               <div>
-                <span className="ff-admin-modal-label">Observações</span>
+                <span className="ff-admin-modal-label">{t('res.modal.notes')}</span>
                 <input
                   className="form-control form-control-sm"
                   value={form.notes}
                   readOnly={readOnly}
                   onChange={(e) => field('notes', e.target.value)}
-                  placeholder="Ex: janela, cadeirão para bebê..."
+                  placeholder={t('res.modal.notesPlaceholder')}
                 />
               </div>
               <div>
-                <span className="ff-admin-modal-label">Tags</span>
+                <span className="ff-admin-modal-label">{t('res.modal.tags')}</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
                   {ALL_TAGS.map((tag) => {
                     const tc = TAG_CONFIG[tag];
@@ -986,7 +1228,7 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                           transition: 'all .12s',
                         }}
                       >
-                        {tc.label}
+                        {t(tc.labelKey)}
                       </button>
                     );
                   })}
@@ -1005,15 +1247,15 @@ function ReservationModal({ title, initial, tables, onConfirm, onClose, readOnly
                 onClick={() => onConfirm(form)}
                 disabled={!form.customerName.trim()}
               >
-                <i className="bi bi-floppy me-1" />Salvar reserva
+                <i className="bi bi-floppy me-1" />{t('res.modal.saveReservation')}
               </button>
               <button className="btn btn-outline-secondary" onClick={onClose}>
-                Cancelar
+                {t('res.modal.cancel')}
               </button>
             </>
           ) : (
             <button className="btn btn-outline-secondary flex-1" onClick={onClose}>
-              Fechar
+              {t('res.modal.close')}
             </button>
           )}
         </div>
@@ -1030,6 +1272,7 @@ interface AddWalkInModalProps {
 }
 
 function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
+  const { t } = useLabels();
   const [form, setForm] = useState({ customerName: '', customerPhone: '', partySize: '2', estimatedWaitMinutes: '20' });
 
   return (
@@ -1038,7 +1281,7 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
         <div className="ff-admin-modal-header">
           <span className="ff-admin-modal-title">
             <i className="bi bi-person-plus-fill me-2" style={{ color: '#0284c7' }} />
-            Adicionar à fila
+            {t('res.walkin.add')}
           </span>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 18 }} onClick={onClose}>
             <i className="bi bi-x-lg" />
@@ -1046,17 +1289,17 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
         </div>
         <div className="ff-admin-modal-body">
           <div>
-            <span className="ff-admin-modal-label">Nome ou grupo *</span>
+            <span className="ff-admin-modal-label">{t('res.walkin.nameOrGroup')}</span>
             <input
               className="form-control form-control-sm"
               value={form.customerName}
               onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))}
-              placeholder="Ex: Família Silva"
+              placeholder={t('res.walkin.nameOrGroupPlaceholder')}
             />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <span className="ff-admin-modal-label">Telefone</span>
+              <span className="ff-admin-modal-label">{t('res.modal.phone')}</span>
               <input
                 className="form-control form-control-sm"
                 type="tel"
@@ -1065,7 +1308,7 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
               />
             </div>
             <div>
-              <span className="ff-admin-modal-label">Nº de pessoas</span>
+              <span className="ff-admin-modal-label">{t('res.modal.guests')}</span>
               <input
                 className="form-control form-control-sm"
                 type="number"
@@ -1076,7 +1319,7 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
             </div>
           </div>
           <div>
-            <span className="ff-admin-modal-label">Espera estimada (min)</span>
+            <span className="ff-admin-modal-label">{t('res.walkin.estWaitMin')}</span>
             <input
               className="form-control form-control-sm"
               type="number"
@@ -1099,9 +1342,9 @@ function AddWalkInModal({ onConfirm, onClose }: AddWalkInModalProps) {
             }
             disabled={!form.customerName.trim()}
           >
-            <i className="bi bi-plus-circle-fill me-1" />Adicionar à fila
+            <i className="bi bi-plus-circle-fill me-1" />{t('res.walkin.add')}
           </button>
-          <button className="btn btn-outline-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-outline-secondary" onClick={onClose}>{t('res.modal.cancel')}</button>
         </div>
       </div>
     </div>
@@ -1121,6 +1364,7 @@ interface OccupancyViewProps {
 }
 
 function OccupancyView({ tables, settings }: OccupancyViewProps) {
+  const { t, language } = useLabels();
   const today = new Date().toISOString().slice(0, 10);
   const [mode, setMode] = useState<'week' | 'day' | 'month'>('week');
   const [weekStart, setWeekStart] = useState(() => getMonday());
@@ -1202,7 +1446,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
 
   async function handleCancelFromOcc(resId: string) {
     await reservationService.updateStatus(resId, 'CANCELED');
-    notify('Reserva cancelada', 'success');
+    notify(t('res.notif.canceled'), 'success');
     setCancelTarget(null);
     await loadOccReservations();
   }
@@ -1223,7 +1467,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
       tags:          form.tags.length > 0 ? form.tags : undefined,
     });
     setQuickReserve(null);
-    notify('Reserva criada com sucesso', 'success');
+    notify(t('res.notif.created'), 'success');
     await loadOccReservations();
   }
 
@@ -1244,7 +1488,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
       tags:          form.tags.length > 0 ? form.tags : undefined,
     });
     setEditOccTarget(null);
-    notify('Reserva atualizada', 'success');
+    notify(t('res.notif.updated'), 'success');
     await loadOccReservations();
   }
 
@@ -1267,7 +1511,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
           }}
         >
           <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0, marginRight: 2 }}>
-            <i className="bi bi-grid-3x3-gap me-1" />Mesa
+            <i className="bi bi-grid-3x3-gap me-1" />{t('res.col.table')}
           </span>
 
           {/* All-tables chip */}
@@ -1289,7 +1533,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
             onClick={() => { setSelectedTableId(null); setSelectedSlot(null); }}
           >
             <i className={`bi ${selectedTableId === null ? 'bi-check2' : 'bi-table'}`} style={{ fontSize: 12 }} />
-            Todas
+            {t('res.occ.allTables')}
           </button>
 
           {/* Per-table chips */}
@@ -1350,7 +1594,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               onClick={() => { setMode(m); if (m === 'month') setSelectedSlot(null); }}
             >
               <i className={`bi ${m === 'week' ? 'bi-calendar-week' : m === 'day' ? 'bi-calendar-day' : 'bi-calendar-month'} me-1`} />
-              {m === 'week' ? 'Semana' : m === 'day' ? 'Dia' : 'Mês'}
+              {m === 'week' ? t('res.occ.week') : m === 'day' ? t('res.occ.day') : t('res.occ.month')}
             </button>
           ))}
         </div>
@@ -1362,13 +1606,13 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               <i className="bi bi-chevron-left" />
             </button>
             <span style={{ fontSize: 13, fontWeight: 700, minWidth: 220, textAlign: 'center', color: '#374151' }}>
-              {fmtShortDate(weekStart)} — {fmtShortDate(addDaysStr(weekStart, 6))}
+              {fmtShortDate(weekStart, language)} — {fmtShortDate(addDaysStr(weekStart, 6), language)}
             </span>
             <button className="btn btn-sm btn-outline-secondary" style={{ padding: '4px 9px' }} onClick={() => setWeekStart(addDaysStr(weekStart, 7))}>
               <i className="bi bi-chevron-right" />
             </button>
             <button className="btn btn-sm btn-outline-secondary" onClick={() => setWeekStart(getMonday())}>
-              Hoje
+              {t('res.today')}
             </button>
           </div>
         )}
@@ -1388,7 +1632,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               <i className="bi bi-chevron-right" />
             </button>
             <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedDay(today)}>
-              Hoje
+              {t('res.today')}
             </button>
           </div>
         )}
@@ -1398,13 +1642,13 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               <i className="bi bi-chevron-left" />
             </button>
             <span style={{ fontSize: 13, fontWeight: 700, minWidth: 180, textAlign: 'center', color: '#374151' }}>
-              {fmtMonthYear(monthStart)}
+              {fmtMonthYear(monthStart, language)}
             </span>
             <button className="btn btn-sm btn-outline-secondary" style={{ padding: '4px 9px' }} onClick={() => setMonthStart(addMonths(monthStart, 1))}>
               <i className="bi bi-chevron-right" />
             </button>
             <button className="btn btn-sm btn-outline-secondary" onClick={() => setMonthStart(getMonthStart())}>
-              Hoje
+              {t('res.today')}
             </button>
           </div>
         )}
@@ -1442,9 +1686,9 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                         className={isToday ? 'today-col' : ''}
                         style={{ cursor: 'pointer', minWidth: 84 }}
                         onClick={() => { setSelectedDay(d); setMode('day'); setSelectedSlot(null); }}
-                        title="Ver detalhes do dia"
+                        title={t('res.occ.viewDayDetails')}
                       >
-                        {fmtShortDate(d)}
+                        {fmtShortDate(d, language)}
                         {isToday && (
                           <span
                             style={{
@@ -1500,10 +1744,10 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: '#374151', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
               <i className="bi bi-calendar3" style={{ color: '#1d4ed8' }} />
-              {fmtFullDate(selectedDay)}
+              {fmtFullDate(selectedDay, language)}
               {selectedDay === today && (
                 <span style={{ fontSize: 11, background: '#dbeafe', color: '#1d4ed8', borderRadius: 6, padding: '2px 10px', fontWeight: 800 }}>
-                  Hoje
+                  {t('res.today')}
                 </span>
               )}
             </div>
@@ -1511,7 +1755,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
             {slots.length === 0 ? (
               <div className="ff-empty-state">
                 <i className="bi bi-clock ff-empty-state-icon" />
-                <div className="ff-empty-state-title">Sem horários configurados</div>
+                <div className="ff-empty-state-title">{t('res.occ.noSlots')}</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1539,9 +1783,9 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                         </span>
                       </div>
                       <span style={{ fontSize: 11, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <span style={{ color: '#dc2626', fontWeight: 700 }}>{occ.occupied.length} ocup.</span>
+                        <span style={{ color: '#dc2626', fontWeight: 700 }}>{t('res.occ.occupiedShort', { n: occ.occupied.length })}</span>
                         {' · '}
-                        <span style={{ color: '#059669', fontWeight: 700 }}>{occ.available.length} livres</span>
+                        <span style={{ color: '#059669', fontWeight: 700 }}>{t('res.occ.freeShortN', { n: occ.available.length })}</span>
                       </span>
                     </div>
                   );
@@ -1565,7 +1809,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               <table className="ff-occ-month-grid">
                 <thead>
                   <tr>
-                    {WEEKDAY_SHORT.map((d) => <th key={d}>{d}</th>)}
+                    {weekdayShortNames(language).map((d, i) => <th key={i}>{d}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -1583,7 +1827,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                             className={`ff-occ-month-cell${isToday ? ' today' : ''}${isPast ? ' past' : ''}`}
                             style={{ background: peak.total === 0 ? '#f9fafb' : bg }}
                             onClick={() => { setSelectedDay(date); setMode('day'); setSelectedSlot(null); }}
-                            title={`${fmtFullDate(date)} — Ocupação máx: ${peak.pct}%`}
+                            title={t('res.occ.maxOccTitle', { date: fmtFullDate(date, language), pct: peak.pct })}
                           >
                             <span
                               className="ff-occ-month-day-num"
@@ -1597,7 +1841,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                               </span>
                             )}
                             {peak.pct === 0 && peak.total > 0 && (
-                              <span className="ff-occ-month-free">livre</span>
+                              <span className="ff-occ-month-free">{t('res.occ.freeLower')}</span>
                             )}
                           </td>
                         );
@@ -1617,10 +1861,10 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               {/* Header */}
               <div className="ff-occ-panel-head">
                 <div style={{ flex: 1 }}>
-                  <div className="ff-occ-panel-head-date">{fmtFullDate(selectedSlot.date)}</div>
+                  <div className="ff-occ-panel-head-date">{fmtFullDate(selectedSlot.date, language)}</div>
                   <div className="ff-occ-panel-head-time">
                     <i className="bi bi-clock me-1" />{selectedSlot.time}
-                    {selectedSlot.date === today && <span style={{ marginLeft: 8, background: '#2563eb', fontSize: 10, padding: '1px 6px', borderRadius: 4 }}>Hoje</span>}
+                    {selectedSlot.date === today && <span style={{ marginLeft: 8, background: '#2563eb', fontSize: 10, padding: '1px 6px', borderRadius: 4 }}>{t('res.today')}</span>}
                   </div>
                 </div>
                 <button
@@ -1635,15 +1879,15 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
               <div className="ff-occ-panel-stats">
                 <div className="ff-occ-stat">
                   <span className="ff-occ-stat-val" style={{ color: '#dc2626' }}>{detailOcc.occupied.length}</span>
-                  <span className="ff-occ-stat-lbl">Ocupadas</span>
+                  <span className="ff-occ-stat-lbl">{t('res.occ.occupied')}</span>
                 </div>
                 <div className="ff-occ-stat">
                   <span className="ff-occ-stat-val" style={{ color: '#059669' }}>{detailOcc.available.length}</span>
-                  <span className="ff-occ-stat-lbl">Livres</span>
+                  <span className="ff-occ-stat-lbl">{t('res.occ.free2')}</span>
                 </div>
                 <div className="ff-occ-stat">
                   <span className="ff-occ-stat-val" style={{ color: '#1d4ed8' }}>{detailOcc.pct}%</span>
-                  <span className="ff-occ-stat-lbl">Ocup.</span>
+                  <span className="ff-occ-stat-lbl">{t('res.occ.occ')}</span>
                 </div>
               </div>
 
@@ -1652,24 +1896,24 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                 {viewTables.length === 0 && (
                   <div className="ff-empty-state" style={{ padding: '24px 16px' }}>
                     <i className="bi bi-grid-3x3-gap ff-empty-state-icon" />
-                    <div className="ff-empty-state-title">Nenhuma mesa ativa</div>
+                    <div className="ff-empty-state-title">{t('res.occ.noActiveTables')}</div>
                   </div>
                 )}
 
                 {/* Occupied tables section */}
                 {detailOcc.occupied.length > 0 && (
                   <>
-                    <div className="ff-occ-panel-section-label">Ocupadas ({detailOcc.occupied.length})</div>
-                    {detailOcc.occupied.map((t) => {
-                      const res = tableResAtSlot(t.id, t.number);
+                    <div className="ff-occ-panel-section-label">{t('res.occ.occupied')} ({detailOcc.occupied.length})</div>
+                    {detailOcc.occupied.map((tb) => {
+                      const res = tableResAtSlot(tb.id, tb.number);
                       const isCanceling = cancelTarget === res?.id;
                       return (
-                        <div key={t.id} className={`ff-occ-tcard ${isCanceling ? 'canceling' : 'occupied'}`}>
-                          <div className="ff-occ-tnum occupied">{t.number}</div>
+                        <div key={tb.id} className={`ff-occ-tcard ${isCanceling ? 'canceling' : 'occupied'}`}>
+                          <div className="ff-occ-tnum occupied">{tb.number}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {t.zoneName && (
+                            {tb.zoneName && (
                               <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 1 }}>
-                                {t.zoneName}
+                                {tb.zoneName}
                               </div>
                             )}
                             {res && (
@@ -1678,7 +1922,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                                   {res.customerName}
                                 </div>
                                 <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>
-                                  {res.time} · {res.partySize}/{t.capacity ?? '?'} pax{res.duration ? ` · ${res.duration}min` : ''}
+                                  {res.time} · {res.partySize}/{tb.capacity ?? '?'} pax{res.duration ? ` · ${res.duration}min` : ''}
                                 </div>
                                 <div style={{ marginTop: 1 }}>
                                   <StatusBadge status={res.status} />
@@ -1690,7 +1934,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                             {isCanceling && res && (
                               <div className="ff-cancel-confirm">
                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', marginBottom: 6 }}>
-                                  Cancelar reserva de {res.customerName}?
+                                  {t('res.occ.cancelConfirm', { name: res.customerName })}
                                 </div>
                                 <div style={{ display: 'flex', gap: 5 }}>
                                   <button
@@ -1698,14 +1942,14 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                                     style={{ fontSize: '0.72rem', fontWeight: 700 }}
                                     onClick={() => handleCancelFromOcc(res.id)}
                                   >
-                                    <i className="bi bi-x-circle-fill me-1" />Confirmar
+                                    <i className="bi bi-x-circle-fill me-1" />{t('res.confirm')}
                                   </button>
                                   <button
                                     className="btn btn-sm btn-outline-secondary"
                                     style={{ fontSize: '0.72rem' }}
                                     onClick={() => setCancelTarget(null)}
                                   >
-                                    Voltar
+                                    {t('res.back')}
                                   </button>
                                 </div>
                               </div>
@@ -1727,7 +1971,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                                   }}
                                   onClick={(e) => { e.stopPropagation(); setViewOccTarget(res); }}
                                 >
-                                  <i className="bi bi-eye me-1" />Ver
+                                  <i className="bi bi-eye me-1" />{t('res.view')}
                                 </button>
                                 <button
                                   style={{
@@ -1742,7 +1986,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                                   }}
                                   onClick={(e) => { e.stopPropagation(); setEditOccTarget(res); }}
                                 >
-                                  <i className="bi bi-pencil me-1" />Editar
+                                  <i className="bi bi-pencil me-1" />{t('res.action.edit')}
                                 </button>
                                 <button
                                   style={{
@@ -1757,7 +2001,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                                   }}
                                   onClick={(e) => { e.stopPropagation(); setCancelTarget(res.id); }}
                                 >
-                                  <i className="bi bi-x-circle me-1" />Cancelar
+                                  <i className="bi bi-x-circle me-1" />{t('res.action.cancel')}
                                 </button>
                               </div>
                             )}
@@ -1771,19 +2015,19 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                 {/* Available tables section */}
                 {detailOcc.available.length > 0 && (
                   <>
-                    <div className="ff-occ-panel-section-label">Disponíveis ({detailOcc.available.length})</div>
-                    {detailOcc.available.map((t) => (
-                      <div key={t.id} className="ff-occ-tcard available">
-                        <div className="ff-occ-tnum available">{t.number}</div>
+                    <div className="ff-occ-panel-section-label">{t('res.occ.available')} ({detailOcc.available.length})</div>
+                    {detailOcc.available.map((tb) => (
+                      <div key={tb.id} className="ff-occ-tcard available">
+                        <div className="ff-occ-tnum available">{tb.number}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          {t.zoneName && (
+                          {tb.zoneName && (
                             <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 1 }}>
-                              {t.zoneName}
+                              {tb.zoneName}
                             </div>
                           )}
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>Disponível</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>{t('res.available')}</div>
                           <div style={{ fontSize: 10, color: '#9ca3af' }}>
-                            {t.capacity ? `${t.capacity} lugares` : 'Capacidade não definida'}
+                            {tb.capacity ? t('res.seatsN', { n: tb.capacity }) : t('res.occ.capacityUndefined')}
                           </div>
                         </div>
                         <button
@@ -1801,10 +2045,10 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
                             gap: 4,
                             flexShrink: 0,
                           }}
-                          onClick={(e) => { e.stopPropagation(); setQuickReserve({ tableId: t.id, tableNumber: t.number }); }}
+                          onClick={(e) => { e.stopPropagation(); setQuickReserve({ tableId: tb.id, tableNumber: tb.number }); }}
                         >
                           <i className="bi bi-calendar-plus" style={{ fontSize: 11 }} />
-                          Reservar
+                          {t('res.reserve')}
                         </button>
                       </div>
                     ))}
@@ -1819,7 +2063,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
       {/* Quick reserve modal */}
       {quickReserve && selectedSlot && (
         <ReservationModal
-          title={`Nova reserva — Mesa ${quickReserve.tableNumber}`}
+          title={t('res.newReservationTable', { n: quickReserve.tableNumber })}
           initial={{
             ...EMPTY_FORM,
             date:    selectedSlot.date,
@@ -1835,7 +2079,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
       {/* Edit from occupancy */}
       {editOccTarget && (
         <ReservationModal
-          title="Editar reserva"
+          title={t('res.action.editReservation')}
           initial={{
             customerName:  editOccTarget.customerName,
             customerPhone: editOccTarget.customerPhone,
@@ -1857,7 +2101,7 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
       {/* View (read-only) from occupancy */}
       {viewOccTarget && (
         <ReservationModal
-          title="Detalhes da reserva"
+          title={t('res.modal.details')}
           initial={{
             customerName:  viewOccTarget.customerName,
             customerPhone: viewOccTarget.customerPhone,
@@ -1883,44 +2127,56 @@ function OccupancyView({ tables, settings }: OccupancyViewProps) {
 // ─── ReservationsPage ─────────────────────────────────────────────────────────
 
 export function ReservationsPage() {
-  const [tab, setTab] = useState<Tab>('today');
+  const { lang, setLang } = useAdminLanguage();
+  return (
+    <I18nProvider language={lang}>
+      <ReservationsInner lang={lang} onLangChange={setLang} />
+    </I18nProvider>
+  );
+}
+
+function ReservationsInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l: LanguageCode) => void }) {
+  const { t } = useLabels();
+  const [tab, setTab]               = useState<Tab>('reservations');
+  const [view, setView]             = useState<View>('agenda');
+  const [dateScope, setDateScope]   = useState<DateScope>('today');
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [allReservations, setAllReservations] = useState<Reservation[]>([]);
-  const [walkIns, setWalkIns] = useState<WalkIn[]>([]);
-  const [settings, setSettings] = useState<ReservationSettings | null>(null);
-  const [tables, setTables] = useState<DbTable[]>([]);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [search, setSearch] = useState('');
+  const [walkIns, setWalkIns]       = useState<WalkIn[]>([]);
+  const [settings, setSettings]     = useState<ReservationSettings | null>(null);
+  const [tables, setTables]         = useState<DbTable[]>([]);
+  const [date, setDate]             = useState(new Date().toISOString().slice(0, 10));
+  const [search, setSearch]         = useState('');
   const [filterStatus, setFilterStatus] = useState<ReservationStatus | ''>('');
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]   = useState(false);
   const [editTarget, setEditTarget] = useState<Reservation | null>(null);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const notify = useNotify();
+  const notify   = useNotify();
   const navigate = useNavigate();
 
-  async function loadToday() { setReservations(await reservationService.listForDate(date)); }
-  async function loadAll()   { setAllReservations(await reservationService.listAll()); }
-  async function loadWalkIns() { setWalkIns(await reservationService.listWalkIns()); }
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  async function loadReservations() {
+    if (dateScope === 'all') {
+      setReservations(await reservationService.listAll());
+    } else {
+      const d = dateScope === 'today' ? todayStr : date;
+      setReservations(await reservationService.listForDate(d));
+    }
+  }
+  async function loadWalkIns()  { setWalkIns(await reservationService.listWalkIns()); }
   async function loadSettings() { setSettings(await reservationService.getSettings()); }
 
   useEffect(() => {
     tableService.list().then((ts) => setTables(ts.filter((t) => t.active)));
-    loadAll();
     loadWalkIns();
     loadSettings();
   }, []);
 
-  useEffect(() => { loadToday(); }, [date]);
+  useEffect(() => { loadReservations(); }, [dateScope, date]);
 
-  const todayFiltered = reservations.filter((r) => {
+  const filtered = reservations.filter((r) => {
     const matchSearch = !search || r.customerName.toLowerCase().includes(search.toLowerCase()) || r.customerPhone.includes(search);
-    const matchStatus = !filterStatus || r.status === filterStatus;
-    return matchSearch && matchStatus;
-  });
-
-  const allFiltered = allReservations.filter((r) => {
-    const matchSearch = !search || r.customerName.toLowerCase().includes(search.toLowerCase()) || r.customerPhone.includes(search) || r.date.includes(search);
     const matchStatus = !filterStatus || r.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -1928,74 +2184,59 @@ export function ReservationsPage() {
   async function handleCreate(form: typeof EMPTY_FORM) {
     const table = tables.find((t) => t.id === form.tableId);
     await reservationService.create({
-      customerName:  form.customerName,
-      customerPhone: form.customerPhone,
-      partySize:     parseInt(form.partySize) || 2,
-      date:          form.date,
-      time:          form.time,
-      notes:         form.notes || undefined,
-      tableId:       form.tableId || undefined,
-      tableNumber:   table?.number,
-      source:        form.source,
-      duration:      parseInt(form.duration) || undefined,
-      tags:          form.tags.length > 0 ? form.tags : undefined,
+      customerName: form.customerName, customerPhone: form.customerPhone,
+      partySize: parseInt(form.partySize) || 2, date: form.date, time: form.time,
+      notes: form.notes || undefined, tableId: form.tableId || undefined,
+      tableNumber: table?.number, source: form.source,
+      duration: parseInt(form.duration) || undefined,
+      tags: form.tags.length > 0 ? form.tags : undefined,
     });
-    notify('Reserva criada', 'success');
+    notify(t('res.notif.createdShort'), 'success');
     setShowModal(false);
-    loadToday();
-    loadAll();
+    loadReservations();
   }
 
   async function handleEdit(form: typeof EMPTY_FORM) {
     if (!editTarget) return;
     const table = tables.find((t) => t.id === form.tableId);
     await reservationService.update(editTarget.id, {
-      customerName:  form.customerName,
-      customerPhone: form.customerPhone,
-      partySize:     parseInt(form.partySize) || 2,
-      date:          form.date,
-      time:          form.time,
-      notes:         form.notes || undefined,
-      tableId:       form.tableId || undefined,
-      tableNumber:   table?.number,
-      source:        form.source,
-      duration:      parseInt(form.duration) || undefined,
-      tags:          form.tags.length > 0 ? form.tags : undefined,
+      customerName: form.customerName, customerPhone: form.customerPhone,
+      partySize: parseInt(form.partySize) || 2, date: form.date, time: form.time,
+      notes: form.notes || undefined, tableId: form.tableId || undefined,
+      tableNumber: table?.number, source: form.source,
+      duration: parseInt(form.duration) || undefined,
+      tags: form.tags.length > 0 ? form.tags : undefined,
     });
-    notify('Reserva atualizada', 'success');
+    notify(t('res.notif.updated'), 'success');
     setEditTarget(null);
-    loadToday();
-    loadAll();
+    loadReservations();
   }
 
   async function handleStatusChange(id: string, status: ReservationStatus) {
     await reservationService.updateStatus(id, status);
-    notify(`Reserva: ${STATUS_CONFIG[status].label}`, status === 'CANCELED' || status === 'NO_SHOW' ? 'danger' : 'success');
-    loadToday();
-    loadAll();
+    notify(t('res.notif.status', { status: t(STATUS_CONFIG[status].labelKey) }), status === 'CANCELED' || status === 'NO_SHOW' ? 'danger' : 'success');
+    loadReservations();
   }
 
   async function handleWalkInSeat(id: string) {
     await reservationService.updateWalkInStatus(id, 'SEATED', { seatedAt: new Date().toISOString() });
-    notify('Cliente sentado', 'success');
+    notify(t('res.notif.customerSeated'), 'success');
     loadWalkIns();
   }
 
   async function handleWalkInCancel(id: string) {
     await reservationService.updateWalkInStatus(id, 'CANCELED');
-    notify('Removido da fila');
+    notify(t('res.notif.removedFromQueue'));
     loadWalkIns();
   }
 
   async function handleAddWalkIn(data: { customerName: string; customerPhone: string; partySize: number; estimatedWaitMinutes: number }) {
     await reservationService.addWalkIn({
-      customerName:          data.customerName,
-      customerPhone:         data.customerPhone || undefined,
-      partySize:             data.partySize,
-      estimatedWaitMinutes:  data.estimatedWaitMinutes,
-      arrivedAt:             new Date().toISOString(),
+      customerName: data.customerName, customerPhone: data.customerPhone || undefined,
+      partySize: data.partySize, estimatedWaitMinutes: data.estimatedWaitMinutes,
+      arrivedAt: new Date().toISOString(),
     });
-    notify('Adicionado à fila', 'success');
+    notify(t('res.notif.addedToQueue'), 'success');
     setShowWalkInModal(false);
     loadWalkIns();
   }
@@ -2003,309 +2244,180 @@ export function ReservationsPage() {
   async function handleSaveSettings(data: Partial<ReservationSettings>) {
     const saved = await reservationService.saveSettings(data);
     setSettings(saved);
-    notify('Configurações salvas', 'success');
+    notify(t('res.notif.settingsSaved'), 'success');
   }
 
   const waitingCount = walkIns.filter((w) => w.status === 'WAITING').length;
 
   const tabs: { id: Tab; label: string; icon: string; badge?: number }[] = [
-    { id: 'today',     label: 'Por data',      icon: 'bi-calendar3' },
-    { id: 'all',       label: 'Todas',         icon: 'bi-list-ul' },
-    { id: 'walkin',    label: 'Fila',          icon: 'bi-people', badge: waitingCount || undefined },
-    { id: 'occupancy', label: 'Ocupação',      icon: 'bi-grid-1x2' },
-    { id: 'settings',  label: 'Config.',       icon: 'bi-gear' },
+    { id: 'reservations', label: t('res.title'),         icon: 'bi-calendar-check' },
+    { id: 'walkin',       label: t('res.tab.queue'),     icon: 'bi-people',         badge: waitingCount || undefined },
+    { id: 'occupancy',    label: t('res.tab.occupancy'), icon: 'bi-grid-1x2' },
+    { id: 'settings',     label: t('res.tab.settings'),  icon: 'bi-gear' },
   ];
 
-  const showSearchBar = tab === 'today' || tab === 'all';
+  const views: { id: View; label: string; icon: string }[] = [
+    { id: 'agenda',    label: t('res.view.agenda'),  icon: 'bi-calendar3' },
+    { id: 'table',     label: t('res.view.table'),   icon: 'bi-table' },
+    { id: 'by-table',  label: t('res.view.byTable'), icon: 'bi-layout-three-columns' },
+  ];
+
+  const initialDate = dateScope === 'date' ? date : todayStr;
 
   return (
     <div className="ff-area-layout">
-      {drawerOpen && (
-        <div className="ff-area-drawer-backdrop ff-area-drawer-backdrop--open" onClick={() => setDrawerOpen(false)} />
-      )}
+      {drawerOpen && <div className="ff-area-drawer-backdrop ff-area-drawer-backdrop--open" onClick={() => setDrawerOpen(false)} />}
 
-      {/* Sidebar */}
       <aside className={`ff-area-sidebar${drawerOpen ? ' ff-area-sidebar--open' : ''}`}>
-        <button className="ff-area-sidebar-close" onClick={() => setDrawerOpen(false)} aria-label="Fechar menu">
+        <button className="ff-area-sidebar-close" onClick={() => setDrawerOpen(false)} aria-label={t('res.closeMenu')}>
           <i className="bi bi-x-lg" />
         </button>
         <div className="ff-area-sidebar-logo">
-          <i className="bi bi-calendar-check me-2" />Reservas
+          <i className="bi bi-calendar-check me-2" />{t('res.title')}
         </div>
         <nav className="ff-area-sidebar-nav">
           {tabs.map((t) => (
-            <button
-              key={t.id}
-              className={`ff-nav-item${tab === t.id ? ' active' : ''}`}
-              onClick={() => { setTab(t.id); setDrawerOpen(false); }}
-            >
+            <button key={t.id} className={`ff-nav-item${tab === t.id ? ' active' : ''}`} onClick={() => { setTab(t.id); setDrawerOpen(false); }}>
               <i className={`bi ${t.icon}`} />
               {t.label}
-              {t.badge ? (
-                <span className="ff-nav-item-badge">{t.badge}</span>
-              ) : null}
+              {t.badge ? <span className="ff-nav-item-badge">{t.badge}</span> : null}
             </button>
           ))}
           <hr style={{ margin: '8px 0', borderColor: 'rgba(255,255,255,.1)' }} />
           <button className="ff-nav-item" onClick={() => { navigate('/'); setDrawerOpen(false); }}>
-            <i className="bi bi-house" />Hub
+            <i className="bi bi-house" />{t('res.hub')}
           </button>
         </nav>
       </aside>
 
-      {/* Main */}
       <div className="ff-area-main">
-        {/* Topbar — sticky */}
+        {/* Topbar */}
         <div className="ff-area-topbar ff-res-topbar-sticky">
-          <button className="ff-area-hamburger" onClick={() => setDrawerOpen(true)} aria-label="Abrir menu">
+          <button className="ff-area-hamburger" onClick={() => setDrawerOpen(true)} aria-label={t('res.openMenu')}>
             <i className="bi bi-list" />
           </button>
           <span className="ff-area-topbar-title">
-            {tab === 'today'     && 'Reservas do dia'}
-            {tab === 'all'       && 'Todas as reservas'}
-            {tab === 'walkin'    && 'Fila de espera'}
-            {tab === 'occupancy' && 'Mapa de ocupação'}
-            {tab === 'settings'  && 'Configurações'}
+            {tab === 'reservations' && t('res.title')}
+            {tab === 'walkin'       && t('res.walkin.queue')}
+            {tab === 'occupancy'    && t('res.topbar.occupancy')}
+            {tab === 'settings'     && t('res.topbar.settings')}
           </span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {tab === 'reservations' && (
+              <button className="btn btn-sm btn-primary" onClick={() => setShowModal(true)}>
+                <i className="bi bi-plus-lg me-1" />{t('res.newReservation')}
+              </button>
+            )}
+            <AdminLanguageSelector language={lang} onChange={onLangChange} />
+          </div>
+        </div>
 
-          {showSearchBar && (
-            <>
-              <div style={{ position: 'relative', marginLeft: 'auto' }}>
-                <i
-                  className="bi bi-search"
-                  style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '0.83rem', pointerEvents: 'none' }}
-                />
+        {/* Sub-controls — Reservations tab only */}
+        {tab === 'reservations' && (
+          <div className="ff-res-controls">
+            {/* View switcher + Date scope */}
+            <div className="ff-res-controls-row">
+              <div className="ff-res-view-switcher">
+                {views.map((v) => (
+                  <button key={v.id} className={`ff-res-view-btn${view === v.id ? ' active' : ''}`} onClick={() => setView(v.id)}>
+                    <i className={`bi ${v.icon}`} />{v.label}
+                  </button>
+                ))}
+              </div>
+              <div className="ff-res-date-scope">
+                <button className={`ff-res-scope-btn${dateScope === 'today' ? ' active' : ''}`} onClick={() => setDateScope('today')}>{t('res.today')}</button>
+                <button className={`ff-res-scope-btn${dateScope === 'date'  ? ' active' : ''}`} onClick={() => setDateScope('date')}>
+                  <i className="bi bi-calendar3 me-1" />{t('res.scope.date')}
+                </button>
+                {dateScope === 'date' && (
+                  <input type="date" className="form-control form-control-sm ff-res-date-input" value={date} onChange={(e) => setDate(e.target.value)} />
+                )}
+                <button className={`ff-res-scope-btn${dateScope === 'all' ? ' active' : ''}`} onClick={() => setDateScope('all')}>{t('res.scope.all')}</button>
+              </div>
+            </div>
+
+            {/* Search + Status */}
+            <div className="ff-res-controls-row" style={{ marginTop: 10 }}>
+              <div className="ff-res-search-wrapper" style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+                <i className="bi bi-search" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: '0.83rem', pointerEvents: 'none' }} />
                 <input
                   className="form-control form-control-sm"
-                  style={{ paddingLeft: 28, width: 190 }}
-                  placeholder="Buscar cliente..."
+                  style={{ paddingLeft: 28, width: '100%' }}
+                  placeholder={t('res.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               <select
                 className="form-select form-select-sm"
-                style={{ width: 155 }}
+                style={{ width: 155, flexShrink: 0 }}
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as ReservationStatus | '')}
               >
-                <option value="">Todos os status</option>
+                <option value="">{t('res.allStatuses')}</option>
                 {(Object.keys(STATUS_CONFIG) as ReservationStatus[]).map((s) => (
-                  <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                  <option key={s} value={s}>{t(STATUS_CONFIG[s].labelKey)}</option>
                 ))}
               </select>
-            </>
-          )}
-
-          {tab === 'today' && (
-            <input
-              type="date"
-              className="form-control form-control-sm"
-              style={{ width: 155 }}
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          )}
-
-          {showSearchBar && (
-            <button className="btn btn-sm btn-primary" onClick={() => setShowModal(true)}>
-              <i className="bi bi-plus-lg me-1" />Nova reserva
-            </button>
-          )}
-        </div>
-
-        {/* Sticky controls for today/all tabs */}
-        {tab === 'today' && (
-          <div className="ff-res-controls">
-            <MetricsRow reservations={reservations} />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {(['', 'PENDING', 'CONFIRMED', 'SEATED', 'COMPLETED', 'CANCELED', 'NO_SHOW'] as const).map((s) => (
-                <button
-                  key={s || 'all'}
-                  className={`ff-res-chip${filterStatus === s ? ' active' : ''}`}
-                  onClick={() => setFilterStatus(s)}
-                >
-                  {s === '' ? (
-                    'Todos'
-                  ) : (
-                    <>
-                      <i className={`bi ${STATUS_CONFIG[s].icon}`} style={{ fontSize: 11 }} />
-                      {STATUS_CONFIG[s].label}
-                    </>
-                  )}
-                  {s !== '' && (
-                    <span
-                      style={{
-                        background: filterStatus === s ? 'rgba(255,255,255,.2)' : '#e5e7eb',
-                        color: filterStatus === s ? '#fff' : '#6b7280',
-                        borderRadius: 10,
-                        padding: '0 5px',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        marginLeft: 2,
-                      }}
-                    >
-                      {reservations.filter((r) => r.status === s).length}
-                    </span>
-                  )}
-                </button>
-              ))}
             </div>
+
+            {/* Status chips — Agenda only */}
+            {view === 'agenda' && (
+              <div className="ff-res-chip-row">
+                {(['', 'PENDING', 'CONFIRMED', 'SEATED', 'COMPLETED', 'CANCELED', 'NO_SHOW'] as const).map((s) => (
+                  <button key={s || 'all'} className={`ff-res-chip${filterStatus === s ? ' active' : ''}`} onClick={() => setFilterStatus(s)}>
+                    {s === '' ? t('res.scope.all') : <><i className={`bi ${STATUS_CONFIG[s].icon}`} style={{ fontSize: 11 }} />{t(STATUS_CONFIG[s].labelKey)}</>}
+                    {s !== '' && (
+                      <span style={{ background: filterStatus === s ? 'rgba(255,255,255,.2)' : '#e5e7eb', color: filterStatus === s ? '#fff' : '#6b7280', borderRadius: 10, padding: '0 5px', fontSize: 10, fontWeight: 800, marginLeft: 2 }}>
+                        {reservations.filter((r) => r.status === s).length}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Content */}
         <div className="ff-area-content">
-          {/* ── Today tab ── */}
-          {tab === 'today' && (
+          {tab === 'reservations' && (
             <>
-              {todayFiltered.length === 0 ? (
-                <div className="ff-empty-state">
-                  <i className="bi bi-calendar-x ff-empty-state-icon" />
-                  <div className="ff-empty-state-title">
-                    {search || filterStatus ? 'Nenhuma reserva encontrada' : 'Sem reservas nesta data'}
+              {view === 'agenda' && (
+                <>
+                  <MetricsRow reservations={reservations} />
+                  <div style={{ marginTop: 16 }}>
+                    <AgendaView filtered={filtered} todayStr={todayStr} tables={tables} onStatusChange={handleStatusChange} onEdit={(r) => setEditTarget(r)} />
                   </div>
-                  <div className="ff-empty-state-desc">
-                    {search || filterStatus
-                      ? 'Tente ajustar o filtro ou busca.'
-                      : 'Crie uma reserva clicando em "Nova reserva".'}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {todayFiltered.map((r) => (
-                    <ReservationCard
-                      key={r.id}
-                      r={r}
-                      tables={tables}
-                      onStatusChange={handleStatusChange}
-                      onEdit={(res) => setEditTarget(res)}
-                    />
-                  ))}
-                </div>
+                </>
+              )}
+              {view === 'table' && (
+                <ReservationTableView reservations={filtered} tables={tables} onStatusChange={handleStatusChange} onEdit={(r) => setEditTarget(r)} />
+              )}
+              {view === 'by-table' && (
+                <ByTableView reservations={filtered} tables={tables} settings={settings} onStatusChange={handleStatusChange} onEdit={(r) => setEditTarget(r)} />
               )}
             </>
           )}
-
-          {/* ── All reservations tab ── */}
-          {tab === 'all' && (
-            <>
-              {allFiltered.length === 0 ? (
-                <div className="ff-empty-state">
-                  <i className="bi bi-calendar-x ff-empty-state-icon" />
-                  <div className="ff-empty-state-title">Nenhuma reserva encontrada</div>
-                  <div className="ff-empty-state-desc">Tente ajustar o filtro ou busca.</div>
-                </div>
-              ) : (
-                (() => {
-                  const today = new Date().toISOString().slice(0, 10);
-                  const dates = [...new Set(allFiltered.map((r) => r.date))].sort((a, b) => b.localeCompare(a));
-                  return dates.map((d) => (
-                    <div key={d} style={{ marginBottom: 24 }}>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.78rem',
-                          color: d === today ? '#1d4ed8' : '#9ca3af',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.07em',
-                          marginBottom: 10,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                      >
-                        {d === today && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1d4ed8', display: 'inline-block' }} />}
-                        {d === today ? 'Hoje' : fmtFullDate(d)}
-                        <span style={{ fontWeight: 500, color: '#d1d5db', fontSize: '0.7rem' }}>
-                          — {allFiltered.filter((r) => r.date === d).length} reservas
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {allFiltered
-                          .filter((r) => r.date === d)
-                          .map((r) => (
-                            <ReservationCard
-                              key={r.id}
-                              r={r}
-                              tables={tables}
-                              onStatusChange={handleStatusChange}
-                              onEdit={(res) => setEditTarget(res)}
-                              showDate={false}
-                            />
-                          ))}
-                      </div>
-                    </div>
-                  ));
-                })()
-              )}
-            </>
-          )}
-
-          {/* ── Walk-in tab ── */}
-          {tab === 'walkin' && (
-            <WalkInPanel
-              walkIns={walkIns}
-              tables={tables}
-              onSeat={handleWalkInSeat}
-              onCancel={handleWalkInCancel}
-              onAdd={() => setShowWalkInModal(true)}
-            />
-          )}
-
-          {/* ── Occupancy tab ── */}
-          {tab === 'occupancy' && (
-            <OccupancyView tables={tables} settings={settings} />
-          )}
-
-          {/* ── Settings tab ── */}
-          {tab === 'settings' && (
-            <SettingsPanel settings={settings} onSave={handleSaveSettings} />
-          )}
+          {tab === 'walkin'    && <WalkInPanel walkIns={walkIns} tables={tables} onSeat={handleWalkInSeat} onCancel={handleWalkInCancel} onAdd={() => setShowWalkInModal(true)} />}
+          {tab === 'occupancy' && <OccupancyView tables={tables} settings={settings} />}
+          {tab === 'settings'  && <SettingsPanel settings={settings} onSave={handleSaveSettings} />}
         </div>
       </div>
 
-      {/* Create modal */}
       {showModal && (
-        <ReservationModal
-          title="Nova reserva"
-          initial={{ ...EMPTY_FORM, date }}
-          tables={tables}
-          onConfirm={handleCreate}
-          onClose={() => setShowModal(false)}
-        />
+        <ReservationModal title={t('res.newReservation')} initial={{ ...EMPTY_FORM, date: initialDate }} tables={tables} onConfirm={handleCreate} onClose={() => setShowModal(false)} />
       )}
-
-      {/* Edit modal */}
       {editTarget && (
         <ReservationModal
-          title="Editar reserva"
-          initial={{
-            customerName:  editTarget.customerName,
-            customerPhone: editTarget.customerPhone,
-            partySize:     String(editTarget.partySize),
-            date:          editTarget.date,
-            time:          editTarget.time,
-            notes:         editTarget.notes ?? '',
-            tableId:       editTarget.tableId ?? '',
-            source:        editTarget.source ?? 'PHONE',
-            duration:      String(editTarget.duration ?? 90),
-            tags:          editTarget.tags ?? [],
-          }}
+          title={t('res.action.editReservation')}
+          initial={{ customerName: editTarget.customerName, customerPhone: editTarget.customerPhone, partySize: String(editTarget.partySize), date: editTarget.date, time: editTarget.time, notes: editTarget.notes ?? '', tableId: editTarget.tableId ?? '', source: editTarget.source ?? 'PHONE', duration: String(editTarget.duration ?? 90), tags: editTarget.tags ?? [] }}
           tables={tables}
           onConfirm={handleEdit}
           onClose={() => setEditTarget(null)}
           readOnly={['COMPLETED', 'CANCELED', 'NO_SHOW'].includes(editTarget.status)}
         />
       )}
-
-      {/* Walk-in modal */}
-      {showWalkInModal && (
-        <AddWalkInModal
-          onConfirm={handleAddWalkIn}
-          onClose={() => setShowWalkInModal(false)}
-        />
-      )}
+      {showWalkInModal && <AddWalkInModal onConfirm={handleAddWalkIn} onClose={() => setShowWalkInModal(false)} />}
     </div>
   );
 }

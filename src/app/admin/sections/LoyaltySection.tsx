@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { loyaltyService } from '@/lib/services/loyaltyService';
 import type { LoyaltyCard } from '@/lib/types';
 import { STAMPS_PER_REWARD } from '@/lib/types';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminCard,
@@ -11,13 +12,14 @@ import {
 import type { AdminTableColumn } from '@/components/admin';
 
 export function LoyaltySection() {
+  const { t } = useLabels();
   const [cards, setCards] = useState<LoyaltyCard[]>([]);
   useEffect(() => { loyaltyService.listAll().then(setCards); }, []);
 
   const columns: AdminTableColumn<LoyaltyCard>[] = [
     {
       key: 'customerName',
-      label: 'Cliente',
+      label: t('common.customer'),
       sortable: true,
       render: (c) => <strong>{c.customerName}</strong>,
     },
@@ -28,7 +30,7 @@ export function LoyaltySection() {
     },
     {
       key: 'stamps',
-      label: 'Selos',
+      label: t('adminLoyalty.stamps'),
       render: (c) => (
         <div>
           <div style={{ display: 'flex', gap: 3 }}>
@@ -42,28 +44,32 @@ export function LoyaltySection() {
     },
     {
       key: 'totalStampsEarned',
-      label: 'Total ganho',
+      label: t('adminLoyalty.totalEarned'),
       sortable: true,
       align: 'center',
       render: (c) => c.totalStampsEarned,
     },
     {
       key: 'discountsUsed',
-      label: 'Descontos usados',
+      label: t('adminLoyalty.discountsUsed'),
       sortable: true,
       align: 'center',
       render: (c) => c.discountsUsed,
     },
   ];
 
+  const badgeLabel = cards.length === 1
+    ? `${cards.length} ${t('adminLoyalty.customerSingular')}`
+    : `${cards.length} ${t('adminLoyalty.customerPlural')}`;
+
   return (
     <div style={{ maxWidth: 760 }}>
       <AdminPageHeader
-        title="Fidelidade"
-        subtitle="Cartões de fidelidade dos clientes"
+        title={t('adminLoyalty.title')}
+        subtitle={t('adminLoyalty.subtitle')}
         actions={
           cards.length > 0
-            ? <span className="ff-admin-badge ff-admin-badge--blue">{cards.length} cliente{cards.length !== 1 ? 's' : ''}</span>
+            ? <span className="ff-admin-badge ff-admin-badge--blue">{badgeLabel}</span>
             : undefined
         }
       />
@@ -72,15 +78,15 @@ export function LoyaltySection() {
         {cards.length === 0 ? (
           <AdminEmptyState
             icon="bi-star"
-            title="Nenhum cliente cadastrado"
-            message="Os clientes que usarem o programa de fidelidade aparecerão aqui."
+            title={t('adminLoyalty.noCustomers')}
+            message={t('adminLoyalty.noCustomersDesc')}
           />
         ) : (
           <AdminTable<LoyaltyCard>
             columns={columns}
             rows={cards}
             emptyIcon="bi-star"
-            emptyTitle="Nenhum cartão encontrado"
+            emptyTitle={t('adminLoyalty.noCard')}
           />
         )}
       </AdminCard>

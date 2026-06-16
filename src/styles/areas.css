@@ -19,7 +19,8 @@
 /* ─── Shared operational layout ─────────────────────────────────────────── */
 .ff-area-layout {
   display: flex;
-  height: 100vh;
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   background: #f3f4f6;
 }
@@ -263,6 +264,17 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+}
+
+/* Sticky ops header inside ff-area-content — bleeds to container edges */
+.ff-area-ops-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: -24px -24px 20px; /* bleed out of the 24px content padding */
+  padding: 12px 24px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 /* ─── Metric cards (legacy) ──────────────────────────────────────────────── */
@@ -4852,13 +4864,6 @@ html.ff-kiosk-a11y body::before {
   color: #374151;
 }
 
-.ff-admin-split-layout {
-  display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 20px;
-  align-items: start;
-}
-
 /* ─── Admin toggle (queue enabled/disabled) ──────────────────────────────── */
 .ff-admin-toggle-row {
   display: flex;
@@ -4909,51 +4914,13 @@ html.ff-kiosk-a11y body::before {
   color: #059669;
 }
 
-/* ─── Tables screen — zone sidebar ──────────────────────────────────────── */
-.ff-admin-zone-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: 7px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  transition: background 0.12s;
-}
-
-.ff-admin-zone-item:hover {
-  background: #f3f4f6;
-}
-
-.ff-admin-zone-item--active {
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-weight: 600;
-}
-
-.ff-admin-zone-item i {
-  font-size: 13px;
-  color: #9ca3af;
+/* ─── Zone color swatch (Zones CRUD table) ───────────────────────────────── */
+.ff-admin-zone-color {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
   flex-shrink: 0;
-}
-
-.ff-admin-zone-item--active i {
-  color: #1d4ed8;
-}
-
-.ff-admin-zone-count {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-left: auto;
-}
-
-.ff-admin-zone-add-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px solid #f3f4f6;
 }
 
 .ff-admin-search--orders {
@@ -5011,20 +4978,49 @@ html.ff-kiosk-a11y body::before {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 780px;
+}
+
+/* Header action cluster: badge + config btn + call-next btn */
+.ff-queue-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Collapsible config panel internals */
+.ff-queue-config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .ff-queue-config-grid {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ff-queue-config-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ff-queue-config-row .ff-admin-form-input {
+  flex: 1;
 }
 
 .ff-queue-metrics-strip {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Muted wait-time cell text */
+.ff-queue-wait-time {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 /* ─── Kiosks screen layout ───────────────────────────────────────────────── */
@@ -5943,6 +5939,131 @@ html.ff-kiosk-a11y body::before {
   border-color: #1a1a2e;
 }
 
+/* View switcher */
+.ff-res-view-switcher {
+  display: flex;
+  gap: 2px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 3px;
+}
+.ff-res-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.ff-res-view-btn:hover { background: #e2e8f0; color: #1e293b; }
+.ff-res-view-btn.active { background: #fff; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+/* Date scope */
+.ff-res-date-scope {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.ff-res-scope-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.ff-res-scope-btn:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+.ff-res-scope-btn.active { background: #1e293b; border-color: #1e293b; color: #fff; }
+.ff-res-date-input {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  padding: 5px 8px;
+  height: 32px;
+  color: #1e293b;
+}
+
+/* Controls rows */
+.ff-res-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Chip row */
+.ff-res-chip-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* By-table view */
+.ff-res-by-table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.ff-res-by-table-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.ff-res-by-table-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.ff-res-by-table-num {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+.ff-res-by-table-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.82rem;
+  color: #374151;
+}
+.ff-res-by-table-row:last-child { border-bottom: none; }
+.ff-res-conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+
 /* Occupancy grid */
 .ff-occ-grid {
   width: 100%;
@@ -6445,20 +6566,67 @@ html.ff-kiosk-a11y body::before {
     flex-shrink: 0;
   }
 
-  /* ── Reservation card: stack action area on mobile ─────────────── */
+  /* ── Reservation card: wrap so action row drops below content ──── */
+  .ff-res-card {
+    flex-wrap: wrap;
+  }
+  /* Action area: full-width row below time+content */
   .ff-res-card > div:last-child {
-    flex-direction: row;
+    flex-direction: row !important;
+    flex-shrink: 1 !important;
     flex-wrap: wrap;
     min-width: 0 !important;
     width: 100%;
-    padding-top: 0;
-    padding-bottom: 12px;
-    align-items: center;
-    justify-content: flex-start;
+    padding: 0 10px 10px;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px;
   }
+  /* Buttons: auto width, compact */
   .ff-res-card > div:last-child > button {
-    flex: 1;
-    min-width: 100px;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 80px;
+    font-size: 0.78rem;
+  }
+  /* "Mais" button inside dropdown wrapper */
+  .ff-res-card > div:last-child > div > button {
+    font-size: 0.78rem;
+  }
+
+  /* ── Reservations topbar: search wrapper full-width on mobile ──── */
+  .ff-res-search-wrapper {
+    flex: 1 1 100%;
+    margin-left: 0 !important;
+  }
+  .ff-res-search-wrapper .form-control {
+    width: 100% !important;
+  }
+
+  /* ── View switcher + date scope: stack on small screens ─────────── */
+  .ff-res-controls-row {
+    flex-wrap: wrap;
+  }
+  .ff-res-view-switcher {
+    flex: 1 1 auto;
+  }
+  .ff-res-view-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 5px 8px;
+    font-size: 0.72rem;
+  }
+  .ff-res-date-scope {
+    flex: 1 1 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+  .ff-res-scope-btn { flex: 1 1 auto; justify-content: center; }
+  .ff-res-date-input { flex: 1 1 100%; }
+
+  /* ── By-table view: single column ───────────────────────────────── */
+  .ff-res-by-table-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -6500,6 +6668,13 @@ html.ff-kiosk-a11y body::before {
 
 .ff-admin-metric-chip-label {
   color: #6b7280;
+}
+
+/* ─── PublicDisplayLayout — full-screen customer display shell ─────────────── */
+/* ─── Cashier animations ──────────────────────────────────────────────────── */
+@keyframes cashier-expand {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── PublicDisplayLayout — full-screen customer display shell ─────────────── */

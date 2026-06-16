@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { getCollection } from '@/lib/mock-db';
 import type { DbOrder, DbProduct } from '@/lib/types';
 import { formatBRL } from '../adminUtils';
-import { AdminPageHeader, AdminMetricCard, AdminEmptyState } from '@/components/admin';
+import { AdminMetricCard, AdminEmptyState } from '@/components/admin';
+import { useLabels } from '@/i18n/I18nContext';
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, labels: { now: string; min: string }): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diff < 1) return 'agora';
-  if (diff < 60) return `${diff} min`;
+  if (diff < 1) return labels.now;
+  if (diff < 60) return `${diff} ${labels.min}`;
   return `${Math.floor(diff / 60)}h`;
 }
 
@@ -27,23 +28,26 @@ const STATUS_FEED_COLOR: Record<string, string> = {
   CREATED:         '#6b7280',
 };
 
-const STATUS_FEED_LABEL: Record<string, string> = {
-  SENT_TO_KITCHEN: 'Na cozinha',
-  PREPARING:       'Preparando',
-  READY:           'Pronto',
-  DELIVERED:       'Entregue',
-  CLOSED:          'Encerrado',
-  CANCELED:        'Cancelado',
-  CREATED:         'Criado',
-  DRAFT:           'Rascunho',
-};
-
 export function Dashboard() {
+  const { t } = useLabels();
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setTick((n) => n + 1), 5000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setTick((n) => n + 1), 5000);
+    return () => clearInterval(timer);
   }, []);
+
+  const STATUS_FEED_LABEL: Record<string, string> = {
+    SENT_TO_KITCHEN: t('status.inKitchen'),
+    PREPARING:       t('status.preparing'),
+    READY:           t('status.ready'),
+    DELIVERED:       t('status.delivered'),
+    CLOSED:          t('status.closed'),
+    CANCELED:        t('status.canceled'),
+    CREATED:         t('status.created'),
+    DRAFT:           t('status.draft'),
+  };
+
+  const timeLabels = { now: t('common.now'), min: t('dash.minAgo') };
 
   const orders   = getCollection<DbOrder>('orders');
   const products = getCollection<DbProduct>('products');
@@ -60,7 +64,7 @@ export function Dashboard() {
   const avgTicketY = yOrders.length > 0 ? revenueY / yOrders.length : 0;
 
   const pendingKitchen = getCollection<{ status: string }>('kitchenTickets').filter(
-    (t) => t.status === 'NEW' || t.status === 'PREPARING',
+    (kt) => kt.status === 'NEW' || kt.status === 'PREPARING',
   ).length;
 
   const completedToday = todayOrders.filter(
@@ -96,11 +100,9 @@ export function Dashboard() {
 
   return (
     <div className="ff-dash">
-      <AdminPageHeader title="Dashboard" subtitle="Visão geral da operação em tempo real" />
-
       <div className="ff-admin-metrics-grid">
         <AdminMetricCard
-          label="Pedidos hoje"
+          label={t('dash.ordersToday')}
           value={todayOrders.length}
           icon="bi-receipt"
           color="blue"
@@ -108,7 +110,7 @@ export function Dashboard() {
           deltaDir={deltaOrders ? (deltaOrders.up ? 'up' : 'down') : undefined}
         />
         <AdminMetricCard
-          label="Receita hoje"
+          label={t('dash.revenueToday')}
           value={formatBRL(revenueToday)}
           icon="bi-cash-coin"
           color="green"
@@ -116,7 +118,7 @@ export function Dashboard() {
           deltaDir={deltaRevenue ? (deltaRevenue.up ? 'up' : 'down') : undefined}
         />
         <AdminMetricCard
-          label="Ticket médio"
+          label={t('dash.avgTicket')}
           value={formatBRL(avgTicket)}
           icon="bi-graph-up"
           color="purple"
@@ -124,13 +126,13 @@ export function Dashboard() {
           deltaDir={deltaTicket ? (deltaTicket.up ? 'up' : 'down') : undefined}
         />
         <AdminMetricCard
-          label="Na cozinha"
+          label={t('dash.inKitchen')}
           value={pendingKitchen}
           icon="bi-fire"
           color="amber"
         />
         <AdminMetricCard
-          label="Tempo médio preparo"
+          label={t('dash.avgPrepTime')}
           value={avgPrepMin > 0 ? `${avgPrepMin} min` : '—'}
           icon="bi-clock-history"
           color="slate"
@@ -140,21 +142,22 @@ export function Dashboard() {
       <div className="ff-dash-row">
         <div className="ff-dash-chart">
           <div className="ff-dash-chart-header">
-            <span className="ff-dash-chart-title">Pedidos por hora</span>
-            <span className="ff-dash-chart-subtitle">Hoje</span>
+            <span className="ff-dash-chart-title">{t('dash.ordersPerHour')}</span>
+            <span className="ff-dash-chart-subtitle">{t('dash.today')}</span>
           </div>
           <div className="ff-dash-chart-bars">
             {chartHours.map((h) => {
               const count = todayOrders.filter((o) => new Date(o.createdAt).getHours() === h).length;
               const heightPct = (count / hourlyMax) * 100;
               const isCurrent = h === currentHour;
+              const orderWord = count === 1 ? t('dash.orderSingular') : t('dash.orderPlural');
               return (
                 <div key={h} className={`ff-dash-chart-col${isCurrent ? ' current' : ''}`}>
                   <div
                     className={`ff-dash-chart-bar${count > 0 ? ' has-data' : ''}`}
                     style={{ height: `${Math.max(heightPct, 3)}%` }}
                   >
-                    {count > 0 && <div className="ff-dash-chart-tip">{count} pedido{count !== 1 ? 's' : ''}</div>}
+                    {count > 0 && <div className="ff-dash-chart-tip">{count} {orderWord}</div>}
                   </div>
                   <span className="ff-dash-chart-label">{h}h</span>
                 </div>
@@ -165,17 +168,17 @@ export function Dashboard() {
 
         <div className="ff-dash-feed">
           <div className="ff-dash-feed-header">
-            Atividade
+            {t('dash.activity')}
             <div className="ff-dash-feed-live">
               <span className="ff-dash-feed-live-dot" />
-              ao vivo
+              {t('dash.live')}
             </div>
           </div>
           {feed.length === 0 ? (
             <AdminEmptyState
               icon="bi-inbox"
-              title="Nenhum pedido ainda"
-              message="Os pedidos aparecerão aqui em tempo real."
+              title={t('dash.noOrders')}
+              message={t('dash.noOrdersDesc')}
             />
           ) : (
             feed.map((o) => (
@@ -184,7 +187,7 @@ export function Dashboard() {
                 <div className="ff-dash-feed-text">
                   <div className="ff-dash-feed-main">
                     #{o.orderNumber}
-                    {o.tableNumber ? ` · Mesa ${o.tableNumber}` : ''}
+                    {o.tableNumber ? ` · ${t('dash.tableLabel')} ${o.tableNumber}` : ''}
                     {' · '}{o.customerName}
                   </div>
                   <div className="ff-dash-feed-sub">
@@ -192,7 +195,7 @@ export function Dashboard() {
                     {' · '}{o.source}
                   </div>
                 </div>
-                <div className="ff-dash-feed-time">{timeAgo(o.createdAt)}</div>
+                <div className="ff-dash-feed-time">{timeAgo(o.createdAt, timeLabels)}</div>
               </div>
             ))
           )}
@@ -201,7 +204,7 @@ export function Dashboard() {
 
       {topProducts.length > 0 && (
         <div className="ff-dash-top">
-          <div className="ff-dash-top-header">Produtos mais vendidos</div>
+          <div className="ff-dash-top-header">{t('dash.bestSellers')}</div>
           {topProducts.map(({ name, qty, imageUrl }, i) => (
             <div key={name} className="ff-dash-top-item">
               <span className={`ff-dash-top-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}`}>

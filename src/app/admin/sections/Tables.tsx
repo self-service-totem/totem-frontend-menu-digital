@@ -2,69 +2,71 @@ import { useEffect, useState } from 'react';
 import { tableService, zoneService, mockUserService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { DbTable, Zone, MockUser } from '@/lib/types';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminButton,
-  AdminIconButton,
   AdminBadge,
   AdminTable,
   AdminCard,
   AdminSearchInput,
   AdminFilterBar,
   AdminActionMenu,
-  AdminEmptyState,
   useSortable,
 } from '@/components/admin';
 import type { AdminTableColumn, SortDir } from '@/components/admin';
 
 const EMPTY_FORM = {
-  number: '', zoneName: '', assignedWaiterName: '',
+  number: '', zoneId: '', assignedWaiterName: '',
   capacity: '', active: true, notes: '',
 };
 
 export function Tables() {
+  const { t } = useLabels();
   const [tables, setTables]             = useState<DbTable[]>([]);
   const [zones, setZones]               = useState<Zone[]>([]);
   const [waiters, setWaiters]           = useState<MockUser[]>([]);
   const [showModal, setShowModal]       = useState(false);
   const [editing, setEditing]           = useState<DbTable | null>(null);
   const [form, setForm]                 = useState(EMPTY_FORM);
-  const [newZoneName, setNewZoneName]   = useState('');
   const [search, setSearch]             = useState('');
   const [zoneFilter, setZoneFilter]     = useState('');
+  const [waiterFilter, setWaiterFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy]             = useState('number');
   const [sortDir, setSortDir]           = useState<SortDir>('asc');
   const notify = useNotify();
 
   async function load() {
-    const [t, z, w] = await Promise.all([
+    const [tb, z, w] = await Promise.all([
       tableService.list(), zoneService.list(), mockUserService.listWaiters(),
     ]);
-    setTables(t); setZones(z); setWaiters(w);
+    setTables(tb); setZones(z); setWaiters(w);
   }
   useEffect(() => { load(); }, []);
 
   function openCreate() { setEditing(null); setForm(EMPTY_FORM); setShowModal(true); }
 
-  function openEdit(t: DbTable) {
-    setEditing(t);
+  function openEdit(tb: DbTable) {
+    setEditing(tb);
     setForm({
-      number: t.number,
-      zoneName: t.zoneName ?? '',
-      assignedWaiterName: t.assignedWaiterName ?? '',
-      capacity: t.capacity != null ? String(t.capacity) : '',
-      active: t.active,
-      notes: t.notes ?? '',
+      number: tb.number,
+      zoneId: tb.zoneId ?? '',
+      assignedWaiterName: tb.assignedWaiterName ?? '',
+      capacity: tb.capacity != null ? String(tb.capacity) : '',
+      active: tb.active,
+      notes: tb.notes ?? '',
     });
     setShowModal(true);
   }
 
   async function handleSave() {
     if (!form.number.trim()) return;
+    const selectedZone = zones.find((z) => z.id === form.zoneId);
     const data = {
       number: form.number.trim(),
-      zoneName: form.zoneName || undefined,
+      zoneId: selectedZone?.id,
+      zoneName: selectedZone?.name,
       assignedWaiterName: form.assignedWaiterName || undefined,
       capacity: form.capacity ? parseInt(form.capacity, 10) : undefined,
       active: form.active,
@@ -72,36 +74,23 @@ export function Tables() {
     };
     if (editing) {
       await tableService.update(editing.id, data);
-      notify(`Mesa ${data.number} atualizada`);
+      notify(t('adminTables.updatedToast', { n: data.number }));
     } else {
       await tableService.create(data);
-      notify(`Mesa ${data.number} criada`);
+      notify(t('adminTables.createdToast', { n: data.number }));
     }
     setShowModal(false); load();
   }
 
-  async function toggleActive(t: DbTable) {
-    await tableService.update(t.id, { active: !t.active });
-    notify(t.active ? 'Mesa desativada' : 'Mesa ativada');
+  async function toggleActive(tb: DbTable) {
+    await tableService.update(tb.id, { active: !tb.active });
+    notify(tb.active ? t('adminTables.disabledToast') : t('adminTables.enabledToast'));
     load();
   }
 
   async function handleRegenCode(id: string) {
     await tableService.regenerateCode(id);
-    notify('Código regenerado');
-    load();
-  }
-
-  async function handleAddZone() {
-    const name = newZoneName.trim();
-    if (!name) return;
-    await zoneService.create(name);
-    setNewZoneName('');
-    load();
-  }
-
-  async function handleDeleteZone(id: string) {
-    await zoneService.remove(id);
+    notify(t('adminTables.codeRegeneratedToast'));
     load();
   }
 
@@ -115,83 +104,89 @@ export function Tables() {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const statusOptions = [
-    { key: 'all',      label: 'Todas' },
-    { key: 'active',   label: 'Ativas' },
-    { key: 'inactive', label: 'Inativas' },
+    { key: 'all',      label: t('adminTables.filterAll') },
+    { key: 'active',   label: t('adminTables.filterActive') },
+    { key: 'inactive', label: t('adminTables.filterInactive') },
   ];
 
   const zoneOptions = [
-    { key: '', label: 'Todas as zonas' },
-    ...zones.map((z) => ({ key: z.name, label: z.name })),
+    { key: '', label: t('adminTables.filterAllZones') },
+    ...zones.map((z) => ({ key: z.id, label: z.name })),
   ];
 
-  const baseFiltered = tables.filter((t) => {
+  const waiterOptions = [
+    { key: '', label: t('adminTables.colWaiter') },
+    ...waiters.map((w) => ({ key: w.name, label: w.name })),
+  ];
+
+  const baseFiltered = tables.filter((tb) => {
     if (search) {
       const q = search.toLowerCase();
       const matches =
-        `mesa ${t.number}`.toLowerCase().includes(q) ||
-        (t.zoneName ?? '').toLowerCase().includes(q) ||
-        (t.assignedWaiterName ?? '').toLowerCase().includes(q);
+        `mesa ${tb.number}`.toLowerCase().includes(q) ||
+        (tb.zoneName ?? '').toLowerCase().includes(q) ||
+        (tb.assignedWaiterName ?? '').toLowerCase().includes(q);
       if (!matches) return false;
     }
-    if (zoneFilter && t.zoneName !== zoneFilter) return false;
-    if (statusFilter === 'active' && !t.active) return false;
-    if (statusFilter === 'inactive' && t.active) return false;
+    if (zoneFilter && tb.zoneId !== zoneFilter) return false;
+    if (waiterFilter && tb.assignedWaiterName !== waiterFilter) return false;
+    if (statusFilter === 'active' && !tb.active) return false;
+    if (statusFilter === 'inactive' && tb.active) return false;
     return true;
   });
 
   const filtered = useSortable(baseFiltered, sortBy, sortDir);
-  const hasFilters = search || zoneFilter || statusFilter !== 'all';
+  const hasFilters = search || zoneFilter || waiterFilter || statusFilter !== 'all';
 
   const columns: AdminTableColumn<DbTable>[] = [
     {
       key: 'number',
-      label: 'Mesa',
+      label: t('adminOrders.colTable'),
       sortable: true,
-      render: (t) => (
+      render: (tb) => (
         <span>
-          <strong>Mesa {t.number}</strong>
-          {t.notes && (
-            <i className="bi bi-chat-left-dots" title={t.notes} style={{ marginLeft: 6, fontSize: 11, color: '#9ca3af' }} />
+          <strong>{t('adminOrders.colTable')} {tb.number}</strong>
+          {tb.notes && (
+            <i className="bi bi-chat-left-dots" title={tb.notes} style={{ marginLeft: 6, fontSize: 11, color: '#9ca3af' }} />
           )}
         </span>
       ),
     },
     {
       key: 'zoneName',
-      label: 'Zona',
+      label: t('adminTables.colZone'),
       sortable: true,
-      render: (t) => t.zoneName
-        ? <span className="ff-admin-badge ff-admin-badge--blue">{t.zoneName}</span>
+      render: (tb) => tb.zoneName
+        ? <span className="ff-admin-badge ff-admin-badge--blue">{tb.zoneName}</span>
         : <span style={{ color: '#d1d5db' }}>—</span>,
     },
     {
       key: 'assignedWaiterName',
-      label: 'Garçom',
+      label: t('adminTables.colWaiter'),
       sortable: true,
-      render: (t) => t.assignedWaiterName ?? <span style={{ color: '#d1d5db' }}>—</span>,
+      render: (tb) => tb.assignedWaiterName ?? <span style={{ color: '#d1d5db' }}>—</span>,
     },
     {
       key: 'capacity',
-      label: 'Lugares',
+      label: t('adminTables.colSeats'),
       sortable: true,
       align: 'center',
-      render: (t) => t.capacity ?? <span style={{ color: '#d1d5db' }}>—</span>,
+      render: (tb) => tb.capacity ?? <span style={{ color: '#d1d5db' }}>—</span>,
     },
     {
       key: 'active',
       label: 'Status',
       sortable: true,
-      render: (t) => (
-        <AdminBadge variant={t.active ? 'active' : 'inactive'} label={t.active ? 'Ativa' : 'Inativa'} />
+      render: (tb) => (
+        <AdminBadge variant={tb.active ? 'active' : 'inactive'} label={tb.active ? t('adminTables.tableActive') : t('adminTables.tableInactive')} />
       ),
     },
     {
       key: 'validationCode',
-      label: 'Validação',
-      render: (t) => (
+      label: t('adminTables.colValidation'),
+      render: (tb) => (
         <span style={{ fontFamily: 'monospace', background: '#f3f4f6', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
-          {t.validationCode}
+          {tb.validationCode}
         </span>
       ),
     },
@@ -199,137 +194,80 @@ export function Tables() {
       key: '_actions',
       label: '',
       width: '44px',
-      render: (t) => (
+      render: (tb) => (
         <AdminActionMenu items={[
-          { key: 'edit',   label: 'Editar',          icon: 'bi-pencil',      onClick: () => openEdit(t) },
-          { key: 'toggle', label: t.active ? 'Desativar' : 'Ativar', icon: t.active ? 'bi-eye-slash' : 'bi-eye', onClick: () => toggleActive(t) },
-          { key: 'regen',  label: 'Regenerar código', icon: 'bi-arrow-repeat', onClick: () => handleRegenCode(t.id) },
+          { key: 'edit',   label: t('common.edit'),                              icon: 'bi-pencil',      onClick: () => openEdit(tb) },
+          { key: 'toggle', label: tb.active ? t('common.disable') : t('common.enable'), icon: tb.active ? 'bi-eye-slash' : 'bi-eye', onClick: () => toggleActive(tb) },
+          { key: 'regen',  label: t('adminTables.regenerateCode'),               icon: 'bi-arrow-repeat', onClick: () => handleRegenCode(tb.id) },
         ]} />
       ),
     },
   ];
 
+  const tableCountLabel = filtered.length === tables.length
+    ? `${tables.length} ${tables.length !== 1 ? t('adminTables.tablePlural') : t('adminTables.tableSingular')}`
+    : `${filtered.length} ${t('adminTables.ofCount')} ${tables.length} ${t('adminTables.tablePlural')}`;
+
+  const tableSubtitle = `${tables.length} ${tables.length !== 1 ? t('adminTables.tablePlural') : t('adminTables.tableSingular')} ${tables.length !== 1 ? t('adminTables.registeredPlural') : t('adminTables.registered')}`;
+
   return (
     <div>
       <AdminPageHeader
-        title="Mesas"
-        subtitle={`${tables.length} mesa${tables.length !== 1 ? 's' : ''} cadastrada${tables.length !== 1 ? 's' : ''}`}
+        title={t('adminTables.title')}
+        subtitle={tableSubtitle}
         actions={
           <AdminButton variant="primary" icon="bi-plus" onClick={openCreate}>
-            Nova mesa
+            {t('adminTables.newTable')}
           </AdminButton>
         }
       />
 
-      <div className="ff-admin-split-layout">
-        {/* Main table */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="ff-admin-toolbar">
-            <AdminSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Buscar mesa, zona, garçom..."
-            />
-            <AdminFilterBar options={zoneOptions} value={zoneFilter} onChange={setZoneFilter} />
-            <div className="ff-admin-toolbar-right">
-              <AdminFilterBar options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="ff-admin-toolbar">
+          <AdminSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={t('adminTables.searchPlaceholder')}
+          />
+          <AdminFilterBar options={zoneOptions} value={zoneFilter} onChange={setZoneFilter} />
+          <AdminFilterBar options={waiterOptions} value={waiterFilter} onChange={setWaiterFilter} />
+          <div className="ff-admin-toolbar-right">
+            <AdminFilterBar options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="ff-admin-count-label">
-              {filtered.length === tables.length
-                ? `${tables.length} mesa${tables.length !== 1 ? 's' : ''}`
-                : `${filtered.length} de ${tables.length} mesas`}
-            </span>
-            {hasFilters && (
-              <button
-                className="ff-admin-clear-link"
-                onClick={() => { setSearch(''); setZoneFilter(''); setStatusFilter('all'); }}
-              >
-                Limpar filtros
-              </button>
-            )}
-          </div>
-
-          <AdminCard noPad>
-            <AdminTable<DbTable>
-              columns={columns}
-              rows={filtered}
-              sortBy={sortBy}
-              sortDir={sortDir}
-              onSort={handleSort}
-              emptyIcon="bi-table"
-              emptyTitle="Nenhuma mesa encontrada"
-              emptyMessage="Tente ajustar os filtros ou criar uma nova mesa."
-            />
-          </AdminCard>
         </div>
 
-        {/* Zones sidebar */}
-        <div style={{ position: 'sticky', top: 20 }}>
-          <AdminCard
-            header="Zonas / Áreas"
-            headerRight={
-              <span className="ff-admin-badge ff-admin-badge--neutral">{zones.length}</span>
-            }
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {zones.length === 0 ? (
-                <AdminEmptyState
-                  icon="bi-diagram-3"
-                  title="Nenhuma zona"
-                  message="Crie zonas para organizar suas mesas."
-                />
-              ) : (
-                zones.map((z) => (
-                  <div
-                    key={z.id}
-                    className={`ff-admin-zone-item${zoneFilter === z.name ? ' ff-admin-zone-item--active' : ''}`}
-                    onClick={() => setZoneFilter(zoneFilter === z.name ? '' : z.name)}
-                  >
-                    <i className="bi bi-diagram-3" />
-                    <span>{z.name}</span>
-                    <span className="ff-admin-zone-count">
-                      {tables.filter((t) => t.zoneName === z.name).length}
-                    </span>
-                    <AdminIconButton
-                      icon="bi-trash"
-                      variant="ghost"
-                      size="sm"
-                      title="Remover zona"
-                      onClick={(e) => { e.stopPropagation(); handleDeleteZone(z.id); }}
-                    />
-                  </div>
-                ))
-              )}
-              <div className="ff-admin-zone-add-row">
-                <input
-                  className="ff-admin-form-input"
-                  placeholder="Nova zona..."
-                  value={newZoneName}
-                  onChange={(e) => setNewZoneName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddZone(); }}
-                />
-                <AdminIconButton
-                  icon="bi-plus"
-                  variant="outline"
-                  title="Adicionar zona"
-                  onClick={handleAddZone}
-                />
-              </div>
-            </div>
-          </AdminCard>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="ff-admin-count-label">{tableCountLabel}</span>
+          {hasFilters && (
+            <button
+              className="ff-admin-clear-link"
+              onClick={() => { setSearch(''); setZoneFilter(''); setWaiterFilter(''); setStatusFilter('all'); }}
+            >
+              {t('common.clearFilters')}
+            </button>
+          )}
         </div>
+
+        <AdminCard noPad>
+          <AdminTable<DbTable>
+            columns={columns}
+            rows={filtered}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            onSort={handleSort}
+            emptyIcon="bi-table"
+            emptyTitle={t('adminTables.noTablesFound')}
+            emptyMessage={t('adminTables.noTablesFoundDesc')}
+          />
+        </AdminCard>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="ff-admin-modal-overlay" onClick={() => setShowModal(false)}>
           <div className="ff-admin-modal" style={{ width: 460 }} onClick={(e) => e.stopPropagation()}>
             <div className="ff-admin-modal-header">
               <span className="ff-admin-modal-title">
-                {editing ? `Editar Mesa ${editing.number}` : 'Nova mesa'}
+                {editing ? t('adminTables.editTitle', { n: editing.number }) : t('adminTables.newTitle')}
               </span>
               <button className="ff-order-drawer-close" onClick={() => setShowModal(false)}>
                 <i className="bi bi-x" />
@@ -340,24 +278,24 @@ export function Tables() {
               <div className="ff-admin-form-grid-2">
                 <div className="ff-admin-form-row">
                   <label className="ff-admin-form-label">
-                    Número / Nome <span className="ff-admin-form-required">*</span>
+                    {t('adminTables.number')} <span className="ff-admin-form-required">*</span>
                   </label>
                   <input
                     className="ff-admin-form-input"
-                    placeholder="ex: 1, A3, VIP-1"
+                    placeholder={t('adminTables.numberPlaceholder')}
                     value={form.number}
                     onChange={f('number')}
                     autoFocus
                   />
                 </div>
                 <div className="ff-admin-form-row">
-                  <label className="ff-admin-form-label">Capacidade (lugares)</label>
+                  <label className="ff-admin-form-label">{t('adminTables.capacity')}</label>
                   <input
                     className="ff-admin-form-input"
                     type="number"
                     min={1}
                     max={50}
-                    placeholder="ex: 4"
+                    placeholder={t('adminTables.capacityPlaceholder')}
                     value={form.capacity}
                     onChange={f('capacity')}
                   />
@@ -365,27 +303,27 @@ export function Tables() {
               </div>
 
               <div className="ff-admin-form-row">
-                <label className="ff-admin-form-label">Zona / Área</label>
-                <select className="ff-admin-form-select" value={form.zoneName} onChange={f('zoneName')}>
-                  <option value="">— Sem zona —</option>
-                  {zones.map((z) => <option key={z.id} value={z.name}>{z.name}</option>)}
+                <label className="ff-admin-form-label">{t('adminTables.zone')}</label>
+                <select className="ff-admin-form-select" value={form.zoneId} onChange={f('zoneId')}>
+                  <option value="">{t('adminTables.noZone')}</option>
+                  {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
                 </select>
               </div>
 
               <div className="ff-admin-form-row">
-                <label className="ff-admin-form-label">Garçom responsável</label>
+                <label className="ff-admin-form-label">{t('adminTables.waiter')}</label>
                 <select className="ff-admin-form-select" value={form.assignedWaiterName} onChange={f('assignedWaiterName')}>
-                  <option value="">— Sem atribuição —</option>
+                  <option value="">{t('adminTables.noWaiter')}</option>
                   {waiters.map((w) => <option key={w.id} value={w.name}>{w.name}</option>)}
                 </select>
               </div>
 
               <div className="ff-admin-form-row">
-                <label className="ff-admin-form-label">Observações</label>
+                <label className="ff-admin-form-label">{t('adminTables.notes')}</label>
                 <textarea
                   className="ff-admin-form-textarea"
                   rows={2}
-                  placeholder="ex: próxima à janela, acessível, reservada para VIP..."
+                  placeholder={t('adminTables.notesPlaceholder')}
                   value={form.notes}
                   onChange={f('notes')}
                 />
@@ -397,18 +335,18 @@ export function Tables() {
                   checked={form.active}
                   onChange={(e) => setForm((prev) => ({ ...prev, active: e.target.checked }))}
                 />
-                Mesa ativa
+                {t('adminTables.isActive')}
               </label>
             </div>
 
             <div className="ff-admin-modal-footer">
-              <AdminButton variant="outline" onClick={() => setShowModal(false)}>Cancelar</AdminButton>
+              <AdminButton variant="outline" onClick={() => setShowModal(false)}>{t('common.cancel')}</AdminButton>
               <AdminButton
                 variant="primary"
                 onClick={handleSave}
                 disabled={!form.number.trim()}
               >
-                {editing ? 'Salvar alterações' : 'Criar mesa'}
+                {editing ? t('adminTables.saveChanges') : t('adminTables.createTable')}
               </AdminButton>
             </div>
           </div>

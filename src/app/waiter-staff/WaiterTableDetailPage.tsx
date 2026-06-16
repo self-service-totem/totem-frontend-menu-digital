@@ -1,18 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { I18nProvider } from '@/i18n/I18nContext';
+import { useAdminLanguage } from '@/i18n/useAdminLanguage';
+import { AdminLanguageSelector } from '@/components/admin/AdminLanguageSelector';
 import { waiterStaffService } from '@/lib/services/waiterStaffService';
 import { useNotify } from '@/lib/notifications';
 import { getTableStatusUI } from '@/lib/utils/tableStatusUI';
 import { useElapsed, elapsedMins, fmtElapsed, ageSeverity } from '@/lib/utils/useElapsed';
 import type { DbTable, DbOrder, WaiterCall } from '@/lib/types';
 import { findById } from '@/lib/mock-db';
-
-// ─── Utils ──────────────────────────────────────────────────────────────────────
-
-function formatBRL(v: number | undefined | null) {
-  if (v == null || isNaN(v as number)) return '—';
-  return (v as number).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+import { formatCurrency as formatBRL } from '@/utils/format';
 
 function initials(name: string): string {
   return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
@@ -73,6 +70,7 @@ function MetricPill({ icon, label, value, color, bg }: MetricPillProps) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export function WaiterTableDetailPage() {
+  const { lang, setLang } = useAdminLanguage();
   const { tableId } = useParams<{ tableId: string }>();
   const navigate    = useNavigate();
   const notify      = useNotify();
@@ -161,11 +159,13 @@ export function WaiterTableDetailPage() {
 
   if (!table) {
     return (
-      <div className="ff-area-layout">
-        <div className="ff-area-main" style={{ justifyContent: 'center', alignItems: 'center' }}>
-          <div className="text-muted">Mesa não encontrada.</div>
+      <I18nProvider language={lang}>
+        <div className="ff-area-layout">
+          <div className="ff-area-main" style={{ justifyContent: 'center', alignItems: 'center' }}>
+            <div className="text-muted">Mesa não encontrada.</div>
+          </div>
         </div>
-      </div>
+      </I18nProvider>
     );
   }
 
@@ -176,6 +176,7 @@ export function WaiterTableDetailPage() {
   const statusLabel = calls.length > 0 ? 'Chamando garçom' : ui.label;
 
   return (
+    <I18nProvider language={lang}>
     <div className="ff-area-layout">
       {/* Sidebar */}
       <aside className="ff-area-sidebar ff-area-sidebar--mobile-bottom">
@@ -276,6 +277,7 @@ export function WaiterTableDetailPage() {
                 {primaryAction.label}
               </button>
             )}
+            <AdminLanguageSelector language={lang} onChange={setLang} />
           </div>
         </div>
 
@@ -478,5 +480,6 @@ export function WaiterTableDetailPage() {
         </div>
       </div>
     </div>
+    </I18nProvider>
   );
 }

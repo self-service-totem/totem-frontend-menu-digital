@@ -7,6 +7,7 @@ import type {
   WalkIn,
   WalkInStatus,
   ReservationSettings,
+  DbTable,
 } from '@/lib/types';
 
 function delay<T>(v: T, ms = 150): Promise<T> {
@@ -66,14 +67,17 @@ export const reservationService = {
   },
 
   async seatReservation(id: string, tableId?: string, tableNumber?: string): Promise<Reservation | null> {
-    return delay(
-      updateOne<Reservation>('reservations', id, {
-        status: 'SEATED',
-        ...(tableId ? { tableId } : {}),
-        ...(tableNumber ? { tableNumber } : {}),
-        updatedAt: new Date().toISOString(),
-      }),
-    );
+    const now = new Date().toISOString();
+    const result = updateOne<Reservation>('reservations', id, {
+      status: 'SEATED',
+      ...(tableId ? { tableId } : {}),
+      ...(tableNumber ? { tableNumber } : {}),
+      updatedAt: now,
+    });
+    if (tableId) {
+      updateOne<DbTable>('tables', tableId, { status: 'OCCUPIED', updatedAt: now });
+    }
+    return delay(result);
   },
 
   async markNoShow(id: string): Promise<Reservation | null> {

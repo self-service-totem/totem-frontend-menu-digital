@@ -5,6 +5,10 @@ import { getCollection, findById } from '@/lib/mock-db';
 import type { KitchenTicket, KitchenTicketStatus, AggregatorPlatform, DbOrder } from '@/lib/types';
 import { aggregatorService } from '@/lib/services/aggregatorService';
 import { useNotify } from '@/lib/notifications';
+import { I18nProvider, useLabels } from '@/i18n/I18nContext';
+import { useAdminLanguage } from '@/i18n/useAdminLanguage';
+import { AdminLanguageSelector } from '@/components/admin/AdminLanguageSelector';
+import type { LabelKey, LanguageCode } from '@/i18n/labels';
 
 // ─── Audio ───────────────────────────────────────────────────────────────────
 
@@ -67,6 +71,7 @@ function urgencyLevel(ms: number): 'green' | 'yellow' | 'red' {
 // ─── Clock ───────────────────────────────────────────────────────────────────
 
 function KdsClock() {
+  const { language } = useLabels();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -74,7 +79,7 @@ function KdsClock() {
   }, []);
   return (
     <span className="ff-kds-clock">
-      {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      {now.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
     </span>
   );
 }
@@ -98,16 +103,17 @@ function UrgencyBadge({ createdAt }: { createdAt: string }) {
 
 // ─── Priority badge ───────────────────────────────────────────────────────────
 
-const PRIORITY_CONFIG: Record<NonNullable<KitchenTicket['priority']>, { icon: string; label: string }> = {
-  URGENT: { icon: '🔥', label: 'URGENTE' },
-  VIP:    { icon: '⭐', label: 'VIP'     },
+const PRIORITY_CONFIG: Record<NonNullable<KitchenTicket['priority']>, { icon: string; labelKey: LabelKey }> = {
+  URGENT: { icon: '🔥', labelKey: 'kitchen.priority.urgent' },
+  VIP:    { icon: '⭐', labelKey: 'kitchen.priority.vip'    },
 };
 
 function PriorityBadge({ priority }: { priority: NonNullable<KitchenTicket['priority']> }) {
+  const { t } = useLabels();
   const cfg = PRIORITY_CONFIG[priority];
   return (
     <span className={`ff-kds-priority-badge ${priority.toLowerCase()}`}>
-      {cfg.icon} {cfg.label}
+      {cfg.icon} {t(cfg.labelKey)}
     </span>
   );
 }
@@ -120,10 +126,10 @@ const NEXT_STATUS: Partial<Record<KitchenTicketStatus, KitchenTicketStatus>> = {
   READY:     'DELIVERED',
 };
 
-const ACTION_CONFIG: Record<KitchenTicketStatus, { label: string; icon: string; cls: string } | null> = {
-  NEW:       { label: 'Iniciar preparo', icon: 'bi-fire',              cls: 'amber' },
-  PREPARING: { label: 'Marcar pronto',   icon: 'bi-check-circle-fill', cls: 'green' },
-  READY:     { label: 'Marcar entregue', icon: 'bi-bag-check',         cls: 'slate' },
+const ACTION_CONFIG: Record<KitchenTicketStatus, { labelKey: LabelKey; icon: string; cls: string } | null> = {
+  NEW:       { labelKey: 'kitchen.action.start',   icon: 'bi-fire',              cls: 'amber' },
+  PREPARING: { labelKey: 'kitchen.action.ready',   icon: 'bi-check-circle-fill', cls: 'green' },
+  READY:     { labelKey: 'kitchen.action.deliver', icon: 'bi-bag-check',         cls: 'slate' },
   DELIVERED: null,
   CANCELED:  null,
 };
@@ -137,6 +143,7 @@ interface TicketCardProps {
 }
 
 function TicketCard({ ticket, onStatusChange, isExiting }: TicketCardProps) {
+  const { t }   = useLabels();
   const next    = NEXT_STATUS[ticket.status];
   const action  = ACTION_CONFIG[ticket.status];
   const dbOrder = findById<DbOrder>('orders', ticket.orderId);
@@ -166,17 +173,17 @@ function TicketCard({ ticket, onStatusChange, isExiting }: TicketCardProps) {
         <div className="ff-kds-card-meta">
           {ticket.tableNumber && (
             <span className="ff-kds-meta-pill">
-              <i className="bi bi-table" /> Mesa {ticket.tableNumber}
+              <i className="bi bi-table" /> {t('kitchen.meta.table', { n: ticket.tableNumber })}
             </span>
           )}
           {hasDelivery && (
             <span className="ff-kds-meta-pill delivery">
-              <i className="bi bi-bicycle" /> Delivery
+              <i className="bi bi-bicycle" /> {t('kitchen.meta.delivery')}
             </span>
           )}
           {isKiosk && !hasDelivery && (
             <span className="ff-kds-meta-pill takeaway">
-              <i className="bi bi-bag" /> Balcão
+              <i className="bi bi-bag" /> {t('kitchen.meta.counter')}
             </span>
           )}
           {platform && platform !== 'DIRECT' && (
@@ -217,7 +224,7 @@ function TicketCard({ ticket, onStatusChange, isExiting }: TicketCardProps) {
             disabled={isExiting}
           >
             <i className={`bi ${action.icon}`} />
-            {action.label}
+            {t(action.labelKey)}
           </button>
         </>
       )}
@@ -227,30 +234,40 @@ function TicketCard({ ticket, onStatusChange, isExiting }: TicketCardProps) {
 
 // ─── Column config ────────────────────────────────────────────────────────────
 
-const COL_CONFIG: Record<string, { label: string; icon: string; accentClass: string; emptyIcon: string; emptyMsg: string }> = {
-  NEW:       { label: 'Novos',      icon: 'bi-lightning-fill',    accentClass: 'blue',  emptyIcon: 'bi-inbox',         emptyMsg: 'Nenhum pedido novo' },
-  PREPARING: { label: 'Preparando', icon: 'bi-fire',              accentClass: 'amber', emptyIcon: 'bi-hourglass',     emptyMsg: 'Nenhum pedido em preparo' },
-  READY:     { label: 'Prontos',    icon: 'bi-check-circle-fill', accentClass: 'green', emptyIcon: 'bi-check2-circle', emptyMsg: 'Nenhum pedido pronto' },
+const COL_CONFIG: Record<string, { labelKey: LabelKey; icon: string; accentClass: string; emptyIcon: string; emptyMsgKey: LabelKey }> = {
+  NEW:       { labelKey: 'kitchen.col.new',       icon: 'bi-lightning-fill',    accentClass: 'blue',  emptyIcon: 'bi-inbox',         emptyMsgKey: 'kitchen.empty.new' },
+  PREPARING: { labelKey: 'kitchen.col.preparing', icon: 'bi-fire',              accentClass: 'amber', emptyIcon: 'bi-hourglass',     emptyMsgKey: 'kitchen.empty.preparing' },
+  READY:     { labelKey: 'kitchen.col.ready',     icon: 'bi-check-circle-fill', accentClass: 'green', emptyIcon: 'bi-check2-circle', emptyMsgKey: 'kitchen.empty.ready' },
 };
 
-const NOTIFY_LABELS: Partial<Record<KitchenTicketStatus, string>> = {
-  PREPARING: 'Preparo iniciado',
-  READY:     '✅ Pedido pronto!',
-  DELIVERED: 'Entregue ao cliente',
+const NOTIFY_LABEL_KEYS: Partial<Record<KitchenTicketStatus, LabelKey>> = {
+  PREPARING: 'kitchen.notify.preparing',
+  READY:     'kitchen.notify.ready',
+  DELIVERED: 'kitchen.notify.delivered',
 };
 
 type FilterOption = 'ALL' | KitchenTicketStatus;
 
-const FILTER_TABS: { label: string; value: FilterOption }[] = [
-  { label: 'Todas as filas', value: 'ALL' },
-  { label: 'Novos',         value: 'NEW' },
-  { label: 'Preparando',    value: 'PREPARING' },
-  { label: 'Prontos',       value: 'READY' },
+const FILTER_TABS: { labelKey: LabelKey; value: FilterOption }[] = [
+  { labelKey: 'kitchen.filter.all',   value: 'ALL' },
+  { labelKey: 'kitchen.col.new',      value: 'NEW' },
+  { labelKey: 'kitchen.col.preparing', value: 'PREPARING' },
+  { labelKey: 'kitchen.col.ready',    value: 'READY' },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function KitchenOrdersPage() {
+  const { lang, setLang } = useAdminLanguage();
+  return (
+    <I18nProvider language={lang}>
+      <KitchenOrdersInner lang={lang} onLangChange={setLang} />
+    </I18nProvider>
+  );
+}
+
+function KitchenOrdersInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l: LanguageCode) => void }) {
+  const { t, language } = useLabels();
   const [tickets, setTickets]       = useState<KitchenTicket[]>([]);
   const [filter, setFilter]         = useState<FilterOption>('ALL');
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
@@ -317,7 +334,8 @@ export function KitchenOrdersPage() {
     setExitingIds((prev) => new Set([...prev, id]));
     await new Promise((r) => setTimeout(r, 340));
     await kitchenService.updateStatus(id, status);
-    notify(NOTIFY_LABELS[status] ?? 'Status atualizado');
+    const notifyKey = NOTIFY_LABEL_KEYS[status];
+    notify(notifyKey ? t(notifyKey) : t('kitchen.notify.statusUpdated'));
     setExitingIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
     load();
   }
@@ -355,21 +373,23 @@ export function KitchenOrdersPage() {
 
       {/* ── Topbar ── */}
       <div className="ff-kds-topbar">
-        <button className="ff-kds-ctrl-btn" onClick={() => navigate('/')} title="Hub">
+        <button className="ff-kds-ctrl-btn" onClick={() => navigate('/')} title={t('kitchen.tooltip.hub')}>
           <i className="bi bi-house" />
         </button>
 
         <div className="ff-kds-topbar-title">
           <i className="bi bi-fire text-warning" />
-          Cozinha
+          {t('kitchen.title')}
         </div>
 
         <KdsClock />
 
+        <AdminLanguageSelector language={lang} onChange={onLangChange} />
+
         <button
           className={`ff-kds-ctrl-btn${muted ? ' muted' : ''}`}
           onClick={() => setMuted((m) => !m)}
-          title={muted ? 'Ativar som' : 'Silenciar'}
+          title={muted ? t('kitchen.tooltip.unmute') : t('kitchen.tooltip.mute')}
         >
           <i className={`bi ${muted ? 'bi-volume-mute-fill' : 'bi-volume-up-fill'}`} />
         </button>
@@ -377,7 +397,7 @@ export function KitchenOrdersPage() {
         <button
           className="ff-kds-ctrl-btn"
           onClick={toggleFullscreen}
-          title={isFullscreen ? 'Sair do fullscreen' : 'Tela cheia'}
+          title={isFullscreen ? t('kitchen.tooltip.exitFullscreen') : t('kitchen.tooltip.fullscreen')}
         >
           <i className={`bi ${isFullscreen ? 'bi-fullscreen-exit' : 'bi-fullscreen'}`} />
         </button>
@@ -385,30 +405,30 @@ export function KitchenOrdersPage() {
         <div className="ff-kds-stats-bar">
           <div className="ff-kds-stat-pill blue">
             <span className="ff-kds-stat-pill-count">{counts.NEW}</span>
-            <span>Novos</span>
+            <span>{t('kitchen.col.new')}</span>
           </div>
           <div className="ff-kds-stat-pill amber">
             <span className="ff-kds-stat-pill-count">{counts.PREPARING}</span>
-            <span>Preparando</span>
+            <span>{t('kitchen.col.preparing')}</span>
           </div>
           <div className="ff-kds-stat-pill green">
             <span className="ff-kds-stat-pill-count">{counts.READY}</span>
-            <span>Prontos</span>
+            <span>{t('kitchen.col.ready')}</span>
           </div>
           <div className="ff-kds-stat-pill slate">
             <span className="ff-kds-stat-pill-count">{completedToday}</span>
-            <span>Entregues</span>
+            <span>{t('kitchen.stat.delivered')}</span>
           </div>
           {avgPrepMs > 0 && (
             <div className="ff-kds-stat-pill purple">
               <span className="ff-kds-stat-pill-count">{formatMinutes(avgPrepMs)}</span>
-              <span>Tempo médio</span>
+              <span>{t('kitchen.stat.avgTime')}</span>
             </div>
           )}
           {longestWaitMs > 0 && (
             <div className={`ff-kds-stat-pill ${longestWaitMs > 10 * 60000 ? 'red' : 'slate'}`}>
               <span className="ff-kds-stat-pill-count">{formatMinutes(longestWaitMs)}</span>
-              <span>Maior espera</span>
+              <span>{t('kitchen.stat.longestWait')}</span>
             </div>
           )}
         </div>
@@ -416,10 +436,10 @@ export function KitchenOrdersPage() {
         <div className="ff-kds-live-indicator">
           <span className="ff-kds-live-label">
             <span className="ff-kds-live-dot" />
-            AO VIVO
+            {t('kitchen.live')}
           </span>
           <span className="ff-kds-live-time">
-            {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            {lastUpdate.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </span>
         </div>
       </div>
@@ -432,7 +452,7 @@ export function KitchenOrdersPage() {
             className={`ff-kds-filter-btn${filter === tab.value ? ' active' : ''}`}
             onClick={() => setFilter(tab.value)}
           >
-            {tab.label}
+            {t(tab.labelKey)}
             {tab.value !== 'ALL' && (
               <span className="ff-kds-filter-badge">{counts[tab.value as keyof typeof counts] ?? 0}</span>
             )}
@@ -450,14 +470,14 @@ export function KitchenOrdersPage() {
               <div key={status} className="ff-kds-column">
                 <div className={`ff-kds-column-header ${cfg.accentClass}`}>
                   <i className={`bi ${cfg.icon} ff-kds-col-icon ${cfg.accentClass}`} />
-                  <span className="ff-kds-column-header-label">{cfg.label}</span>
+                  <span className="ff-kds-column-header-label">{t(cfg.labelKey)}</span>
                   <span className={`ff-kds-column-header-count ${cfg.accentClass}`}>{colTickets.length}</span>
                 </div>
                 <div className="ff-kds-column-body">
                   {colTickets.length === 0 ? (
                     <div className="ff-kds-empty">
                       <i className={`bi ${cfg.emptyIcon} ff-kds-empty-icon`} />
-                      <span className="ff-kds-empty-msg">{cfg.emptyMsg}</span>
+                      <span className="ff-kds-empty-msg">{t(cfg.emptyMsgKey)}</span>
                     </div>
                   ) : (
                     colTickets.map((t) => (
@@ -482,7 +502,7 @@ export function KitchenOrdersPage() {
           {visible.length === 0 ? (
             <div className="ff-kds-empty" style={{ marginTop: 60 }}>
               <i className={`bi ${COL_CONFIG[filter]?.emptyIcon ?? 'bi-inbox'} ff-kds-empty-icon`} style={{ fontSize: 48 }} />
-              <span className="ff-kds-empty-msg">{COL_CONFIG[filter]?.emptyMsg ?? 'Nenhum pedido'}</span>
+              <span className="ff-kds-empty-msg">{t(COL_CONFIG[filter]?.emptyMsgKey ?? 'kitchen.empty.generic')}</span>
             </div>
           ) : (
             visible.map((t) => (

@@ -3,6 +3,7 @@ import { adminOrderService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import type { DbOrder, FullOrderStatus } from '@/lib/types';
 import { formatBRL } from '../adminUtils';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   OrderStatusBadge,
   PaymentStatusBadge,
@@ -13,32 +14,12 @@ import {
 } from '@/components/admin';
 import type { AdminTableColumn, SortDir } from '@/components/admin';
 
-const ORDER_STATUS_LABEL: Record<string, string> = {
-  DRAFT:           'Rascunho',
-  CREATED:         'Criado',
-  SENT_TO_KITCHEN: 'Na cozinha',
-  PREPARING:       'Preparando',
-  READY:           'Pronto',
-  DELIVERED:       'Entregue',
-  CLOSED:          'Encerrado',
-  CANCELED:        'Cancelado',
-};
-
-
 const STATUS_ADVANCE: Record<string, string> = {
   CREATED:         'SENT_TO_KITCHEN',
   SENT_TO_KITCHEN: 'PREPARING',
   PREPARING:       'READY',
   READY:           'DELIVERED',
   DELIVERED:       'CLOSED',
-};
-
-const STATUS_ADVANCE_LABEL: Record<string, string> = {
-  CREATED:         'Enviar p/ cozinha',
-  SENT_TO_KITCHEN: 'Marcar como preparando',
-  PREPARING:       'Marcar como pronto',
-  READY:           'Marcar como entregue',
-  DELIVERED:       'Encerrar pedido',
 };
 
 const TIMELINE_STEPS = [
@@ -52,21 +33,32 @@ const TIMELINE_STEPS = [
 
 const STATUS_ORDER = ['CREATED', 'SENT_TO_KITCHEN', 'PREPARING', 'READY', 'DELIVERED', 'CLOSED', 'CANCELED'];
 
-const FILTER_TABS = [
-  { key: '',                label: 'Todos' },
-  { key: 'SENT_TO_KITCHEN', label: 'Na cozinha' },
-  { key: 'PREPARING',       label: 'Preparando' },
-  { key: 'READY',           label: 'Prontos' },
-  { key: 'DELIVERED',       label: 'Entregues' },
-  { key: 'PAID',            label: 'Pagos' },
-  { key: 'UNPAID',          label: 'Não pagos' },
-];
-
 function OrderDrawer({ order, onClose, onAdvance }: {
   order: DbOrder;
   onClose: () => void;
   onAdvance: (id: string, status: string) => void;
 }) {
+  const { t } = useLabels();
+
+  const STATUS_ADVANCE_LABEL: Record<string, string> = {
+    CREATED:         t('adminOrders.actionSendKitchen'),
+    SENT_TO_KITCHEN: t('adminOrders.actionPreparing'),
+    PREPARING:       t('adminOrders.actionReady'),
+    READY:           t('adminOrders.actionDelivered'),
+    DELIVERED:       t('adminOrders.actionClose'),
+  };
+
+  const ORDER_STATUS_LABEL: Record<string, string> = {
+    DRAFT:           t('status.draft'),
+    CREATED:         t('status.created'),
+    SENT_TO_KITCHEN: t('status.inKitchen'),
+    PREPARING:       t('status.preparing'),
+    READY:           t('status.ready'),
+    DELIVERED:       t('status.delivered'),
+    CLOSED:          t('status.closed'),
+    CANCELED:        t('status.canceled'),
+  };
+
   const nextStatus  = STATUS_ADVANCE[order.status];
   const currentIdx  = STATUS_ORDER.indexOf(order.status);
 
@@ -84,13 +76,13 @@ function OrderDrawer({ order, onClose, onAdvance }: {
           <span className="ff-admin-badge ff-admin-badge--neutral">{order.source}</span>
           {order.tableNumber && (
             <span className="ff-admin-badge ff-admin-badge--blue">
-              <i className="bi bi-table" /> Mesa {order.tableNumber}
+              <i className="bi bi-table" /> {t('adminOrders.tableLabel')} {order.tableNumber}
             </span>
           )}
         </div>
 
         <div>
-          <div className="ff-order-drawer-section-label">Cliente</div>
+          <div className="ff-order-drawer-section-label">{t('adminOrders.sectionCustomer')}</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{order.customerName}</div>
           <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
             {new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
@@ -98,13 +90,17 @@ function OrderDrawer({ order, onClose, onAdvance }: {
         </div>
 
         <div>
-          <div className="ff-order-drawer-section-label">Itens</div>
+          <div className="ff-order-drawer-section-label">{t('adminOrders.sectionItems')}</div>
           {order.items.map((item, i) => (
             <div key={i} className="ff-order-drawer-item">
               <div className="ff-order-drawer-item-qty">{item.quantity}</div>
               <div style={{ flex: 1 }}>
                 <div className="ff-order-drawer-item-name">{item.name}</div>
-                {item.note && <div className="ff-order-drawer-item-note">Obs: {item.note}</div>}
+                {item.note && (
+                  <div className="ff-order-drawer-item-note">
+                    {t('adminOrders.itemNote', { note: item.note })}
+                  </div>
+                )}
               </div>
               <div className="ff-order-drawer-item-price">{formatBRL(item.unitPrice * item.quantity)}</div>
             </div>
@@ -112,15 +108,15 @@ function OrderDrawer({ order, onClose, onAdvance }: {
         </div>
 
         <div className="ff-order-drawer-totals">
-          <div className="ff-order-drawer-total-row"><span>Subtotal</span><span>{formatBRL(order.subtotal)}</span></div>
+          <div className="ff-order-drawer-total-row"><span>{t('adminOrders.subtotal')}</span><span>{formatBRL(order.subtotal)}</span></div>
           {order.serviceFee > 0 && (
-            <div className="ff-order-drawer-total-row"><span>Taxa de serviço</span><span>{formatBRL(order.serviceFee)}</span></div>
+            <div className="ff-order-drawer-total-row"><span>{t('adminOrders.serviceFee')}</span><span>{formatBRL(order.serviceFee)}</span></div>
           )}
           <div className="ff-order-drawer-total-row grand"><span>Total</span><span>{formatBRL(order.total)}</span></div>
         </div>
 
         <div>
-          <div className="ff-order-drawer-section-label">Histórico</div>
+          <div className="ff-order-drawer-section-label">{t('adminOrders.sectionHistory')}</div>
           <div className="ff-order-timeline">
             {TIMELINE_STEPS.map((step) => {
               const stepIdx   = STATUS_ORDER.indexOf(step.key);
@@ -144,7 +140,7 @@ function OrderDrawer({ order, onClose, onAdvance }: {
                   <i className="bi bi-x" />
                 </div>
                 <div className="ff-order-timeline-label current" style={{ color: 'var(--ff-status-cancelled)' }}>
-                  Cancelado
+                  {t('status.canceled')}
                 </div>
               </div>
             )}
@@ -164,67 +160,8 @@ function OrderDrawer({ order, onClose, onAdvance }: {
   );
 }
 
-const COLUMNS: AdminTableColumn<DbOrder>[] = [
-  {
-    key: 'orderNumber',
-    label: 'Pedido',
-    sortable: true,
-    width: '90px',
-    render: (o) => (
-      <strong style={{ fontVariantNumeric: 'tabular-nums', color: '#1a1a1a' }}>#{o.orderNumber}</strong>
-    ),
-  },
-  {
-    key: 'customerName',
-    label: 'Cliente',
-    sortable: true,
-    render: (o) => o.customerName,
-  },
-  {
-    key: 'tableNumber',
-    label: 'Mesa',
-    sortable: true,
-    render: (o) => o.tableNumber
-      ? `Mesa ${o.tableNumber}`
-      : <span style={{ color: '#d1d5db' }}>—</span>,
-  },
-  {
-    key: 'total',
-    label: 'Total',
-    sortable: true,
-    align: 'right',
-    render: (o) => <span style={{ fontWeight: 700 }}>{formatBRL(o.total)}</span>,
-  },
-  {
-    key: 'status',
-    label: 'Status',
-    sortable: true,
-    render: (o) => <OrderStatusBadge status={o.status} />,
-  },
-  {
-    key: 'paymentStatus',
-    label: 'Pagamento',
-    sortable: true,
-    render: (o) => <PaymentStatusBadge status={o.paymentStatus} />,
-  },
-  {
-    key: 'source',
-    label: 'Origem',
-    render: (o) => <span style={{ color: '#6b7280' }}>{o.source}</span>,
-  },
-  {
-    key: 'createdAt',
-    label: 'Hora',
-    sortable: true,
-    render: (o) => (
-      <span style={{ color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
-        {new Date(o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-      </span>
-    ),
-  },
-];
-
 export function Orders() {
+  const { t } = useLabels();
   const [orders, setOrders]       = useState<DbOrder[]>([]);
   const [filter, setFilter]       = useState('');
   const [search, setSearch]       = useState('');
@@ -234,6 +171,87 @@ export function Orders() {
   const [sortDir, setSortDir]     = useState<SortDir>('desc');
   const prevIdsRef                = useRef<Set<string>>(new Set());
   const notify = useNotify();
+
+  const ORDER_STATUS_LABEL: Record<string, string> = {
+    DRAFT:           t('status.draft'),
+    CREATED:         t('status.created'),
+    SENT_TO_KITCHEN: t('status.inKitchen'),
+    PREPARING:       t('status.preparing'),
+    READY:           t('status.ready'),
+    DELIVERED:       t('status.delivered'),
+    CLOSED:          t('status.closed'),
+    CANCELED:        t('status.canceled'),
+  };
+
+  const FILTER_TABS = [
+    { key: '',                label: t('adminOrders.filterAll') },
+    { key: 'SENT_TO_KITCHEN', label: t('adminOrders.filterInKitchen') },
+    { key: 'PREPARING',       label: t('adminOrders.filterPreparing') },
+    { key: 'READY',           label: t('adminOrders.filterReady') },
+    { key: 'DELIVERED',       label: t('adminOrders.filterDelivered') },
+    { key: 'PAID',            label: t('adminOrders.filterPaid') },
+    { key: 'UNPAID',          label: t('adminOrders.filterUnpaid') },
+  ];
+
+  const COLUMNS: AdminTableColumn<DbOrder>[] = [
+    {
+      key: 'orderNumber',
+      label: t('adminOrders.colOrder'),
+      sortable: true,
+      width: '90px',
+      render: (o) => (
+        <strong style={{ fontVariantNumeric: 'tabular-nums', color: '#1a1a1a' }}>#{o.orderNumber}</strong>
+      ),
+    },
+    {
+      key: 'customerName',
+      label: t('common.customer'),
+      sortable: true,
+      render: (o) => o.customerName,
+    },
+    {
+      key: 'tableNumber',
+      label: t('adminOrders.colTable'),
+      sortable: true,
+      render: (o) => o.tableNumber
+        ? `${t('adminOrders.tableLabel')} ${o.tableNumber}`
+        : <span style={{ color: '#d1d5db' }}>—</span>,
+    },
+    {
+      key: 'total',
+      label: 'Total',
+      sortable: true,
+      align: 'right',
+      render: (o) => <span style={{ fontWeight: 700 }}>{formatBRL(o.total)}</span>,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (o) => <OrderStatusBadge status={o.status} />,
+    },
+    {
+      key: 'paymentStatus',
+      label: t('adminOrders.colPayment'),
+      sortable: true,
+      render: (o) => <PaymentStatusBadge status={o.paymentStatus} />,
+    },
+    {
+      key: 'source',
+      label: t('adminOrders.colOrigin'),
+      render: (o) => <span style={{ color: '#6b7280' }}>{o.source}</span>,
+    },
+    {
+      key: 'createdAt',
+      label: t('adminOrders.colTime'),
+      sortable: true,
+      render: (o) => (
+        <span style={{ color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
+          {new Date(o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      ),
+    },
+  ];
 
   async function load() {
     const fresh = await adminOrderService.list();
@@ -248,11 +266,11 @@ export function Orders() {
   }
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { const t = setInterval(load, 5000); return () => clearInterval(t); }, []);
+  useEffect(() => { const timer = setInterval(load, 5000); return () => clearInterval(timer); }, []);
 
   async function handleAdvance(orderId: string, status: string) {
     await adminOrderService.updateStatus(orderId, status as FullOrderStatus);
-    notify(`Pedido atualizado → ${ORDER_STATUS_LABEL[status] ?? status}`);
+    notify(t('adminOrders.updatedToast', { status: ORDER_STATUS_LABEL[status] ?? status }));
     load();
     setSelected((prev) => prev?.id === orderId ? { ...prev, status: status as FullOrderStatus } : prev);
   }
@@ -302,14 +320,13 @@ export function Orders() {
 
   return (
     <div className="ff-orders-screen">
-      {/* Compact op-bar: title + search + filter chips (replaces header + metric cards) */}
       <div className="ff-admin-op-bar">
         <div className="ff-admin-op-bar-head">
-          <h1 className="ff-admin-op-bar-title">Pedidos</h1>
+          <h1 className="ff-admin-op-bar-title">{t('adminOrders.title')}</h1>
           <AdminSearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Buscar pedido, cliente ou mesa..."
+            placeholder={t('adminOrders.searchPlaceholder')}
           />
         </div>
         <AdminFilterBar options={filterOptions} value={filter} onChange={setFilter} />
@@ -317,7 +334,6 @@ export function Orders() {
 
       <div style={{ display: 'flex', gap: 16, flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <div className="ff-orders-screen-main">
-          {/* Table */}
           <div className="ff-admin-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
               <AdminTable<DbOrder>
@@ -329,8 +345,8 @@ export function Orders() {
                 onRowClick={(o) => setSelected(selected?.id === o.id ? null : o)}
                 selectedId={selected?.id}
                 emptyIcon="bi-receipt"
-                emptyTitle="Nenhum pedido encontrado"
-                emptyMessage="Nenhum pedido corresponde aos filtros selecionados."
+                emptyTitle={t('adminOrders.noOrders')}
+                emptyMessage={t('adminOrders.noOrdersDesc')}
               />
             </div>
           </div>

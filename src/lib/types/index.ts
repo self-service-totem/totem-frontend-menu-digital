@@ -88,6 +88,7 @@ export interface DbTable {
   number: string;
   active: boolean;
   validationCode: string;
+  zoneId?: string;
   zoneName?: string;
   assignedWaiterName?: string;
   guestCount?: number;
@@ -111,6 +112,9 @@ export interface Zone {
   branchId: string;
   name: string;
   order: number;
+  color?: string;
+  active: boolean;
+  defaultWaiterId?: string;
   createdAt: string;
   updatedAt: string;
 }

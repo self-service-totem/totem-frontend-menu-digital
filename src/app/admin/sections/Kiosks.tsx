@@ -4,6 +4,7 @@ import { loadAttractConfig, saveAttractConfig } from '@/app/kiosk/attractConfig'
 import type { KioskDevice } from '@/lib/types';
 import type { AttractScreenConfig } from '@/app/kiosk/attractConfig';
 import { formatDate } from '../adminUtils';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminBadge,
@@ -28,45 +29,53 @@ const STATUS_VARIANT: Record<string, 'active' | 'preparing' | 'inactive'> = {
   MAINTENANCE: 'preparing',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  ONLINE:      'Online',
-  OFFLINE:     'Offline',
-  MAINTENANCE: 'Manutenção',
-};
-
-const TABS: { key: KioskTab; label: string; icon: string }[] = [
-  { key: 'devices',  label: 'Dispositivos',    icon: 'bi-display'      },
-  { key: 'attract',  label: 'Tela de Atração', icon: 'bi-play-circle'  },
-  { key: 'branding', label: 'Marca',           icon: 'bi-palette'      },
-  { key: 'media',    label: 'Mídia',           icon: 'bi-film'         },
-  { key: 'behavior', label: 'Comportamento',   icon: 'bi-sliders'      },
-];
-
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, labels: { now: string; min: string; hour: string; day: string }): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1)  return 'Agora mesmo';
-  if (mins < 60) return `${mins}min atrás`;
+  if (mins < 1)  return labels.now;
+  if (mins < 60) return `${mins}${labels.min}`;
   const h = Math.floor(mins / 60);
-  if (h < 24)    return `${h}h atrás`;
-  return `${Math.floor(h / 24)}d atrás`;
+  if (h < 24)    return `${h}${labels.hour}`;
+  return `${Math.floor(h / 24)}${labels.day}`;
 }
 
 export function Kiosks() {
-  const [devices, setDevices]         = useState<KioskDevice[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState('');
+  const { t } = useLabels();
+  const [devices, setDevices]           = useState<KioskDevice[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selected, setSelected]       = useState<KioskDevice | null>(null);
-  const [activeTab, setActiveTab]     = useState<KioskTab>('devices');
-  const [sortBy, setSortBy]           = useState('name');
-  const [sortDir, setSortDir]         = useState<SortDir>('asc');
+  const [selected, setSelected]         = useState<KioskDevice | null>(null);
+  const [activeTab, setActiveTab]       = useState<KioskTab>('devices');
+  const [sortBy, setSortBy]             = useState('name');
+  const [sortDir, setSortDir]           = useState<SortDir>('asc');
 
   const [cfg, setCfg]           = useState<AttractScreenConfig>(loadAttractConfig);
   const [savedCfg, setSavedCfg] = useState<AttractScreenConfig>(loadAttractConfig);
   const [saving, setSaving]     = useState(false);
 
   const isDirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
+
+  const STATUS_LABEL: Record<string, string> = {
+    ONLINE:      t('status.online'),
+    OFFLINE:     t('status.offline'),
+    MAINTENANCE: t('status.maintenance'),
+  };
+
+  const TABS: { key: KioskTab; label: string; icon: string }[] = [
+    { key: 'devices',  label: t('adminKiosks.tabDevices'),      icon: 'bi-display'     },
+    { key: 'attract',  label: t('adminKiosks.tabAttractScreen'), icon: 'bi-play-circle' },
+    { key: 'branding', label: t('adminKiosks.tabBranding'),      icon: 'bi-palette'     },
+    { key: 'media',    label: t('adminKiosks.tabMedia'),         icon: 'bi-film'        },
+    { key: 'behavior', label: t('adminKiosks.tabBehavior'),      icon: 'bi-sliders'     },
+  ];
+
+  const timeLabels = {
+    now:  t('adminKiosks.nowAgo'),
+    min:  t('adminKiosks.minAgo'),
+    hour: t('adminKiosks.hourAgo'),
+    day:  t('adminKiosks.dayAgo'),
+  };
 
   useEffect(() => {
     kioskDeviceService.list().then((list) => { setDevices(list); setLoading(false); });
@@ -95,10 +104,10 @@ export function Kiosks() {
   const maintenance = devices.filter((d) => d.status === 'MAINTENANCE').length;
 
   const statusOptions: FilterOption[] = [
-    { key: 'all',         label: 'Todos',      count: devices.length },
-    { key: 'ONLINE',      label: 'Online',     count: online         },
-    { key: 'OFFLINE',     label: 'Offline',    count: offline        },
-    ...(maintenance > 0 ? [{ key: 'MAINTENANCE', label: 'Manutenção', count: maintenance }] : []),
+    { key: 'all',         label: t('adminKiosks.filterAll'),         count: devices.length },
+    { key: 'ONLINE',      label: t('adminKiosks.filterOnline'),      count: online         },
+    { key: 'OFFLINE',     label: t('adminKiosks.filterOffline'),     count: offline        },
+    ...(maintenance > 0 ? [{ key: 'MAINTENANCE', label: t('adminKiosks.filterMaintenance'), count: maintenance }] : []),
   ];
 
   const filtered = useMemo(() =>
@@ -112,26 +121,26 @@ export function Kiosks() {
 
   function deviceActions(d: KioskDevice): ActionMenuItem[] {
     return [
-      { key: 'inspect', label: 'Ver detalhes',           icon: 'bi-eye',            onClick: () => setSelected(d) },
-      { key: 'reload',  label: 'Recarregar configuração', icon: 'bi-arrow-clockwise', onClick: () => {} },
-      { key: 'toggle',  label: d.status === 'ONLINE' ? 'Desativar' : 'Ativar',
+      { key: 'inspect', label: t('adminKiosks.viewDetails'),    icon: 'bi-eye',             onClick: () => setSelected(d) },
+      { key: 'reload',  label: t('adminKiosks.reloadConfig'),   icon: 'bi-arrow-clockwise',  onClick: () => {} },
+      { key: 'toggle',  label: d.status === 'ONLINE' ? t('common.disable') : t('common.enable'),
         icon: d.status === 'ONLINE' ? 'bi-toggle-off' : 'bi-toggle-on',
         onClick: () => {},
       },
-      { key: 'preview', label: 'Preview da tela',        icon: 'bi-display',         onClick: () => {} },
-      { key: 'remove',  label: 'Remover dispositivo',    icon: 'bi-trash',           variant: 'destructive', onClick: () => {} },
+      { key: 'preview', label: t('adminKiosks.previewBtn'),     icon: 'bi-display',          onClick: () => {} },
+      { key: 'remove',  label: t('adminKiosks.removeDevice'),   icon: 'bi-trash',            variant: 'destructive', onClick: () => {} },
     ];
   }
 
   const deviceColumns: AdminTableColumn<KioskDevice>[] = [
     {
       key: 'name',
-      label: 'Dispositivo',
+      label: t('adminKiosks.colDevice'),
       sortable: true,
       render: (d) => (
         <div>
           <div className="ff-table-row-title">{d.name}</div>
-          <div className="ff-table-row-sub ff-kiosks-device-id">ID {d.id.slice(0, 8)}…</div>
+          <div className="ff-table-row-sub ff-kiosks-device-id">{t('adminKiosks.colId')} {d.id.slice(0, 8)}…</div>
         </div>
       ),
     },
@@ -149,11 +158,11 @@ export function Kiosks() {
     },
     {
       key: 'updatedAt',
-      label: 'Última atividade',
+      label: t('adminKiosks.colLastActivity'),
       sortable: true,
       width: '160px',
       className: 'ff-hide-mobile',
-      render: (d) => <span className="ff-table-date">{relativeTime(d.updatedAt)}</span>,
+      render: (d) => <span className="ff-table-date">{relativeTime(d.updatedAt, timeLabels)}</span>,
     },
     {
       key: 'actions',
@@ -169,18 +178,17 @@ export function Kiosks() {
   return (
     <div className="ff-kiosks-screen">
 
-      {/* ── Sticky header + toolbar + tabs ── */}
       <div className="ff-kiosks-sticky-bar">
         <AdminPageHeader
-          title="Kiosks"
+          title={t('adminKiosks.title')}
           subtitle={`${online} online · ${offline} offline`}
           actions={
             <>
               <AdminButton variant="outline" size="sm" icon="bi-eye" onClick={() => setActiveTab('attract')}>
-                Preview
+                {t('adminKiosks.previewLabel')}
               </AdminButton>
               <AdminButton variant="primary" size="sm" icon="bi-plus">
-                Adicionar kiosk
+                {t('adminKiosks.addKiosk')}
               </AdminButton>
             </>
           }
@@ -190,14 +198,14 @@ export function Kiosks() {
           <AdminSearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Buscar dispositivo..."
+            placeholder={t('adminKiosks.searchPlaceholder')}
           />
           <AdminFilterBar options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
           <div className="ff-admin-toolbar-right">
             <AdminIconButton
               icon="bi-arrow-clockwise"
               variant="ghost"
-              title="Atualizar lista"
+              title={t('adminKiosks.reloadConfig')}
               onClick={() => {
                 setLoading(true);
                 kioskDeviceService.list().then((list) => { setDevices(list); setLoading(false); });
@@ -223,11 +231,9 @@ export function Kiosks() {
         </div>
       </div>
 
-      {/* ── Tab: Devices ── */}
       {activeTab === 'devices' && (
         <div className={`ff-kiosks-split${selected ? ' ff-kiosks-split--with-panel' : ''}`}>
 
-          {/* Device table */}
           <div className="ff-kiosks-split-main">
             <AdminTable<KioskDevice>
               columns={deviceColumns}
@@ -239,12 +245,11 @@ export function Kiosks() {
               selectedId={selected?.id}
               loading={loading}
               emptyIcon="bi-display"
-              emptyTitle="Nenhum dispositivo"
-              emptyMessage="Nenhum kiosk registrado ainda."
+              emptyTitle={t('adminKiosks.noDevices')}
+              emptyMessage={t('adminKiosks.noDevicesDesc')}
             />
           </div>
 
-          {/* Detail panel */}
           {selected && (
             <aside className="ff-kiosks-detail-panel">
               <div className="ff-kiosks-detail-header">
@@ -267,38 +272,38 @@ export function Kiosks() {
                     variant={STATUS_VARIANT[selected.status] ?? 'inactive'}
                     label={STATUS_LABEL[selected.status] ?? selected.status}
                   />
-                  <span className="ff-kiosks-detail-lastseen">{relativeTime(selected.updatedAt)}</span>
+                  <span className="ff-kiosks-detail-lastseen">{relativeTime(selected.updatedAt, timeLabels)}</span>
                 </div>
 
                 <div className="ff-kiosks-detail-fields">
                   <div className="ff-kiosks-detail-field">
-                    <span className="ff-kiosks-detail-field-label">ID</span>
+                    <span className="ff-kiosks-detail-field-label">{t('adminKiosks.colId')}</span>
                     <span className="ff-kiosks-detail-field-value ff-kiosks-detail-field-value--mono">{selected.id}</span>
                   </div>
                   <div className="ff-kiosks-detail-field">
-                    <span className="ff-kiosks-detail-field-label">Branch</span>
+                    <span className="ff-kiosks-detail-field-label">{t('adminKiosks.colBranch')}</span>
                     <span className="ff-kiosks-detail-field-value">{selected.branchId}</span>
                   </div>
                   <div className="ff-kiosks-detail-field">
-                    <span className="ff-kiosks-detail-field-label">Cadastrado</span>
+                    <span className="ff-kiosks-detail-field-label">{t('adminKiosks.colRegistered')}</span>
                     <span className="ff-kiosks-detail-field-value">{formatDate(selected.createdAt)}</span>
                   </div>
                 </div>
 
                 <div className="ff-kiosks-detail-actions">
                   <AdminButton variant="outline" size="sm" icon="bi-pencil" style={{ flex: 1 }}>
-                    Editar
+                    {t('adminKiosks.editBtn')}
                   </AdminButton>
                   <AdminButton variant="outline" size="sm" icon="bi-arrow-clockwise" style={{ flex: 1 }}>
-                    Recarregar
+                    {t('adminKiosks.reloadBtn')}
                   </AdminButton>
                 </div>
                 <div className="ff-kiosks-detail-actions">
                   <AdminButton variant="outline" size="sm" icon="bi-display" style={{ flex: 1 }}>
-                    Preview
+                    {t('adminKiosks.previewBtn')}
                   </AdminButton>
                   <AdminButton variant="destructive" size="sm" icon="bi-trash" style={{ flex: 1 }}>
-                    Remover
+                    {t('adminKiosks.removeBtn')}
                   </AdminButton>
                 </div>
               </div>
@@ -307,15 +312,14 @@ export function Kiosks() {
         </div>
       )}
 
-      {/* ── Tab: Attract Screen ── */}
       {activeTab === 'attract' && (
         <div className="ff-kiosks-attract-layout">
           <div className="ff-kiosks-attract-form">
             <AdminFormSection
-              title="Configuração geral"
-              description="Exibida quando o kiosk está sem uso. As alterações entram em vigor na próxima vez que a tela for carregada."
+              title={t('adminKiosks.attractConfig')}
+              description={t('adminKiosks.attractConfigDesc')}
             >
-              <AdminFormRow label="Ativar tela de atração">
+              <AdminFormRow label={t('adminKiosks.enableAttractScreen')}>
                 <div className="ff-admin-toggle-row">
                   <button
                     className="ff-admin-toggle"
@@ -327,12 +331,12 @@ export function Kiosks() {
                     <span className="ff-admin-toggle-thumb" />
                   </button>
                   <span className={`ff-admin-toggle-label${cfg.enabled ? ' ff-admin-toggle-label--on' : ''}`}>
-                    {cfg.enabled ? 'Ativada' : 'Desativada'}
+                    {cfg.enabled ? t('adminKiosks.attractEnabled') : t('adminKiosks.attractDisabled')}
                   </span>
                 </div>
               </AdminFormRow>
 
-              <AdminFormRow label="Nome do restaurante">
+              <AdminFormRow label={t('adminKiosks.restaurantNameLabel')}>
                 <input
                   className="ff-admin-form-input"
                   value={cfg.restaurantName}
@@ -340,16 +344,16 @@ export function Kiosks() {
                 />
               </AdminFormRow>
 
-              <AdminFormRow label="Slogan" hint="Exibido abaixo do nome (opcional).">
+              <AdminFormRow label={t('adminKiosks.slogan')} hint={t('adminKiosks.sloganDesc')}>
                 <input
                   className="ff-admin-form-input"
-                  placeholder="Ex: O melhor da cidade"
+                  placeholder={t('adminKiosks.sloganPlaceholder')}
                   value={cfg.slogan ?? ''}
                   onChange={(e) => setCfgKey('slogan', e.target.value || null)}
                 />
               </AdminFormRow>
 
-              <AdminFormRow label="URL do vídeo" hint="Sem vídeo, é usado fundo com gradiente (opcional).">
+              <AdminFormRow label={t('adminKiosks.videoUrl')} hint={t('adminKiosks.videoUrlDesc')}>
                 <input
                   className="ff-admin-form-input"
                   type="url"
@@ -360,11 +364,11 @@ export function Kiosks() {
               </AdminFormRow>
 
               <AdminFormRow
-                label={`Timeout de inatividade: ${cfg.idleTimeoutSeconds}s`}
-                hint="Após esse tempo sem toque, aparece o aviso 'Você ainda está aí?'."
+                label={t('adminKiosks.idleTimeout', { s: String(cfg.idleTimeoutSeconds) })}
+                hint={t('adminKiosks.idleTimeoutDesc')}
               >
                 <div className="ff-kiosks-slider-row">
-                  <span className="ff-kiosks-slider-label">30s</span>
+                  <span className="ff-kiosks-slider-label">{t('adminKiosks.sliderMin')}</span>
                   <input
                     type="range"
                     min={30}
@@ -374,47 +378,45 @@ export function Kiosks() {
                     onChange={(e) => setCfgKey('idleTimeoutSeconds', Number(e.target.value))}
                     className="ff-kiosks-slider"
                   />
-                  <span className="ff-kiosks-slider-label">300s</span>
+                  <span className="ff-kiosks-slider-label">{t('adminKiosks.sliderMax')}</span>
                 </div>
               </AdminFormRow>
             </AdminFormSection>
           </div>
 
-          {/* Preview panel */}
           <div className="ff-kiosks-attract-preview">
             <div className="ff-kiosks-preview-label">
-              <i className="bi bi-eye" /> Preview
+              <i className="bi bi-eye" /> {t('adminKiosks.previewLabel')}
             </div>
             <div className="ff-kiosks-preview-screen">
               {cfg.enabled ? (
                 <div className="ff-kiosks-preview-content">
                   <div className="ff-kiosks-preview-name">{cfg.restaurantName || '—'}</div>
                   {cfg.slogan && <div className="ff-kiosks-preview-slogan">{cfg.slogan}</div>}
-                  <div className="ff-kiosks-preview-cta">Toque para começar</div>
+                  <div className="ff-kiosks-preview-cta">{t('adminKiosks.touchToStart')}</div>
                 </div>
               ) : (
                 <div className="ff-kiosks-preview-off">
                   <i className="bi bi-display-slash" />
-                  <span>Tela de atração desativada</span>
+                  <span>{t('adminKiosks.attractDisabledPreview')}</span>
                 </div>
               )}
             </div>
             <p className="ff-kiosks-preview-note">
-              Tela exibida quando o kiosk está sem uso
+              {t('adminKiosks.attractPreviewNote')}
             </p>
           </div>
         </div>
       )}
 
-      {/* ── Placeholder tabs ── */}
       {(activeTab === 'branding' || activeTab === 'media' || activeTab === 'behavior') && (
         <div className="ff-kiosks-placeholder-tab">
-          <i className={`bi ${TABS.find((t) => t.key === activeTab)?.icon ?? 'bi-gear'}`} />
+          <i className={`bi ${TABS.find((tab) => tab.key === activeTab)?.icon ?? 'bi-gear'}`} />
           <div className="ff-kiosks-placeholder-title">
-            {TABS.find((t) => t.key === activeTab)?.label}
+            {TABS.find((tab) => tab.key === activeTab)?.label}
           </div>
           <p className="ff-kiosks-placeholder-text">
-            Esta seção será configurada em breve.
+            {t('adminKiosks.sectionSoon')}
           </p>
         </div>
       )}

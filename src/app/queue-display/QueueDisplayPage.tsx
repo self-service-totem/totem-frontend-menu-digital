@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { queueService, type EnrichedQueueTicket } from '@/lib/services/queueService';
 import { getCollection } from '@/lib/mock-db';
 import type { Tenant, Branch } from '@/lib/types';
+import { I18nProvider, useLabels } from '@/i18n/I18nContext';
+import { resolveLanguage } from '@/i18n/labels';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -58,16 +60,17 @@ function prepCardSize(total: number): PrepSize {
 // ─── Now Calling Hero ─────────────────────────────────────────────────────────
 
 function NowCallingHero({ ticket, flash }: { ticket: EnrichedQueueTicket; flash: boolean }) {
+  const { t } = useLabels();
   return (
     <div className={`ff-qdp-hero${flash ? ' ff-qdp-ready-anim' : ''}`}>
       <div className="ff-qdp-hero-eyebrow">
         <i className="bi bi-bell-fill" />
-        CHAMANDO AGORA
+        {t('queue.nowCalling')}
       </div>
       <div className="ff-qdp-hero-number">{ticket.ticketNumber}</div>
       <div className="ff-qdp-hero-instruction">
         <i className="bi bi-arrow-right-circle me-2" />
-        Retire seu pedido no balcão
+        {t('queue.pickupAtCounter')}
       </div>
     </div>
   );
@@ -76,9 +79,10 @@ function NowCallingHero({ ticket, flash }: { ticket: EnrichedQueueTicket; flash:
 // ─── Ready Card ───────────────────────────────────────────────────────────────
 
 function ReadyCard({ ticket, size, flash }: { ticket: EnrichedQueueTicket; size: ReadySize; flash: boolean }) {
+  const { t } = useLabels();
   return (
     <div className={`ff-qdp-ready-card ff-qdp-ready-card--${size}${flash ? ' ff-qdp-ready-anim' : ''}`}>
-      <div className="ff-qdp-card-label">SENHA</div>
+      <div className="ff-qdp-card-label">{t('queue.ticketLabel')}</div>
       <div className="ff-qdp-card-number">{ticket.ticketNumber}</div>
       <div className="ff-qdp-card-sub">{ticket.orderNumber}</div>
     </div>
@@ -88,9 +92,10 @@ function ReadyCard({ ticket, size, flash }: { ticket: EnrichedQueueTicket; size:
 // ─── Preparing Card ───────────────────────────────────────────────────────────
 
 function PrepCard({ ticket, size }: { ticket: EnrichedQueueTicket; size: PrepSize }) {
+  const { t } = useLabels();
   return (
     <div className={`ff-qdp-prep-card ff-qdp-prep-card--${size}`}>
-      <div className="ff-qdp-card-label ff-qdp-card-label--prep">SENHA</div>
+      <div className="ff-qdp-card-label ff-qdp-card-label--prep">{t('queue.ticketLabel')}</div>
       <div className="ff-qdp-card-number ff-qdp-card-number--prep">{ticket.ticketNumber}</div>
     </div>
   );
@@ -99,30 +104,33 @@ function PrepCard({ ticket, size }: { ticket: EnrichedQueueTicket; size: PrepSiz
 // ─── Empty States ─────────────────────────────────────────────────────────────
 
 function ReadyEmpty() {
+  const { t } = useLabels();
   return (
     <div className="ff-qdp-empty">
       <div className="ff-qdp-empty-icon">🧑‍🍳</div>
-      <div className="ff-qdp-empty-title">Preparando seus pedidos</div>
-      <div className="ff-qdp-empty-sub">Você será chamado assim que estiver pronto</div>
+      <div className="ff-qdp-empty-title">{t('queue.preparingTitle')}</div>
+      <div className="ff-qdp-empty-sub">{t('queue.preparingSub')}</div>
     </div>
   );
 }
 
 function PrepEmpty() {
+  const { t } = useLabels();
   return (
     <div className="ff-qdp-empty ff-qdp-empty--muted">
       <i className="bi bi-check-all ff-qdp-empty-icon" style={{ fontSize: 40, color: '#22c55e' }} />
-      <div className="ff-qdp-empty-sub">Todos os pedidos prontos</div>
+      <div className="ff-qdp-empty-sub">{t('queue.allReady')}</div>
     </div>
   );
 }
 
 function AllEmpty() {
+  const { t } = useLabels();
   return (
     <div className="ff-qdp-all-empty">
       <div style={{ fontSize: 80 }}>🍽️</div>
-      <div className="ff-qdp-all-empty-title">Nenhum pedido ativo</div>
-      <div className="ff-qdp-all-empty-sub">Faça seu pedido para aparecer aqui</div>
+      <div className="ff-qdp-all-empty-title">{t('queue.noActiveTitle')}</div>
+      <div className="ff-qdp-all-empty-sub">{t('queue.noActiveSub')}</div>
     </div>
   );
 }
@@ -130,6 +138,16 @@ function AllEmpty() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function QueueDisplayPage() {
+  const tenant = getCollection<Tenant>('tenants')[0];
+  return (
+    <I18nProvider language={resolveLanguage(tenant?.defaultLanguage)}>
+      <QueueDisplayInner />
+    </I18nProvider>
+  );
+}
+
+function QueueDisplayInner() {
+  const { t, language } = useLabels();
   const [tickets, setTickets]       = useState<EnrichedQueueTicket[]>([]);
   const [now, setNow]               = useState(new Date());
   const [flashIds, setFlashIds]     = useState<Set<string>>(new Set());
@@ -206,14 +224,14 @@ export function QueueDisplayPage() {
         <div className="ff-qdp-brand">
           <div className="ff-qdp-brand-logo">🍽️</div>
           <div>
-            <div className="ff-qdp-brand-name">{tenant?.name ?? 'Restaurante'}</div>
+            <div className="ff-qdp-brand-name">{tenant?.name ?? t('queue.restaurantFallback')}</div>
             {branch?.name && <div className="ff-qdp-brand-branch">{branch.name}</div>}
           </div>
         </div>
 
         <div className="ff-qdp-header-title">
           <i className="bi bi-tv me-2" />
-          Acompanhe seu pedido
+          {t('queue.headerTitle')}
         </div>
 
         <div className="ff-qdp-header-right">
@@ -221,7 +239,7 @@ export function QueueDisplayPage() {
             <i className="bi bi-house" />
           </button>
           <div className="ff-qdp-clock">
-            {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            {now.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
       </header>
@@ -237,7 +255,7 @@ export function QueueDisplayPage() {
             <div className="ff-qdp-col-ready">
               <div className="ff-qdp-col-header ff-qdp-col-header--ready">
                 <i className="bi bi-check-circle-fill" />
-                <span>Pronto — Retire!</span>
+                <span>{t('queue.readyColumn')}</span>
                 <span className="ff-qdp-badge ff-qdp-badge--ready">{ready.length}</span>
               </div>
 
@@ -265,7 +283,7 @@ export function QueueDisplayPage() {
             <div className="ff-qdp-col-prep">
               <div className="ff-qdp-col-header ff-qdp-col-header--prep">
                 <i className="bi bi-hourglass-split" />
-                <span>Em preparo</span>
+                <span>{t('queue.preparingColumn')}</span>
                 <span className="ff-qdp-badge ff-qdp-badge--prep">{preparing.length}</span>
               </div>
 
@@ -286,7 +304,7 @@ export function QueueDisplayPage() {
                           <span key={i} className={`ff-qdp-pager-dot${i === safePage ? ' active' : ''}`} />
                         ))}
                         <span className="ff-qdp-pager-label">
-                          Pág. {safePage + 1} de {totalPages}
+                          {t('queue.pageOf', { page: safePage + 1, total: totalPages })}
                         </span>
                       </div>
                     )}
@@ -301,9 +319,9 @@ export function QueueDisplayPage() {
 
       {/* ── Footer ── */}
       <footer className="ff-qdp-footer">
-        <span><i className="bi bi-arrow-repeat me-1" />Atualiza a cada 3 segundos</span>
+        <span><i className="bi bi-arrow-repeat me-1" />{t('queue.refreshNote')}</span>
         <span className="ff-qdp-footer-sep">·</span>
-        <span>Confira o número na senha impressa</span>
+        <span>{t('queue.checkPrintedTicket')}</span>
       </footer>
 
     </div>

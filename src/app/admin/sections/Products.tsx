@@ -4,6 +4,7 @@ import { useNotify } from '@/lib/notifications';
 import type { DbCategory, DbProduct, KitchenStation } from '@/lib/types';
 import { formatBRL, formatDate } from '../adminUtils';
 import { AdminModal } from '@/components/admin';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminButton,
@@ -21,6 +22,7 @@ import type { AdminTableColumn, SortDir, ViewMode } from '@/components/admin';
 type ProductRow = DbProduct & { categoryName: string };
 
 export function Products() {
+  const { t } = useLabels();
   const [products, setProducts]     = useState<DbProduct[]>([]);
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [showModal, setShowModal]   = useState(false);
@@ -62,21 +64,21 @@ export function Products() {
       categoryId: form.categoryId, available: form.available,
       featured: form.featured, station: form.station as KitchenStation,
     };
-    if (editing) { await productService.update(editing.id, data); notify('Produto atualizado'); }
-    else          { await productService.create(data);             notify('Produto criado'); }
+    if (editing) { await productService.update(editing.id, data); notify(t('adminProducts.updatedToast')); }
+    else          { await productService.create(data);             notify(t('adminProducts.createdToast')); }
     setShowModal(false);
     load();
   }
 
   async function toggleAvailable(p: DbProduct) {
     await productService.update(p.id, { available: !p.available });
-    notify(p.available ? 'Produto desativado' : 'Produto ativado');
+    notify(p.available ? t('adminProducts.disabledToast') : t('adminProducts.enabledToast'));
     load();
   }
 
   async function toggleFeatured(p: DbProduct) {
     await productService.update(p.id, { featured: !p.featured });
-    notify(p.featured ? 'Destaque removido' : 'Marcado como destaque');
+    notify(p.featured ? t('adminProducts.removedFeaturedToast') : t('adminProducts.addedFeaturedToast'));
     load();
   }
 
@@ -101,7 +103,7 @@ export function Products() {
   const tableRows = useSortable(withCatName, sortBy, sortDir);
 
   const catOptions = [
-    { key: '', label: 'Todos' },
+    { key: '', label: t('common.all') },
     ...categories.map((c) => ({ key: c.id, label: c.name })),
   ];
 
@@ -121,7 +123,7 @@ export function Products() {
     },
     {
       key: 'name',
-      label: 'Produto',
+      label: t('adminProducts.colProduct'),
       sortable: true,
       render: (p) => (
         <div>
@@ -132,14 +134,14 @@ export function Products() {
     },
     {
       key: 'categoryName',
-      label: 'Categoria',
+      label: t('adminProducts.colCategory'),
       sortable: true,
       className: 'ff-hide-mobile',
       render: (p) => <span className="ff-table-row-tag">{p.categoryName || '—'}</span>,
     },
     {
       key: 'price',
-      label: 'Preço',
+      label: t('adminProducts.colPrice'),
       sortable: true,
       width: '100px',
       align: 'right',
@@ -155,13 +157,13 @@ export function Products() {
           <div className={`ff-toggle-track${p.available ? ' on' : ''}`}>
             <div className="ff-toggle-thumb" />
           </div>
-          <span className="ff-toggle-label">{p.available ? 'Ativo' : 'Inativo'}</span>
+          <span className="ff-toggle-label">{p.available ? t('common.active') : t('common.inactive')}</span>
         </label>
       ),
     },
     {
       key: 'featured',
-      label: 'Destaque',
+      label: t('adminProducts.colFeatured'),
       sortable: true,
       width: '80px',
       align: 'center',
@@ -171,7 +173,7 @@ export function Products() {
           type="button"
           className={`ff-feature-toggle${p.featured ? ' on' : ''}`}
           onClick={() => toggleFeatured(p)}
-          title={p.featured ? 'Remover destaque' : 'Marcar como destaque'}
+          title={p.featured ? t('adminProducts.removeFeatured') : t('adminProducts.addFeatured')}
         >
           <i className={`bi bi-star${p.featured ? '-fill' : ''}`} />
         </button>
@@ -179,7 +181,7 @@ export function Products() {
     },
     {
       key: 'updatedAt',
-      label: 'Atualizado',
+      label: t('common.updated'),
       sortable: true,
       width: '110px',
       className: 'ff-hide-mobile',
@@ -196,19 +198,19 @@ export function Products() {
             icon="bi-pencil"
             variant="ghost"
             size="sm"
-            title="Editar produto"
+            title={t('adminProducts.editProduct')}
             onClick={() => openEdit(p)}
           />
           <AdminActionMenu items={[
             {
               key: 'toggle',
-              label: p.available ? 'Desativar' : 'Ativar',
+              label: p.available ? t('common.disable') : t('common.enable'),
               icon: p.available ? 'bi-toggle-off' : 'bi-toggle-on',
               onClick: () => toggleAvailable(p),
             },
             {
               key: 'featured',
-              label: p.featured ? 'Remover destaque' : 'Marcar destaque',
+              label: p.featured ? t('adminProducts.removeFeatured') : t('adminProducts.addFeatured'),
               icon: 'bi-star',
               onClick: () => toggleFeatured(p),
             },
@@ -218,15 +220,19 @@ export function Products() {
     },
   ];
 
+  const productCountLabel = products.length === 1
+    ? `1 ${t('adminProducts.productSingular')} ${t('adminProducts.inCatalog')}`
+    : `${products.length} ${t('adminProducts.productPlural')} ${t('adminProducts.inCatalog')}`;
+
   return (
     <div className={viewMode === 'table' ? 'ff-table-view' : undefined}>
       <div className="ff-products-sticky-bar">
         <AdminPageHeader
-          title="Produtos"
-          subtitle={`${products.length} produto${products.length !== 1 ? 's' : ''} no catálogo`}
+          title={t('adminProducts.title')}
+          subtitle={productCountLabel}
           actions={
             <AdminButton variant="primary" icon="bi-plus" onClick={openCreate}>
-              Novo produto
+              {t('adminProducts.newProduct')}
             </AdminButton>
           }
         />
@@ -235,7 +241,7 @@ export function Products() {
           <AdminSearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Buscar produto..."
+            placeholder={t('adminProducts.searchPlaceholder')}
           />
           <AdminFilterBar options={catOptions} value={catFilter} onChange={setCatFilter} />
           <div className="ff-admin-toolbar-right">
@@ -252,17 +258,17 @@ export function Products() {
           sortDir={sortDir}
           onSort={handleSort}
           emptyIcon="bi-box"
-          emptyTitle="Nenhum produto encontrado"
-          emptyMessage="Tente mudar os filtros ou crie um novo produto."
+          emptyTitle={t('adminProducts.noProducts')}
+          emptyMessage={t('adminProducts.noProductsDesc')}
         />
       ) : filtered.length === 0 ? (
         <AdminEmptyState
           icon="bi-box"
-          title="Nenhum produto encontrado"
-          message="Tente mudar os filtros ou crie um novo produto."
+          title={t('adminProducts.noProducts')}
+          message={t('adminProducts.noProductsDesc')}
           action={
             <AdminButton variant="primary" size="sm" icon="bi-plus" onClick={openCreate}>
-              Criar primeiro produto
+              {t('adminProducts.createFirst')}
             </AdminButton>
           }
         />
@@ -277,7 +283,7 @@ export function Products() {
                     ? <img src={p.imageUrl} alt={p.name} className="ff-product-card-img" />
                     : <div className="ff-product-card-img-ph"><i className="bi bi-image" /></div>
                   }
-                  {p.featured && <span className="ff-product-card-featured">Destaque</span>}
+                  {p.featured && <span className="ff-product-card-featured">{t('adminProducts.featured')}</span>}
                 </div>
                 <div className="ff-product-card-body">
                   <div className="ff-product-card-name">{p.name}</div>
@@ -289,13 +295,13 @@ export function Products() {
                     <div className={`ff-toggle-track${p.available ? ' on' : ''}`}>
                       <div className="ff-toggle-thumb" />
                     </div>
-                    <span className="ff-toggle-label">{p.available ? 'Ativo' : 'Inativo'}</span>
+                    <span className="ff-toggle-label">{p.available ? t('common.active') : t('common.inactive')}</span>
                   </label>
                   <AdminIconButton
                     icon="bi-pencil"
                     variant="ghost"
                     size="sm"
-                    title="Editar produto"
+                    title={t('adminProducts.editProduct')}
                     onClick={() => openEdit(p)}
                   />
                 </div>
@@ -307,16 +313,21 @@ export function Products() {
 
       {showModal && (
         <AdminModal
-          title={editing ? 'Editar produto' : 'Novo produto'}
+          title={editing ? t('adminProducts.editTitle') : t('adminProducts.newTitle')}
           onClose={() => setShowModal(false)}
           footer={
             <>
-              <AdminButton variant="primary" onClick={handleSave} style={{ flex: 1 }}>Salvar</AdminButton>
-              <AdminButton variant="outline" onClick={() => setShowModal(false)}>Cancelar</AdminButton>
+              <AdminButton variant="primary" onClick={handleSave} style={{ flex: 1 }}>{t('common.save')}</AdminButton>
+              <AdminButton variant="outline" onClick={() => setShowModal(false)}>{t('common.cancel')}</AdminButton>
             </>
           }
         >
-          {([['Nome', 'name', 'text'], ['Preço (R$)', 'price', 'number'], ['URL da imagem', 'imageUrl', 'url'], ['Descrição', 'description', 'text']] as const).map(([label, field, type]) => (
+          {([
+            [t('adminProducts.name'),        'name',        'text'],
+            [t('adminProducts.price'),        'price',       'number'],
+            [t('adminProducts.imageUrl'),     'imageUrl',    'url'],
+            [t('adminProducts.description'),  'description', 'text'],
+          ] as const).map(([label, field, type]) => (
             <div key={field} className="ff-admin-form-row">
               <label className="ff-admin-form-label">{label}</label>
               <input
@@ -328,7 +339,7 @@ export function Products() {
             </div>
           ))}
           <div className="ff-admin-form-row">
-            <label className="ff-admin-form-label">Categoria</label>
+            <label className="ff-admin-form-label">{t('adminProducts.category')}</label>
             <select
               className="ff-admin-form-select"
               value={form.categoryId}
@@ -338,28 +349,28 @@ export function Products() {
             </select>
           </div>
           <div className="ff-admin-form-row">
-            <label className="ff-admin-form-label">Estação da cozinha</label>
+            <label className="ff-admin-form-label">{t('adminProducts.kitchenStation')}</label>
             <select
               className="ff-admin-form-select"
               value={form.station}
               onChange={(e) => setForm((f) => ({ ...f, station: e.target.value }))}
             >
-              <option value="GENERAL">Geral</option>
-              <option value="GRILL">Churrasqueira / Grill</option>
-              <option value="BAR">Bar / Bebidas</option>
-              <option value="SALAD">Frios / Saladas</option>
-              <option value="DESSERT">Sobremesas</option>
-              <option value="FRYER">Frituras</option>
+              <option value="GENERAL">{t('adminProducts.stationGeneral')}</option>
+              <option value="GRILL">{t('adminProducts.stationGrill')}</option>
+              <option value="BAR">{t('adminProducts.stationBar')}</option>
+              <option value="SALAD">{t('adminProducts.stationColdFood')}</option>
+              <option value="DESSERT">{t('adminProducts.stationDesserts')}</option>
+              <option value="FRYER">{t('adminProducts.stationFried')}</option>
             </select>
           </div>
           <div style={{ display: 'flex', gap: 20 }}>
             <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" checked={form.available} onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))} />
-              Disponível
+              {t('adminProducts.available')}
             </label>
             <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" checked={form.featured} onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))} />
-              Destaque
+              {t('adminProducts.featured')}
             </label>
           </div>
         </AdminModal>

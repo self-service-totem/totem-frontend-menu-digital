@@ -3,6 +3,7 @@ import { branchService } from '@/lib/services/adminService';
 import { getCollection, updateOne } from '@/lib/mock-db';
 import { useNotify } from '@/lib/notifications';
 import type { Branch, QueueTicket } from '@/lib/types';
+import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
   AdminButton,
@@ -13,11 +14,19 @@ import {
 } from '@/components/admin';
 import type { AdminTableColumn } from '@/components/admin';
 
+function waitingTime(createdAt: string): string {
+  const mins = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+  if (mins < 1) return '< 1 min';
+  return `${mins} min`;
+}
+
 export function QueueSection() {
+  const { t } = useLabels();
   const [branch, setBranch]             = useState<Branch | null>(null);
   const [tickets, setTickets]           = useState<QueueTicket[]>([]);
   const [queueMsg, setQueueMsg]         = useState('');
   const [queueEnabled, setQueueEnabled] = useState(false);
+  const [configOpen, setConfigOpen]     = useState(false);
   const notify = useNotify();
 
   function loadTickets() {
@@ -38,89 +47,97 @@ export function QueueSection() {
     const next = !queueEnabled;
     await branchService.update({ queueEnabled: next });
     setQueueEnabled(next);
-    notify(next ? 'Fila ativada — visível no Menu Digital' : 'Fila desativada');
+    notify(next ? t('adminQueue.activatedToast') : t('adminQueue.deactivatedToast'));
   }
 
   async function handleSaveMsg() {
     await branchService.update({ queueMessage: queueMsg });
-    notify('Mensagem da fila atualizada');
+    notify(t('adminQueue.msgSavedToast'));
+    setConfigOpen(false);
   }
 
   function callNext() {
-    const next = tickets.find((t) => t.status === 'WAITING');
+    const next = tickets.find((tk) => tk.status === 'WAITING');
     if (!next) return;
     updateOne<QueueTicket>('queueTickets', next.id, { status: 'CALLED' });
-    notify(`Chamando senha #${next.ticketNumber} — ${next.customerName}`);
+    notify(t('adminQueue.callingToast', { ticket: String(next.ticketNumber), name: next.customerName }));
     loadTickets();
   }
 
-  function advanceTicket(id: string, to: 'SERVING' | 'COMPLETED') {
+  function advanceTicket(id: string, to: 'SERVING' | 'COMPLETED' | 'CANCELED') {
     updateOne<QueueTicket>('queueTickets', id, { status: to });
+    if (to === 'CANCELED') notify(t('adminQueue.cancelledToast'));
     loadTickets();
   }
 
-  const waiting = tickets.filter((t) => t.status === 'WAITING');
-  const active  = tickets.filter((t) => t.status === 'CALLED' || t.status === 'SERVING');
-  const open    = tickets.filter((t) => t.status !== 'COMPLETED' && t.status !== 'CANCELED');
-  const done    = tickets.filter((t) => t.status === 'COMPLETED').length;
+  const waiting      = tickets.filter((tk) => tk.status === 'WAITING');
+  const active       = tickets.filter((tk) => tk.status === 'CALLED' || tk.status === 'SERVING');
+  const open         = tickets.filter((tk) => tk.status !== 'COMPLETED' && tk.status !== 'CANCELED');
+  const done         = tickets.filter((tk) => tk.status === 'COMPLETED').length;
+  const nextWaiting  = waiting[0];
 
   if (!branch) return null;
 
   const columns: AdminTableColumn<QueueTicket>[] = [
     {
       key: 'ticketNumber',
-      label: 'Senha',
+      label: t('adminQueue.ticket'),
       sortable: true,
-      width: '80px',
-      render: (t) => <strong>#{t.ticketNumber}</strong>,
+      width: '72px',
+      render: (tk) => <strong>#{tk.ticketNumber}</strong>,
     },
     {
       key: 'customerName',
-      label: 'Cliente',
+      label: t('common.customer'),
       sortable: true,
-      render: (t) => t.customerName,
+      render: (tk) => tk.customerName,
     },
     {
       key: 'orderNumber',
-      label: 'Pedido',
-      render: (t) => <span style={{ color: '#6b7280' }}>{t.orderNumber}</span>,
+      label: t('adminQueue.orderLabel'),
+      width: '90px',
+      render: (tk) => <span style={{ color: '#6b7280' }}>{tk.orderNumber}</span>,
     },
     {
       key: 'status',
       label: 'Status',
-      render: (t) => <QueueStatusBadge status={t.status} />,
+      width: '130px',
+      render: (tk) => <QueueStatusBadge status={tk.status} />,
+    },
+    {
+      key: 'createdAt',
+      label: t('adminQueue.waitTime'),
+      width: '80px',
+      render: (tk) => <span className="ff-queue-wait-time">{waitingTime(tk.createdAt)}</span>,
     },
     {
       key: '_actions',
       label: '',
-      width: '120px',
-      render: (t) => (
-        <div style={{ display: 'flex', gap: 6 }}>
-          {t.status === 'WAITING' && (
+      width: '200px',
+      render: (tk) => (
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+          {tk.status === 'WAITING' && (
             <AdminButton
               variant="outline"
               size="sm"
-              onClick={() => { updateOne<QueueTicket>('queueTickets', t.id, { status: 'CALLED' }); loadTickets(); }}
+              onClick={() => { updateOne<QueueTicket>('queueTickets', tk.id, { status: 'CALLED' }); loadTickets(); }}
             >
-              Chamar
+              {t('adminQueue.callBtn')}
             </AdminButton>
           )}
-          {t.status === 'CALLED' && (
-            <AdminButton
-              variant="success"
-              size="sm"
-              onClick={() => advanceTicket(t.id, 'SERVING')}
-            >
-              Atender
+          {tk.status === 'CALLED' && (
+            <AdminButton variant="success" size="sm" onClick={() => advanceTicket(tk.id, 'SERVING')}>
+              {t('adminQueue.attendBtn')}
             </AdminButton>
           )}
-          {t.status === 'SERVING' && (
-            <AdminButton
-              variant="primary"
-              size="sm"
-              onClick={() => advanceTicket(t.id, 'COMPLETED')}
-            >
-              Concluir
+          {tk.status === 'SERVING' && (
+            <AdminButton variant="primary" size="sm" onClick={() => advanceTicket(tk.id, 'COMPLETED')}>
+              {t('adminQueue.completeBtn')}
+            </AdminButton>
+          )}
+          {(tk.status === 'WAITING' || tk.status === 'CALLED') && (
+            <AdminButton variant="destructive" size="sm" onClick={() => advanceTicket(tk.id, 'CANCELED')}>
+              {t('adminQueue.cancelBtn')}
             </AdminButton>
           )}
         </div>
@@ -131,65 +148,71 @@ export function QueueSection() {
   return (
     <div className="ff-queue-screen">
       <AdminPageHeader
-        title="Fila de espera"
-        subtitle="Gestão da fila de atendimento presencial"
+        title={t('adminQueue.title')}
         actions={
-          <span className={`ff-admin-badge ${queueEnabled ? 'ff-admin-badge--active' : 'ff-admin-badge--inactive'}`}>
-            {queueEnabled ? 'Fila ativa' : 'Fila inativa'}
-          </span>
+          <div className="ff-queue-header-actions">
+            <span className={`ff-admin-badge ${queueEnabled ? 'ff-admin-badge--active' : 'ff-admin-badge--inactive'}`}>
+              {queueEnabled ? t('adminQueue.enabled') : t('adminQueue.disabled')}
+            </span>
+            <AdminButton
+              variant="ghost"
+              size="sm"
+              icon="bi-gear"
+              onClick={() => setConfigOpen((o) => !o)}
+            >
+              {t('adminQueue.configure')}
+            </AdminButton>
+            {nextWaiting && (
+              <AdminButton variant="success" icon="bi-megaphone" onClick={callNext}>
+                {t('adminQueue.callNextBtn')} — #{nextWaiting.ticketNumber} · {nextWaiting.customerName}
+              </AdminButton>
+            )}
+          </div>
         }
       />
 
-      {/* Config panel */}
-      <AdminCard header="Configurações da fila">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="ff-admin-toggle-row">
-            <button
-              className="ff-admin-toggle"
-              aria-checked={queueEnabled}
-              onClick={handleToggle}
-              role="switch"
-              aria-label="Habilitar fila"
-            >
-              <span className="ff-admin-toggle-thumb" />
-            </button>
-            <span className={`ff-admin-toggle-label${queueEnabled ? ' ff-admin-toggle-label--on' : ''}`}>
-              {queueEnabled ? 'Fila habilitada — visível no Menu Digital' : 'Fila desabilitada'}
-            </span>
-          </div>
-
-          <div className="ff-admin-form-row">
-            <label className="ff-admin-form-label">Mensagem exibida aos clientes</label>
+      {configOpen && (
+        <AdminCard>
+          <div className="ff-queue-config-panel">
+            <div className="ff-admin-toggle-row">
+              <button
+                className="ff-admin-toggle"
+                aria-checked={queueEnabled}
+                onClick={handleToggle}
+                role="switch"
+                aria-label={t('adminQueue.enableBtn')}
+              >
+                <span className="ff-admin-toggle-thumb" />
+              </button>
+              <span className={`ff-admin-toggle-label${queueEnabled ? ' ff-admin-toggle-label--on' : ''}`}>
+                {queueEnabled ? t('adminQueue.enabledDesc') : t('adminQueue.disabledDesc')}
+              </span>
+            </div>
             <div className="ff-queue-config-grid">
-              <input
-                className="ff-admin-form-input"
-                value={queueMsg}
-                onChange={(e) => setQueueMsg(e.target.value)}
-                placeholder="ex: Acompanhe seu pedido aqui!"
-              />
-              <AdminButton variant="secondary" onClick={handleSaveMsg}>Salvar</AdminButton>
+              <label className="ff-admin-form-label">{t('adminQueue.messageLabel')}</label>
+              <div className="ff-queue-config-row">
+                <input
+                  className="ff-admin-form-input"
+                  value={queueMsg}
+                  onChange={(e) => setQueueMsg(e.target.value)}
+                  placeholder={t('adminQueue.messagePlaceholder')}
+                />
+                <AdminButton variant="secondary" onClick={handleSaveMsg}>{t('common.save')}</AdminButton>
+                <AdminButton variant="ghost" onClick={() => setConfigOpen(false)}>{t('common.cancel')}</AdminButton>
+              </div>
             </div>
           </div>
-        </div>
-      </AdminCard>
-
-      {/* Metrics strip */}
-      <div className="ff-queue-metrics-strip">
-        <MetricChip label="Aguardando"     value={waiting.length} icon="bi-hourglass-split" color="amber" />
-        <MetricChip label="Sendo atendido" value={active.length}  icon="bi-person-check"    color="green" />
-        <MetricChip label="Concluídos"     value={done}           icon="bi-check-all"        color="slate" />
-      </div>
-
-      {/* Call next CTA */}
-      {waiting.length > 0 && (
-        <AdminButton variant="success" icon="bi-megaphone" size="lg" onClick={callNext}>
-          Chamar próxima — #{waiting[0].ticketNumber} · {waiting[0].customerName}
-        </AdminButton>
+        </AdminCard>
       )}
 
-      {/* Open tickets table */}
+      <div className="ff-queue-metrics-strip">
+        <MetricChip label={t('adminQueue.waiting')}   value={waiting.length} icon="bi-hourglass-split" color="amber" />
+        <MetricChip label={t('adminQueue.serving')}   value={active.length}  icon="bi-person-check"    color="green" />
+        <MetricChip label={t('adminQueue.completed')} value={done}           icon="bi-check-all"        color="slate" />
+      </div>
+
       <AdminCard
-        header="Senhas em aberto"
+        header={t('adminQueue.openTickets')}
         headerRight={
           open.length > 0
             ? <span className="ff-admin-badge ff-admin-badge--blue">{open.length}</span>
@@ -201,8 +224,8 @@ export function QueueSection() {
           columns={columns}
           rows={open}
           emptyIcon="bi-people"
-          emptyTitle="Nenhuma senha em aberto"
-          emptyMessage="A fila está vazia no momento."
+          emptyTitle={t('adminQueue.noOpenTickets')}
+          emptyMessage={t('adminQueue.empty')}
         />
       </AdminCard>
     </div>

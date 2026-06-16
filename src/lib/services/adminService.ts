@@ -108,23 +108,37 @@ export const zoneService = {
         .sort((a, b) => a.order - b.order),
     );
   },
-  async create(name: string): Promise<Zone> {
+  async create(data: { name: string; color?: string; active?: boolean; defaultWaiterId?: string; order?: number }): Promise<Zone> {
     const existing = getCollection<Zone>('zones').filter((z) => z.branchId === BRANCH_ID);
     const zone: Zone = {
       id: `zone-${Date.now()}`,
       tenantId: TENANT_ID,
       branchId: BRANCH_ID,
-      name,
-      order: existing.length + 1,
+      name: data.name,
+      order: data.order ?? existing.length + 1,
+      color: data.color,
+      active: data.active ?? true,
+      defaultWaiterId: data.defaultWaiterId,
       createdAt: now(),
       updatedAt: now(),
     };
     return delay(insertOne('zones', zone));
   },
+  async update(id: string, patch: Partial<Zone>): Promise<Zone | null> {
+    return delay(updateOne<Zone>('zones', id, patch));
+  },
   async remove(id: string): Promise<void> {
     const zones = getCollection<Zone>('zones').filter((z) => z.id !== id);
     setCollection('zones', zones);
     return delay(undefined as unknown as void);
+  },
+  async tableCountForZone(zoneId: string): Promise<number> {
+    const zone = getCollection<Zone>('zones').find((z) => z.id === zoneId);
+    return delay(
+      getCollection<DbTable>('tables').filter(
+        (t) => t.zoneId === zoneId || (!t.zoneId && zone && t.zoneName === zone.name),
+      ).length,
+    );
   },
 };
 

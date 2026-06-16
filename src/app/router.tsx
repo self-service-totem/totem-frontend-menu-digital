@@ -70,9 +70,9 @@ export const router = createBrowserRouter([
   // ─── Cashier ──────────────────────────────────────────────────────────────
   { path: '/cashier', element: <Navigate to="/cashier/orders" replace /> },
   { path: '/cashier/orders', element: <CashierPage /> },
-  { path: '/cashier/payments', element: <CashierPage /> },
-  { path: '/cashier/invoices', element: <CashierPage /> },
+  { path: '/cashier/history', element: <CashierPage /> },
   { path: '/cashier/receipts', element: <CashierPage /> },
+  { path: '/cashier/invoices', element: <CashierPage /> },
 
   // ─── Admin ────────────────────────────────────────────────────────────────
   { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
@@ -92,4 +92,16 @@ export const router = createBrowserRouter([
   { path: '/reports/:section', element: <ReportsPage /> },
   { path: '/reservations', element: <ReservationsPage /> },
   { path: '/delivery', element: <DeliveryPage /> },
+
+  // ─── 404 ──────────────────────────────────────────────────────────────────────
+  {
+    path: '*',
+    element: (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 16, fontFamily: 'system-ui, sans-serif', color: '#374151' }}>
+        <i className="bi bi-exclamation-circle" style={{ fontSize: 48, color: '#9ca3af' }} />
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>404 — Página não encontrada</h2>
+        <a href="/" style={{ color: '#1d4ed8', fontSize: 14 }}>← Voltar ao Hub</a>
+      </div>
+    ),
+  },
 ]);
