@@ -2219,6 +2219,14 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 
 .ff-kiosk-step-line.done { background: #059669; }
 
+/* Portrait tablet: stepper needs to stay readable (vw-based sizes shrink too much) */
+@media (orientation: portrait) {
+  .ff-kiosk-steps { padding: 14px 24px; }
+  .ff-kiosk-step { font-size: 16px; gap: 8px; }
+  .ff-kiosk-step-dot { width: 34px; height: 34px; font-size: 15px; }
+  .ff-kiosk-step-line { width: 32px; }
+}
+
 /* ─── Welcome page ───────────────────────────────────────────────────────── */
 /* Subtle warm gradient backdrop so the screen doesn't read as flat white */
 .ff-kiosk-welcome-layout {
