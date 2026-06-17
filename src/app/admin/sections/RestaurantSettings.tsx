@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { branchService, tenantService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
-import type { Branch, Tenant } from '@/lib/types';
+import type { Branch, BranchPaymentMethods, Tenant } from '@/lib/types';
+import { DEFAULT_PAYMENT_METHODS } from '@/lib/types';
 import { useLabels } from '@/i18n/I18nContext';
 import {
   AdminPageHeader,
@@ -24,6 +25,7 @@ type BranchForm = {
   queueMessage: string;
   serviceFeeRate: string;
   currency: string;
+  paymentMethods: BranchPaymentMethods;
 };
 
 function formsEqual<T extends object>(a: T, b: T) {
@@ -38,8 +40,8 @@ export function RestaurantSettings() {
   const [tenantForm, setTenantForm]           = useState<TenantForm>({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' });
   const [savedTenantForm, setSavedTenantForm] = useState<TenantForm>({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' });
 
-  const [branchForm, setBranchForm]           = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL' });
-  const [savedBranchForm, setSavedBranchForm] = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL' });
+  const [branchForm, setBranchForm]           = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL', paymentMethods: { ...DEFAULT_PAYMENT_METHODS } });
+  const [savedBranchForm, setSavedBranchForm] = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL', paymentMethods: { ...DEFAULT_PAYMENT_METHODS } });
 
   const [saving, setSaving] = useState(false);
   const notify = useNotify();
@@ -59,6 +61,7 @@ export function RestaurantSettings() {
           queueMessage: b.queueMessage ?? '',
           serviceFeeRate: String(b.serviceFeeRate ?? 0.1),
           currency: b.currency ?? 'BRL',
+          paymentMethods: { ...DEFAULT_PAYMENT_METHODS, ...(b.paymentMethods ?? {}) },
         };
         setBranch(b); setBranchForm(bf); setSavedBranchForm(bf);
       }
@@ -216,6 +219,42 @@ export function RestaurantSettings() {
               />
             </AdminFormRow>
           </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title={t('adminSettings.payments')}
+          description={t('adminSettings.paymentsDesc')}
+        >
+          {([
+            ['card', 'adminSettings.payCard'],
+            ['pix', 'adminSettings.payPix'],
+            ['mercadoPago', 'adminSettings.payMercadoPago'],
+            ['cash', 'adminSettings.payCash'],
+          ] as [keyof BranchPaymentMethods, Parameters<typeof t>[0]][]).map(([key, labelKey]) => {
+            const on = branchForm.paymentMethods[key];
+            return (
+              <AdminFormRow key={key} label={t(labelKey)}>
+                <label className="ff-admin-toggle-row" style={{ cursor: 'pointer' }}>
+                  <button
+                    className="ff-admin-toggle"
+                    aria-checked={on}
+                    role="switch"
+                    onClick={() =>
+                      setBranchForm((f) => ({
+                        ...f,
+                        paymentMethods: { ...f.paymentMethods, [key]: !f.paymentMethods[key] },
+                      }))
+                    }
+                  >
+                    <span className="ff-admin-toggle-thumb" />
+                  </button>
+                  <span className={`ff-admin-toggle-label${on ? ' ff-admin-toggle-label--on' : ''}`}>
+                    {on ? t('adminSettings.paymentOn') : t('adminSettings.paymentOff')}
+                  </span>
+                </label>
+              </AdminFormRow>
+            );
+          })}
         </AdminFormSection>
 
         <AdminFormSection

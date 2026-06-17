@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { kioskService } from '@/lib/services/kioskService';
+import { branchService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
 import { useLabels } from '@/i18n/I18nContext';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
 import { loadAttractConfig } from './attractConfig';
-import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder } from '@/lib/types';
+import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder, BranchPaymentMethods, PaymentMethodId } from '@/lib/types';
+import { DEFAULT_PAYMENT_METHODS } from '@/lib/types';
 import type { LabelKey } from '@/i18n/labels';
 import { formatCurrency as formatBRL } from '@/utils/format';
 
@@ -124,6 +126,20 @@ function getCategoryIcon(name: string): string {
   if (n.includes('massa') || n.includes('pasta') || n.includes('macarrao')) return 'bi-tornado';
   if (n.includes('pao') || n.includes('padaria') || n.includes('bakery')) return 'bi-box';
   return 'bi-tag';
+}
+
+function getCategoryColor(name: string): string {
+  const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (n.includes('cafe') || n.includes('coffee')) return '#b45309';
+  if (n.includes('bebida') || n.includes('drink') || n.includes('suco') || n.includes('agua') || n.includes('refri')) return '#2563eb';
+  if (n.includes('sobremesa') || n.includes('dessert') || n.includes('doce') || n.includes('sorvete')) return '#db2777';
+  if (n.includes('entrada') || n.includes('starter') || n.includes('aperitivo')) return '#d97706';
+  if (n.includes('burger') || n.includes('hamburguer') || n.includes('lanche')) return '#92400e';
+  if (n.includes('salada') || n.includes('salad') || n.includes('vegano')) return '#16a34a';
+  if (n.includes('carne') || n.includes('meat') || n.includes('churrasco') || n.includes('grelhado')) return '#dc2626';
+  if (n.includes('prato') || n.includes('principal') || n.includes('main')) return '#e11d2a';
+  if (n.includes('pizza')) return '#ea580c';
+  return '#6b7280';
 }
 
 // ─── Progress stepper ─────────────────────────────────────────────────────────
@@ -247,14 +263,12 @@ function useKioskMenu() {
 
 export function KioskMenuPage() {
   const { categories, products, activeCat, setActiveCat, loaded, load } = useKioskMenu();
-  // Hydrate from sessionStorage so "add more" from the cart keeps the order
   const [cart, setCart] = useState<CartItem[]>(() => {
     try { return JSON.parse(sessionStorage.getItem('ff_kiosk_cart') ?? '[]'); } catch { return []; }
   });
   const navigate = useNavigate();
   const { t } = useLabels();
   const { warning, dismiss, goHome } = useKioskIdleTimeout();
-  // Transient "added" confirmation toast (product name + a bump key for animation)
   const [toast, setToast] = useState<{ name: string; key: number } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -265,6 +279,10 @@ export function KioskMenuPage() {
     ? products.filter((p) => p.categoryId === activeCat)
     : products;
 
+  const featuredProducts = displayed.filter((p) => p.featured).slice(0, 2);
+  const featuredIds = new Set(featuredProducts.map((p) => p.id));
+  const regularProducts = displayed.filter((p) => !featuredIds.has(p.id));
+
   const cartCount    = cart.reduce((s, i) => s + i.quantity, 0);
   const cartSubtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const cartTax      = +(cartSubtotal * 0.1).toFixed(2);
@@ -273,20 +291,15 @@ export function KioskMenuPage() {
   const serviceParam = new URLSearchParams(window.location.search).get('service') ?? 'EAT_IN';
   const serviceLabel = serviceParam === 'EAT_IN' ? t('kiosk.welcome.eatIn') : t('kiosk.welcome.takeaway');
 
+  const cartProductIds = new Set(cart.map((i) => i.productId));
+  const upsellProduct = products.find((p) => p.available && !cartProductIds.has(p.id));
+
   function addToCart(prod: DbProduct) {
     setCart((prev) => {
       const ex = prev.find((i) => i.productId === prod.id);
       if (ex) return prev.map((i) => i.productId === prod.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, {
-        id: prod.id,
-        productId: prod.id,
-        name: prod.name,
-        imageUrl: prod.imageUrl,
-        unitPrice: prod.price,
-        quantity: 1,
-      }];
+      return [...prev, { id: prod.id, productId: prod.id, name: prod.name, imageUrl: prod.imageUrl, unitPrice: prod.price, quantity: 1 }];
     });
-    // Flash a confirmation so the tap registers without leaving the grid
     setToast({ name: prod.name, key: Date.now() });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 1600);
@@ -306,88 +319,175 @@ export function KioskMenuPage() {
 
   return (
     <div className="ff-kiosk-layout">
-      {/* Topbar */}
-      <div className="ff-kiosk-topbar">
-        <button className="ff-kiosk-topbar-back" onClick={() => navigate('/kiosk/start')}>
+      {/* Premium header */}
+      <header className="ff-kiosk-header">
+        <button className="ff-kiosk-header-back" onClick={() => navigate('/kiosk/start')}>
           <i className="bi bi-arrow-left" />
         </button>
-        <span className="ff-kiosk-topbar-title">Pertinho do Céu</span>
+        <div className="ff-kiosk-header-brand">
+          <span className="ff-kiosk-header-logo"><i className="bi bi-cup-hot-fill" /></span>
+          <div>
+            <div className="ff-kiosk-header-name">Pertinho do Céu</div>
+            <div className="ff-kiosk-header-tagline">Cozinha artesanal · Pedido no totem</div>
+          </div>
+        </div>
         <div className="ff-kiosk-topbar-actions">
-          <KioskA11yToggle />
           <LanguageSelector variant="pills" showLabels={false} className="ff-kiosk-topbar-lang-pills" />
         </div>
-      </div>
+      </header>
 
-      {/* Step 1 */}
+      {/* Stepper */}
       <KioskSteps current={1} />
 
-      {/* Body — vertical category rail + product grid */}
-      <div className="ff-kiosk-menu-body">
-        {/* Vertical category rail */}
-        <nav className="ff-kiosk-cat-rail" aria-label={t('kiosk.menu.categories')}>
-          <div className="ff-kiosk-cat-rail-title">{t('kiosk.menu.categories')}</div>
-          <button
-            className={`ff-kiosk-cat-tile${!activeCat ? ' active' : ''}`}
-            onClick={() => setActiveCat(null)}
-          >
+      {/* Horizontal category bar */}
+      <nav className="ff-kiosk-catbar" aria-label={t('kiosk.menu.categories')}>
+        <button
+          className={`ff-kiosk-cat${!activeCat ? ' active' : ''}`}
+          onClick={() => setActiveCat(null)}
+        >
+          <span className="ff-kiosk-cat-icon" style={{ background: 'var(--ff-primary)' }}>
             <i className="bi bi-grid-fill" />
-            <span>{t('kiosk.menu.all')}</span>
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              className={`ff-kiosk-cat-tile${activeCat === c.id ? ' active' : ''}`}
-              onClick={() => setActiveCat(c.id)}
-            >
+          </span>
+          <span className="ff-kiosk-cat-label">{t('kiosk.menu.all')}</span>
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            className={`ff-kiosk-cat${activeCat === c.id ? ' active' : ''}`}
+            onClick={() => setActiveCat(c.id)}
+          >
+            <span className="ff-kiosk-cat-icon" style={{ background: getCategoryColor(c.name) }}>
               <i className={`bi ${getCategoryIcon(c.name)}`} />
-              <span>{c.name}</span>
-            </button>
-          ))}
-        </nav>
+            </span>
+            <span className="ff-kiosk-cat-label">{c.name}</span>
+          </button>
+        ))}
+      </nav>
 
-        {/* Scrollable product grid */}
-        <div className="ff-kiosk-product-area">
-          {displayed.length === 0 ? (
-            <div className="ff-kiosk-empty">
-              <i className="bi bi-inbox" />
-              <span>{t('kiosk.menu.emptyCategory')}</span>
-            </div>
-          ) : (
-            <div className="ff-kiosk-grid">
-              {displayed.map((prod) => {
-                const inCart = cart.find((i) => i.productId === prod.id);
-                return (
-                  <div key={prod.id} className="ff-kiosk-card" onClick={() => addToCart(prod)}>
-                    <div className="ff-kiosk-card-image-wrap">
-                      <img
-                        src={prod.imageUrl}
-                        alt={prod.name}
-                        className="ff-kiosk-card-image"
-                        loading="lazy"
-                      />
-                      {inCart && (
-                        <div className="ff-kiosk-card-badge">{inCart.quantity}</div>
-                      )}
-                    </div>
-                    <div className="ff-kiosk-card-body">
-                      <div className="ff-kiosk-card-name">{prod.name}</div>
-                      {prod.description && (
-                        <div className="ff-kiosk-card-desc">{prod.description}</div>
-                      )}
-                      <div className="ff-kiosk-card-price">{formatBRL(prod.price)}</div>
-                    </div>
-                    <button className="ff-kiosk-card-add-btn" tabIndex={-1} aria-hidden>
-                      <i className="bi bi-plus-lg" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+      {/* Scrollable product area */}
+      <div className="ff-kiosk-content">
+        {displayed.length === 0 ? (
+          <div className="ff-kiosk-empty">
+            <i className="bi bi-inbox" />
+            <span>{t('kiosk.menu.emptyCategory')}</span>
+          </div>
+        ) : (
+          <>
+            {/* Featured hero section */}
+            {featuredProducts.length > 0 && (
+              <section>
+                <div className="ff-kiosk-section-head">
+                  <span className="ff-kiosk-section-title">
+                    <i className="bi bi-star-fill" /> {t('kiosk.menu.featured')}
+                  </span>
+                  <span className="ff-kiosk-section-sub">{t('kiosk.menu.featuredSub')}</span>
+                </div>
+                <div className="ff-kiosk-featured">
+                  {featuredProducts.map((prod) => {
+                    const inCart = cart.find((i) => i.productId === prod.id);
+                    return (
+                      <article
+                        key={prod.id}
+                        className="ff-kiosk-pcard ff-kiosk-pcard--featured"
+                        onClick={() => addToCart(prod)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && addToCart(prod)}
+                      >
+                        <div className="ff-kiosk-pcard-media">
+                          <span className="ff-kiosk-pcard-fallback"><i className="bi bi-fire" /></span>
+                          <img
+                            className="ff-kiosk-pcard-img"
+                            src={prod.imageUrl}
+                            alt={prod.name}
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <div className="ff-kiosk-pcard-overlay" />
+                        </div>
+                        <div className="ff-kiosk-pcard-badges">
+                          <span className="ff-kiosk-badge ff-kiosk-badge--best">
+                            <i className="bi bi-fire" /> {t('kiosk.menu.bestseller')}
+                          </span>
+                        </div>
+                        {inCart && <span className="ff-kiosk-pcard-qty">{inCart.quantity}</span>}
+                        <div className="ff-kiosk-pcard-content">
+                          <div className="ff-kiosk-pcard-name">{prod.name}</div>
+                          {prod.description && (
+                            <div className="ff-kiosk-pcard-desc">{prod.description}</div>
+                          )}
+                          <div className="ff-kiosk-pcard-foot">
+                            <span className="ff-kiosk-pcard-price">{formatBRL(prod.price)}</span>
+                            <button className="ff-kiosk-add-btn" tabIndex={-1} aria-hidden>
+                              <i className="bi bi-plus-lg" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Regular grid */}
+            {regularProducts.length > 0 && (
+              <section style={{ marginTop: featuredProducts.length > 0 ? 'clamp(16px, 1.8vw, 24px)' : 0 }}>
+                <div className="ff-kiosk-section-head">
+                  <span className="ff-kiosk-section-title" style={{ color: '#15161a' }}>
+                    <i className="bi bi-list-ul" style={{ color: '#9ca3af' }} /> {t('kiosk.menu.all')}
+                  </span>
+                  <span className="ff-kiosk-section-sub">
+                    {regularProducts.length} {t('kiosk.order.items')}
+                  </span>
+                </div>
+                <div className="ff-kiosk-grid">
+                  {regularProducts.map((prod) => {
+                    const inCart = cart.find((i) => i.productId === prod.id);
+                    return (
+                      <article
+                        key={prod.id}
+                        className="ff-kiosk-pcard ff-kiosk-pcard--regular"
+                        onClick={() => addToCart(prod)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && addToCart(prod)}
+                      >
+                        <div className="ff-kiosk-pcard-media">
+                          <span className="ff-kiosk-pcard-fallback"><i className="bi bi-tag" /></span>
+                          <img
+                            className="ff-kiosk-pcard-img"
+                            src={prod.imageUrl}
+                            alt={prod.name}
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <div className="ff-kiosk-pcard-overlay" />
+                        </div>
+                        {inCart && <span className="ff-kiosk-pcard-qty">{inCart.quantity}</span>}
+                        <div className="ff-kiosk-pcard-content">
+                          <div className="ff-kiosk-pcard-name">{prod.name}</div>
+                          {prod.description && (
+                            <div className="ff-kiosk-pcard-desc">{prod.description}</div>
+                          )}
+                          <div className="ff-kiosk-pcard-foot">
+                            <span className="ff-kiosk-pcard-price">{formatBRL(prod.price)}</span>
+                            <button className="ff-kiosk-add-btn" tabIndex={-1} aria-hidden>
+                              <i className="bi bi-plus-lg" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </div>
 
-      {/* "Added" confirmation toast */}
+      {/* Toast */}
       {toast && (
         <div className="ff-kiosk-add-toast" key={toast.key}>
           <i className="bi bi-check-circle-fill" />
@@ -395,39 +495,41 @@ export function KioskMenuPage() {
         </div>
       )}
 
-      {/* Persistent MY ORDER bar — always visible */}
-      <div className="ff-kiosk-order-bar">
-        {cartCount > 0 && (
-          <div className="ff-kiosk-order-bar-meta">
-            <span className="ff-kiosk-order-bar-label">
-              {t('kiosk.order.label')} — {serviceLabel}
+      {/* Order bar */}
+      <footer className="ff-kiosk-orderbar">
+        {cartCount > 0 && upsellProduct && (
+          <div className="ff-kiosk-upsell">
+            <span className="ff-kiosk-upsell-icon"><i className="bi bi-stars" /></span>
+            <span className="ff-kiosk-upsell-text">
+              {t('kiosk.menu.upsellHint')} <strong>{upsellProduct.name}</strong>?
             </span>
-            <div className="ff-kiosk-order-bar-figures">
-              <span className="ff-kiosk-order-bar-tax">{t('kiosk.order.tax')} {formatBRL(cartTax)}</span>
-              <span className="ff-kiosk-order-bar-total">{t('summary.total')} {formatBRL(cartTotal)}</span>
-            </div>
+            <button className="ff-kiosk-upsell-add" onClick={(e) => { e.stopPropagation(); addToCart(upsellProduct); }}>
+              <i className="bi bi-plus-lg" /> {formatBRL(upsellProduct.price)}
+            </button>
           </div>
         )}
-        <div className="ff-kiosk-order-bar-actions">
-          {cartCount > 0 ? (
-            <span className="ff-kiosk-order-bar-count">
+        <div className="ff-kiosk-orderbar-main">
+          <div className="ff-kiosk-orderbar-totals">
+            <span className="ff-kiosk-orderbar-label">{t('kiosk.order.label')} · {serviceLabel}</span>
+            <span className="ff-kiosk-orderbar-amount">
+              {cartCount > 0
+                ? <>{formatBRL(cartTotal)} <small>+ {t('kiosk.order.tax')} {formatBRL(cartTax)}</small></>
+                : <span style={{ color: '#9ca3af', fontSize: '0.6em', fontWeight: 600 }}>{t('kiosk.order.emptyHint')}</span>
+              }
+            </span>
+          </div>
+          {cartCount > 0 && (
+            <span className="ff-kiosk-orderbar-count">
               <i className="bi bi-bag-fill" />
               {cartCount} {cartCount === 1 ? t('kiosk.order.item') : t('kiosk.order.items')}
             </span>
-          ) : (
-            <span className="ff-kiosk-order-bar-empty">
-              {t('kiosk.order.emptyHint')}
-            </span>
           )}
-          <button
-            className="ff-kiosk-checkout-btn"
-            onClick={toCart}
-            disabled={cartCount === 0}
-          >
+          <span style={{ flex: 1 }} />
+          <button className="ff-kiosk-cta" onClick={toCart} disabled={cartCount === 0}>
             {t('kiosk.order.review')} <i className="bi bi-arrow-right" />
           </button>
         </div>
-      </div>
+      </footer>
 
       {warning && <KioskIdleModal onContinue={dismiss} onRestart={goHome} />}
     </div>
@@ -629,17 +731,111 @@ function KioskConfirmationScreen({
 
 // ─── Payment ──────────────────────────────────────────────────────────────────
 
-type PaymentStep = 'select' | 'processing' | 'result';
+type PaymentStep = 'select' | 'instruction' | 'qr' | 'processing' | 'result' | 'cashTicket';
 
-const PAYMENT_METHODS: { id: 'CARD' | 'PIX' | 'CASH'; icon: string; labelKey: LabelKey; descKey: LabelKey }[] = [
-  { id: 'CARD', icon: 'bi-credit-card-2-front', labelKey: 'kiosk.payment.card', descKey: 'kiosk.payment.cardDesc' },
-  { id: 'PIX',  icon: 'bi-qr-code-scan',        labelKey: 'kiosk.payment.pix',  descKey: 'kiosk.payment.pixDesc' },
-  { id: 'CASH', icon: 'bi-cash-stack',          labelKey: 'kiosk.payment.cash', descKey: 'kiosk.payment.cashDesc' },
+const PAYMENT_METHODS: { id: PaymentMethodId; key: keyof BranchPaymentMethods; icon: string; labelKey: LabelKey; descKey: LabelKey }[] = [
+  { id: 'CARD',         key: 'card',        icon: 'bi-credit-card-2-front', labelKey: 'kiosk.payment.card',        descKey: 'kiosk.payment.cardDesc' },
+  { id: 'PIX',          key: 'pix',         icon: 'bi-qr-code-scan',        labelKey: 'kiosk.payment.pix',         descKey: 'kiosk.payment.pixDesc' },
+  { id: 'MERCADO_PAGO', key: 'mercadoPago', icon: 'bi-wallet2',             labelKey: 'kiosk.payment.mercadoPago', descKey: 'kiosk.payment.mercadoPagoDesc' },
+  { id: 'CASH',         key: 'cash',        icon: 'bi-cash-stack',          labelKey: 'kiosk.payment.cash',        descKey: 'kiosk.payment.cashDesc' },
 ];
+
+/**
+ * Decorative QR placeholder — no real payload is encoded; the kiosk payment flow
+ * is a simulation. Renders deterministic modules plus three finder squares so it
+ * visually reads as a scannable code.
+ */
+function KioskQRCode({ size = 220 }: { size?: number }) {
+  const N = 25;
+  const cell = size / N;
+  const inFinderZone = (r: number, c: number) =>
+    (r <= 6 && c <= 6) || (r <= 6 && c >= N - 7) || (r >= N - 7 && c <= 6);
+  const finderOn = (r: number, c: number) => {
+    const corners: [number, number][] = [[0, 0], [0, N - 7], [N - 7, 0]];
+    return corners.some(([fr, fc]) => {
+      const dr = r - fr, dc = c - fc;
+      if (dr < 0 || dr > 6 || dc < 0 || dc > 6) return false;
+      const ring = Math.max(Math.abs(dr - 3), Math.abs(dc - 3));
+      return ring !== 2; // solid centre + outer ring, gap between
+    });
+  };
+  const rects: React.ReactElement[] = [];
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const on = inFinderZone(r, c) ? finderOn(r, c) : ((r * 928371 + c * 1299721 + r * c) % 7) < 3;
+      if (on) rects.push(<rect key={`${r}-${c}`} x={c * cell} y={r * cell} width={cell} height={cell} fill="#111827" />);
+    }
+  }
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ background: '#fff', borderRadius: 12 }}>
+      {rects}
+    </svg>
+  );
+}
+
+// ─── Cash ticket (pay at the counter) ────────────────────────────────────────
+
+function KioskCashTicketScreen({
+  order,
+  total,
+  itemCount,
+  onReset,
+}: {
+  order: DbOrder;
+  total: number;
+  itemCount: number;
+  onReset: () => void;
+}) {
+  const [countdown, setCountdown] = useState(20);
+  const { t } = useLabels();
+
+  useEffect(() => {
+    if (countdown <= 0) { onReset(); return; }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, onReset]);
+
+  return (
+    <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
+      <KioskSteps current={4} allDone />
+
+      <div className="ff-kiosk-confirm-body">
+        <div className="ff-kiosk-confirm-icon">
+          <i className="bi bi-cash-coin" />
+        </div>
+        <div className="ff-kiosk-confirm-title">{t('kiosk.payment.cashTitle')}</div>
+        <div className="ff-kiosk-confirm-subtitle">{t('kiosk.payment.cashSubtitle')}</div>
+
+        <div className="ff-kiosk-ticket-box">
+          <div className="ff-kiosk-ticket-label">{t('kiosk.payment.orderLabel')}</div>
+          <div className="ff-kiosk-ticket-number">{order.orderNumber}</div>
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>{t('kiosk.payment.itemsLabel')}</span><span>{itemCount}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+              <span>{t('kiosk.payment.totalLabel')}</span><span>{formatBRL(total)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="ff-kiosk-confirm-hint">{t('kiosk.payment.cashInstr')}</div>
+      </div>
+
+      <div className="ff-kiosk-confirm-bottom">
+        <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
+        <button className="ff-kiosk-checkout-btn" onClick={onReset}>
+          {t('kiosk.confirm.newOrder')}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function KioskPaymentPage() {
   const [step, setStep]             = useState<PaymentStep>('select');
-  const [method, setMethod]         = useState<'CARD' | 'PIX' | 'CASH'>('CARD');
+  const [methods, setMethods]       = useState<BranchPaymentMethods>(DEFAULT_PAYMENT_METHODS);
+  const [method, setMethod]         = useState<PaymentMethodId | null>(null);
   const [result, setResult]         = useState<'approved' | 'rejected' | null>(null);
   const [order, setOrder]           = useState<DbOrder | null>(null);
   const [queueTicket, setQueueTicket] = useState<QueueTicket | null>(null);
@@ -647,7 +843,7 @@ export function KioskPaymentPage() {
   const navigate = useNavigate();
   const { t } = useLabels();
   // Reset abandoned sessions while choosing a method or after a rejection,
-  // but never mid-payment (approved flow has its own countdown)
+  // but never mid-payment (instruction/QR/processing/cash ticket have their own flow)
   const { warning, dismiss, goHome } = useKioskIdleTimeout(
     step === 'select' || (step === 'result' && result === 'rejected'),
   );
@@ -658,11 +854,21 @@ export function KioskPaymentPage() {
   const serviceType = (sessionStorage.getItem('ff_kiosk_service') ?? 'EAT_IN') as 'EAT_IN' | 'TAKEAWAY';
   const subtotal    = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const total       = +(subtotal * 1.1).toFixed(2);
+  const itemCount   = cart.reduce((s, i) => s + i.quantity, 0);
 
-  async function simulatePay() {
+  // Load the enabled payment methods configured in admin and preselect the first.
+  useEffect(() => {
+    branchService.get().then((b) => {
+      const pm = b?.paymentMethods ?? DEFAULT_PAYMENT_METHODS;
+      setMethods(pm);
+      setMethod((prev) => prev ?? PAYMENT_METHODS.find((m) => pm[m.key])?.id ?? null);
+    });
+  }, []);
+
+  const availableMethods = PAYMENT_METHODS.filter((m) => methods[m.key]);
+
+  async function doPay() {
     setStep('processing');
-    await new Promise((r) => setTimeout(r, 2000));
-
     const approved = Math.random() > 0.1;
     if (approved) {
       const { order: o, queueTicket: qt } = await kioskService.placeOrder('Cliente Totem', cart, serviceType);
@@ -674,6 +880,74 @@ export function KioskPaymentPage() {
       setResult('rejected');
     }
     setStep('result');
+  }
+
+  async function handleConfirm() {
+    if (!method) return;
+    if (method === 'CASH') {
+      // Cash is settled at the counter: register the order and hand out the slip.
+      const { order: o } = await kioskService.placeOrder('Cliente Totem', cart, serviceType);
+      setOrder(o);
+      setStep('cashTicket');
+      return;
+    }
+    setStep(method === 'CARD' ? 'instruction' : 'qr');
+  }
+
+  // Card instruction / QR screens auto-advance after a simulated 4s, then run
+  // the (still randomized) approval — matching the legacy approved/rejected flow.
+  useEffect(() => {
+    if (step !== 'instruction' && step !== 'qr') return;
+    const timer = setTimeout(() => { void doPay(); }, 4000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  if (step === 'instruction') {
+    return (
+      <div className="ff-kiosk-layout ff-kiosk-loading">
+        <div style={{ textAlign: 'center', maxWidth: 460 }}>
+          <i className="bi bi-credit-card-2-front" style={{ fontSize: 88, color: 'var(--ff-primary)', lineHeight: 1 }} />
+          <div style={{ fontSize: 30, fontWeight: 800, margin: '20px 0 10px' }}>{t('kiosk.payment.cardInstrTitle')}</div>
+          <div style={{ color: '#6b7280', fontSize: 18, marginBottom: 28 }}>{t('kiosk.payment.cardInstrDesc')}</div>
+          <div className="spinner-border text-primary" style={{ width: 40, height: 40 }} />
+          <div className="ff-kiosk-processing-text">{t('kiosk.payment.waiting')}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'qr') {
+    return (
+      <div className="ff-kiosk-layout ff-kiosk-loading">
+        <div style={{ textAlign: 'center', maxWidth: 460 }}>
+          <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 10 }}>{t('kiosk.payment.qrTitle')}</div>
+          <div style={{ color: '#6b7280', fontSize: 18, marginBottom: 22 }}>{t('kiosk.payment.qrDesc')}</div>
+          <div style={{ display: 'inline-block', padding: 16, background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,.1)' }}>
+            <KioskQRCode size={220} />
+          </div>
+          <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            <div className="spinner-border text-primary" style={{ width: 28, height: 28 }} />
+            <span style={{ color: '#6b7280' }}>{t('kiosk.payment.waiting')}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'cashTicket' && order) {
+    return (
+      <KioskCashTicketScreen
+        order={order}
+        total={total}
+        itemCount={itemCount}
+        onReset={() => {
+          sessionStorage.removeItem('ff_kiosk_cart');
+          sessionStorage.removeItem('ff_kiosk_service');
+          navigate('/kiosk/start');
+        }}
+      />
+    );
   }
 
   if (step === 'processing') {
@@ -741,7 +1015,7 @@ export function KioskPaymentPage() {
         <div className="ff-kiosk-payment-label">{t('kiosk.payment.how')}</div>
 
         <div className="ff-kiosk-payment-options">
-          {PAYMENT_METHODS.map(({ id, icon, labelKey, descKey }) => (
+          {availableMethods.map(({ id, icon, labelKey, descKey }) => (
             <button
               key={id}
               className={`ff-kiosk-payment-option${method === id ? ' selected' : ''}`}
@@ -763,7 +1037,8 @@ export function KioskPaymentPage() {
       <div className="ff-kiosk-cart-bottom" style={{ justifyContent: 'flex-end' }}>
         <button
           className="ff-kiosk-pay-btn"
-          onClick={simulatePay}
+          onClick={handleConfirm}
+          disabled={!method}
           style={{ maxWidth: 360 }}
         >
           {t('kiosk.payment.confirm')} <i className="bi bi-arrow-right" />

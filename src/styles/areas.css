@@ -269,7 +269,7 @@
 /* Sticky ops header inside ff-area-content — bleeds to container edges */
 .ff-area-ops-header {
   position: sticky;
-  top: 0;
+  top: -24px; /* compensates for the -24px margin so it sticks at the visible top edge */
   z-index: 10;
   margin: -24px -24px 20px; /* bleed out of the 24px content padding */
   padding: 12px 24px 12px;
@@ -2049,20 +2049,21 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   color: #374151;
 }
 
-/* ─── Topbar ─────────────────────────────────────────────────────────────── */
+/* ─── Topbar (cart / payment pages) ─────────────────────────────────────── */
 .ff-kiosk-topbar {
-  background: var(--ff-primary);
+  background: linear-gradient(135deg, var(--ff-primary) 0%, var(--ff-primary-hover, #c01725) 100%);
   color: #fff;
-  padding: 0 24px;
-  height: clamp(88px, 9vw, 110px);
+  padding: 0 clamp(20px, 2.4vw, 32px);
+  height: clamp(76px, 8vw, 96px);
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(225,29,42,0.25);
 }
 
 .ff-kiosk-topbar-title {
-  font-size: clamp(30px, 3.2vw, 40px);
+  font-size: clamp(26px, 2.8vw, 36px);
   font-weight: 800;
   flex: 1;
   text-align: center;
@@ -2070,13 +2071,13 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 }
 
 .ff-kiosk-topbar-back {
-  width: clamp(64px, 6.5vw, 78px);
-  height: clamp(64px, 6.5vw, 78px);
+  width: clamp(56px, 5.6vw, 68px);
+  height: clamp(56px, 5.6vw, 68px);
   border-radius: 50%;
   border: none;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.18);
   color: #fff;
-  font-size: clamp(26px, 2.8vw, 34px);
+  font-size: clamp(22px, 2.4vw, 28px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2087,14 +2088,79 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 
 .ff-kiosk-topbar-back:active { background: rgba(255,255,255,0.35); }
 
-/* ─── Progress stepper ───────────────────────────────────────────────────── */
+/* ─── Premium header (menu page) ────────────────────────────────────────── */
+.ff-kiosk-header {
+  background: linear-gradient(135deg, var(--ff-primary) 0%, var(--ff-primary-hover, #c01725) 100%);
+  padding: clamp(14px, 1.6vw, 20px) clamp(20px, 2.4vw, 32px);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.4vw, 18px);
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(225,29,42,0.25);
+}
+
+.ff-kiosk-header-back {
+  flex-shrink: 0;
+  width: clamp(52px, 5.2vw, 64px);
+  height: clamp(52px, 5.2vw, 64px);
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  font-size: clamp(20px, 2.2vw, 26px);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ff-kiosk-header-back:active { background: rgba(255,255,255,0.35); }
+
+.ff-kiosk-header-brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.2vw, 16px);
+  min-width: 0;
+}
+
+.ff-kiosk-header-logo {
+  flex-shrink: 0;
+  width: clamp(44px, 4.6vw, 56px);
+  height: clamp(44px, 4.6vw, 56px);
+  border-radius: clamp(10px, 1.1vw, 14px);
+  background: rgba(255,255,255,0.95);
+  color: var(--ff-primary);
+  display: grid;
+  place-items: center;
+  font-size: clamp(22px, 2.4vw, 30px);
+}
+
+.ff-kiosk-header-name {
+  color: #fff;
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ff-kiosk-header-tagline {
+  color: rgba(255,255,255,0.75);
+  font-size: clamp(11px, 1.2vw, 15px);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ─── Progress stepper (compact, secondary) ─────────────────────────────── */
 .ff-kiosk-steps {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px 28px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  padding: clamp(10px, 1.2vw, 16px) 28px;
+  background: #fff;
+  border-bottom: 1px solid #ececef;
   gap: 0;
   flex-shrink: 0;
 }
@@ -2102,31 +2168,32 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 .ff-kiosk-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: clamp(15px, 1.7vw, 21px);
-  font-weight: 600;
-  color: #9ca3af;
+  gap: clamp(6px, 0.8vw, 10px);
+  font-size: clamp(13px, 1.4vw, 17px);
+  font-weight: 700;
+  color: #b3b6bd;
 }
 
 .ff-kiosk-step-dot {
-  width: clamp(40px, 4.4vw, 54px);
-  height: clamp(40px, 4.4vw, 54px);
+  width: clamp(28px, 3vw, 36px);
+  height: clamp(28px, 3vw, 36px);
   border-radius: 50%;
-  border: 2px solid #d1d5db;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(15px, 1.7vw, 20px);
+  border: 1.5px solid #dcdee3;
+  display: grid;
+  place-items: center;
+  font-size: clamp(12px, 1.3vw, 16px);
   font-weight: 800;
-  color: #9ca3af;
+  color: #b3b6bd;
   background: #fff;
   flex-shrink: 0;
+  transition: all .2s;
 }
 
 .ff-kiosk-step.active .ff-kiosk-step-dot {
   background: var(--ff-primary);
   border-color: var(--ff-primary);
   color: #fff;
+  box-shadow: 0 0 0 4px var(--ff-primary-soft, #fde8ea);
 }
 
 .ff-kiosk-step.active { color: var(--ff-primary); }
@@ -2142,10 +2209,11 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 .ff-kiosk-step-label { white-space: nowrap; }
 
 .ff-kiosk-step-line {
-  width: clamp(48px, 6vw, 84px);
+  width: clamp(32px, 4vw, 60px);
   height: 2px;
-  background: #e5e7eb;
-  margin: 0 8px;
+  background: #e4e5e9;
+  margin: 0 clamp(4px, 0.6vw, 8px);
+  border-radius: 2px;
   flex-shrink: 0;
 }
 
@@ -2313,186 +2381,272 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   cursor: pointer;
 }
 
-/* ─── Menu body: vertical category rail + product grid ──────────────────── */
-.ff-kiosk-menu-body {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-
-/* Vertical category rail (left) — fixed-width, scrolls on its own */
-.ff-kiosk-cat-rail {
+/* ─── Horizontal category bar ────────────────────────────────────────────── */
+.ff-kiosk-catbar {
   flex-shrink: 0;
-  width: clamp(150px, 17vw, 230px);
   display: flex;
-  flex-direction: column;
-  gap: clamp(8px, 1vw, 14px);
-  padding: clamp(12px, 1.4vw, 20px) clamp(10px, 1.2vw, 16px);
-  background: #f9fafb;
-  border-right: 1.5px solid #e5e7eb;
-  overflow-y: auto;
+  gap: clamp(8px, 1vw, 12px);
+  padding: clamp(12px, 1.4vw, 18px) clamp(20px, 2.4vw, 32px);
+  background: #f6f6f7;
+  border-bottom: 1px solid #ececef;
+  overflow-x: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
+.ff-kiosk-catbar::-webkit-scrollbar { display: none; }
 
-.ff-kiosk-cat-rail::-webkit-scrollbar { display: none; }
-
-.ff-kiosk-cat-rail-title {
-  font-size: clamp(12px, 1.2vw, 15px);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9ca3af;
-  padding: 4px 8px clamp(6px, 0.8vw, 10px);
-}
-
-.ff-kiosk-cat-tile {
+.ff-kiosk-cat {
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 0.8vw, 11px);
-  padding: clamp(14px, 1.6vw, 22px) 8px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 18px;
+  gap: clamp(6px, 0.8vw, 10px);
+  padding: clamp(8px, 0.9vw, 12px) clamp(14px, 1.6vw, 20px);
   background: #fff;
-  font-size: clamp(14px, 1.5vw, 19px);
-  font-weight: 700;
+  border: 1.5px solid #ececef;
+  border-radius: 999px;
   cursor: pointer;
-  color: #6b7280;
-  transition: all .15s;
-  text-align: center;
-  line-height: 1.2;
+  transition: all .16s;
+  box-shadow: 0 2px 8px rgba(20,20,30,0.05);
+  -webkit-tap-highlight-color: transparent;
 }
-
-.ff-kiosk-cat-tile i { font-size: clamp(28px, 3.4vw, 44px); line-height: 1; }
-
-.ff-kiosk-cat-tile:active { transform: scale(0.96); }
-
-.ff-kiosk-cat-tile.active {
+.ff-kiosk-cat:active { transform: scale(0.96); }
+.ff-kiosk-cat.active {
   background: var(--ff-primary);
   border-color: var(--ff-primary);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(225,29,42,0.30);
+  box-shadow: 0 6px 18px rgba(225,29,42,0.35);
 }
 
-/* ─── Scrollable product area (right) ────────────────────────────────────── */
-.ff-kiosk-product-area {
+.ff-kiosk-cat-icon {
+  width: clamp(28px, 3vw, 36px);
+  height: clamp(28px, 3vw, 36px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: clamp(14px, 1.5vw, 18px);
+  color: #fff;
+  flex-shrink: 0;
+}
+.ff-kiosk-cat.active .ff-kiosk-cat-icon { background: rgba(255,255,255,0.22) !important; }
+
+.ff-kiosk-cat-label {
+  font-size: clamp(14px, 1.5vw, 18px);
+  font-weight: 700;
+  color: #15161a;
+  white-space: nowrap;
+}
+.ff-kiosk-cat.active .ff-kiosk-cat-label { color: #fff; }
+
+/* ─── Scrollable content area ────────────────────────────────────────────── */
+.ff-kiosk-content {
   flex: 1;
-  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: clamp(20px, 2.2vw, 28px);
-  min-height: 0;
+  padding: clamp(16px, 1.8vw, 24px) clamp(20px, 2.4vw, 32px) clamp(20px, 2.4vw, 32px);
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
 }
 
+/* ─── Section headings ───────────────────────────────────────────────────── */
+.ff-kiosk-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(8px, 1vw, 14px);
+  margin: 0 0 clamp(12px, 1.4vw, 18px);
+}
+.ff-kiosk-section-title {
+  font-size: clamp(18px, 1.9vw, 24px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(6px, 0.7vw, 9px);
+  color: #15161a;
+}
+.ff-kiosk-section-title i { color: #f59e0b; }
+.ff-kiosk-section-sub {
+  font-size: clamp(13px, 1.4vw, 17px);
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* ─── Featured row (hero cards) ──────────────────────────────────────────── */
+.ff-kiosk-featured {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(300px, 38vw, 480px), 1fr));
+  gap: clamp(12px, 1.4vw, 18px);
+  margin-bottom: clamp(24px, 2.8vw, 36px);
+}
+
+/* ─── Product grid (regular) ─────────────────────────────────────────────── */
 .ff-kiosk-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 27vw, 300px), 1fr));
-  gap: clamp(16px, 1.8vw, 24px);
+  grid-template-columns: repeat(auto-fill, minmax(clamp(200px, 22vw, 260px), 1fr));
+  gap: clamp(12px, 1.4vw, 18px);
 }
 
-/* ─── Product cards ──────────────────────────────────────────────────────── */
-.ff-kiosk-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 18px;
+/* ─── Product cards — image-first, dark overlay, white text ─────────────── */
+.ff-kiosk-pcard {
+  position: relative;
+  border-radius: clamp(16px, 1.8vw, 22px);
   overflow: hidden;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.06);
-  transition: box-shadow .15s, border-color .15s, transform .1s;
+  background: #2a2a2e;
+  box-shadow: 0 8px 24px rgba(20,20,30,0.10);
+  transition: transform .12s, box-shadow .18s;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+.ff-kiosk-pcard:active { transform: scale(0.98); }
+
+.ff-kiosk-pcard--featured { aspect-ratio: 16 / 10; }
+.ff-kiosk-pcard--regular  { aspect-ratio: 4 / 5; }
+
+/* Media layer */
+.ff-kiosk-pcard-media { position: absolute; inset: 0; z-index: 0; }
+
+.ff-kiosk-pcard-fallback {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: clamp(40px, 5vw, 64px);
+  color: rgba(255,255,255,0.18);
+  background: linear-gradient(135deg, #3a3a40, #232327);
 }
 
-.ff-kiosk-card:active {
-  border-color: var(--ff-primary);
-  transform: scale(0.98);
-  box-shadow: 0 0 0 4px var(--ff-primary-soft);
+.ff-kiosk-pcard-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
 }
 
-.ff-kiosk-card-image-wrap { position: relative; overflow: hidden; }
-
-.ff-kiosk-card-image {
-  width: 100%;
-  aspect-ratio: 4/3;
-  object-fit: cover;
-  display: block;
-  background: #f3f4f6;
+/* Dark gradient overlay for readability */
+.ff-kiosk-pcard-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(
+    0deg,
+    rgba(8,8,12,0.94) 0%,
+    rgba(8,8,12,0.50) 36%,
+    rgba(8,8,12,0.08) 62%,
+    transparent 100%
+  );
 }
 
-.ff-kiosk-card-badge {
+/* Badges — top-left */
+.ff-kiosk-pcard-badges {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  min-width: clamp(34px, 3.6vw, 44px);
-  height: clamp(34px, 3.6vw, 44px);
-  padding: 0 8px;
-  background: var(--ff-primary);
-  color: #fff;
-  border-radius: 999px;
+  top: clamp(8px, 0.9vw, 12px);
+  left: clamp(8px, 0.9vw, 12px);
+  z-index: 3;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(15px, 1.7vw, 20px);
-  font-weight: 900;
-  box-shadow: 0 2px 8px rgba(225,29,42,.45);
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.ff-kiosk-card-body {
-  padding: 16px 16px clamp(60px, 6.5vw, 84px);
-  flex: 1;
+/* Qty indicator — top-right */
+.ff-kiosk-pcard-qty {
+  position: absolute;
+  top: clamp(8px, 0.9vw, 12px);
+  right: clamp(8px, 0.9vw, 12px);
+  z-index: 3;
+  min-width: clamp(28px, 3vw, 36px);
+  height: clamp(28px, 3vw, 36px);
+  padding: 0 7px;
+  background: #fff;
+  color: var(--ff-primary);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: clamp(13px, 1.4vw, 17px);
+  box-shadow: 0 4px 12px rgba(20,20,30,0.18);
 }
 
-.ff-kiosk-card-name {
-  font-size: clamp(20px, 2.1vw, 26px);
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 6px;
+/* Content — pinned to bottom */
+.ff-kiosk-pcard-content {
+  position: relative; z-index: 2;
+  height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: clamp(12px, 1.4vw, 18px);
+  color: #fff;
+}
+
+.ff-kiosk-pcard-name {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.ff-kiosk-pcard--featured .ff-kiosk-pcard-name { font-size: clamp(20px, 2.1vw, 26px); }
+.ff-kiosk-pcard--regular  .ff-kiosk-pcard-name { font-size: clamp(16px, 1.7vw, 21px); }
+
+.ff-kiosk-pcard-desc {
+  color: rgba(255,255,255,0.82);
+  margin-top: 3px;
   line-height: 1.3;
-}
-
-.ff-kiosk-card-desc {
-  font-size: clamp(14px, 1.5vw, 18px);
-  color: #6b7280;
-  line-height: 1.4;
-  margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.ff-kiosk-pcard--featured .ff-kiosk-pcard-desc { font-size: clamp(13px, 1.4vw, 17px); }
+.ff-kiosk-pcard--regular  .ff-kiosk-pcard-desc { font-size: clamp(12px, 1.2vw, 15px); }
 
-.ff-kiosk-card-price {
-  font-size: clamp(24px, 2.6vw, 32px);
-  font-weight: 900;
-  color: var(--ff-primary);
+.ff-kiosk-pcard-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: clamp(8px, 0.9vw, 12px);
 }
 
-.ff-kiosk-card-add-btn {
-  position: absolute;
-  bottom: 14px;
-  right: 14px;
-  width: clamp(56px, 6vw, 72px);
-  height: clamp(56px, 6vw, 72px);
+.ff-kiosk-pcard-price {
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #fff;
+}
+.ff-kiosk-pcard--featured .ff-kiosk-pcard-price { font-size: clamp(24px, 2.6vw, 32px); }
+.ff-kiosk-pcard--regular  .ff-kiosk-pcard-price { font-size: clamp(20px, 2.1vw, 26px); }
+
+/* Add button */
+.ff-kiosk-add-btn {
+  flex-shrink: 0;
+  width: clamp(44px, 4.6vw, 56px);
+  height: clamp(44px, 4.6vw, 56px);
+  border-radius: 50%;
+  border: none;
   background: var(--ff-primary);
   color: #fff;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(26px, 2.8vw, 34px);
+  font-size: clamp(20px, 2.1vw, 26px);
+  display: grid;
+  place-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(225,29,42,.4);
-  transition: transform .1s, background .15s;
+  box-shadow: 0 6px 18px rgba(225,29,42,0.5);
+  transition: transform .1s;
 }
+.ff-kiosk-pcard--featured .ff-kiosk-add-btn {
+  width: clamp(52px, 5.2vw, 64px);
+  height: clamp(52px, 5.2vw, 64px);
+  font-size: clamp(24px, 2.5vw, 30px);
+}
+.ff-kiosk-pcard:active .ff-kiosk-add-btn { transform: scale(0.86); }
 
-.ff-kiosk-card:active .ff-kiosk-card-add-btn { transform: scale(0.86); }
+/* ─── Badges ─────────────────────────────────────────────────────────────── */
+.ff-kiosk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: clamp(11px, 1.2vw, 14px);
+  font-weight: 800;
+  color: #fff;
+  padding: clamp(4px, 0.45vw, 6px) clamp(8px, 0.9vw, 12px);
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+}
+.ff-kiosk-badge--best { background: #f59e0b; }
+.ff-kiosk-badge--new  { background: #16a34a; }
+.ff-kiosk-badge--reco { background: #7c3aed; }
+.ff-kiosk-badge--fav  { background: var(--ff-primary); }
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
 .ff-kiosk-empty {
@@ -2505,77 +2659,125 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   color: #9ca3af;
   text-align: center;
 }
-
 .ff-kiosk-empty i { font-size: clamp(56px, 6vw, 72px); }
 .ff-kiosk-empty span { font-size: clamp(18px, 2vw, 24px); font-weight: 500; }
 
-/* ─── Menu order bar (MY ORDER — persistent at bottom of menu) ───────────── */
-.ff-kiosk-order-bar {
-  background: #fff;
-  border-top: 2px solid #e5e7eb;
+/* ─── Order bar (new premium layout) ────────────────────────────────────── */
+.ff-kiosk-orderbar {
   flex-shrink: 0;
-  box-shadow: 0 -4px 20px rgba(0,0,0,.08);
+  background: #fff;
+  border-top: 1px solid #ececef;
+  box-shadow: 0 -10px 30px rgba(20,20,30,0.08);
+  padding: clamp(10px, 1.2vw, 16px) clamp(20px, 2.4vw, 32px) clamp(14px, 1.6vw, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 0.9vw, 12px);
+  z-index: 5;
 }
 
-.ff-kiosk-order-bar-meta {
+/* Upsell strip */
+.ff-kiosk-upsell {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 24px 8px;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 12px;
+  gap: clamp(8px, 1vw, 14px);
+  background: linear-gradient(90deg, #fff8ee, #fffdf7);
+  border: 1.5px solid #f6dcad;
+  border-radius: clamp(10px, 1.1vw, 14px);
+  padding: clamp(8px, 0.9vw, 12px) clamp(10px, 1.2vw, 16px);
 }
-
-.ff-kiosk-order-bar-label {
-  font-size: clamp(13px, 1.5vw, 17px);
+.ff-kiosk-upsell-icon {
+  flex-shrink: 0;
+  width: clamp(32px, 3.4vw, 42px);
+  height: clamp(32px, 3.4vw, 42px);
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: clamp(15px, 1.6vw, 19px);
+}
+.ff-kiosk-upsell-text {
+  flex: 1;
+  font-size: clamp(13px, 1.4vw, 17px);
+  font-weight: 600;
+  color: #6b5418;
+}
+.ff-kiosk-upsell-text strong { font-weight: 800; color: #4a3a0d; }
+.ff-kiosk-upsell-add {
+  flex-shrink: 0;
+  border: none;
+  background: #f59e0b;
+  color: #fff;
   font-weight: 800;
+  font-size: clamp(13px, 1.4vw, 16px);
+  padding: clamp(8px, 0.9vw, 11px) clamp(14px, 1.5vw, 18px);
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s;
+}
+.ff-kiosk-upsell-add:active { background: #d97706; }
+
+/* Main row: totals + count + CTA */
+.ff-kiosk-orderbar-main {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.4vw, 20px);
+}
+.ff-kiosk-orderbar-totals { display: flex; flex-direction: column; gap: 2px; }
+.ff-kiosk-orderbar-label {
+  font-size: clamp(11px, 1.2vw, 14px);
+  font-weight: 700;
   color: #6b7280;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: 0.04em;
 }
-
-.ff-kiosk-order-bar-figures {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.ff-kiosk-order-bar-tax {
-  font-size: clamp(14px, 1.5vw, 18px);
-  color: #9ca3af;
-  text-transform: uppercase;
-}
-
-.ff-kiosk-order-bar-total {
-  font-size: clamp(22px, 2.4vw, 30px);
+.ff-kiosk-orderbar-amount {
+  font-size: clamp(26px, 2.8vw, 34px);
   font-weight: 900;
-  color: #1a1a1a;
   letter-spacing: -0.02em;
-  text-transform: uppercase;
+  line-height: 1;
+  color: #15161a;
 }
-
-.ff-kiosk-order-bar-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 24px;
-}
-
-.ff-kiosk-order-bar-count {
-  flex: 1;
-  font-size: clamp(18px, 2vw, 24px);
-  color: #374151;
+.ff-kiosk-orderbar-amount small {
+  font-size: clamp(12px, 1.3vw, 15px);
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ff-kiosk-order-bar-empty {
-  flex: 1;
-  font-size: clamp(18px, 2vw, 24px);
   color: #9ca3af;
 }
+.ff-kiosk-orderbar-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: clamp(14px, 1.5vw, 18px);
+  font-weight: 800;
+  color: var(--ff-primary);
+  background: var(--ff-primary-soft, #fde8ea);
+  padding: clamp(8px, 0.9vw, 11px) clamp(14px, 1.5vw, 18px);
+  border-radius: 999px;
+}
+
+/* CTA — strongest action in the bar */
+.ff-kiosk-cta {
+  border: none;
+  background: var(--ff-primary);
+  color: #fff;
+  font-size: clamp(18px, 1.9vw, 23px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding: clamp(16px, 1.7vw, 21px) clamp(28px, 3vw, 38px);
+  border-radius: clamp(12px, 1.3vw, 16px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(8px, 0.9vw, 12px);
+  box-shadow: 0 8px 20px rgba(225,29,42,0.40);
+  transition: transform .1s, background .15s;
+  white-space: nowrap;
+}
+.ff-kiosk-cta:active { transform: scale(0.97); background: var(--ff-primary-hover, #c01725); }
+.ff-kiosk-cta:disabled { background: #e4e5e9; color: #9ca3af; box-shadow: none; cursor: not-allowed; transform: none; }
 
 /* ─── Shared CTA button ──────────────────────────────────────────────────── */
 .ff-kiosk-checkout-btn {
@@ -4108,7 +4310,7 @@ html.ff-kiosk-a11y body::before {
 
 /* ─── AdminTable ─────────────────────────────────────────────────────────── */
 .ff-admin-table-wrapper {
-  overflow-x: auto;
+  width: 100%;
 }
 
 .ff-admin-table {
@@ -4328,7 +4530,6 @@ html.ff-kiosk-a11y body::before {
 
 /* ─── Mobile: table view → compact list cards ────────────────────────────── */
 @media (max-width: 640px) {
-  .ff-table-view .ff-admin-table-wrapper { overflow-x: visible; }
   .ff-table-view .ff-admin-table,
   .ff-table-view .ff-admin-table tbody { display: block; }
   .ff-table-view .ff-admin-table thead { display: none; }

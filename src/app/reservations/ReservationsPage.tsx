@@ -206,71 +206,6 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
   );
 }
 
-// ─── MetricsRow ───────────────────────────────────────────────────────────────
-
-function MetricsRow({ reservations }: { reservations: Reservation[] }) {
-  const { t } = useLabels();
-  const counts = {
-    total:     reservations.length,
-    confirmed: reservations.filter((r) => r.status === 'CONFIRMED').length,
-    pending:   reservations.filter((r) => r.status === 'PENDING').length,
-    seated:    reservations.filter((r) => r.status === 'SEATED').length,
-    canceled:  reservations.filter((r) => r.status === 'CANCELED').length,
-    noShow:    reservations.filter((r) => r.status === 'NO_SHOW').length,
-  };
-
-  const metrics = [
-    { label: t('res.metrics.total'),     value: counts.total,     color: '#1d4ed8', bg: '#eff6ff',  icon: 'bi-calendar3' },
-    { label: t('res.metrics.confirmed'), value: counts.confirmed,  color: '#059669', bg: '#ecfdf5',  icon: 'bi-check-circle-fill' },
-    { label: t('res.metrics.pending'),   value: counts.pending,    color: '#d97706', bg: '#fffbeb',  icon: 'bi-hourglass-split' },
-    { label: t('res.metrics.seated'),    value: counts.seated,     color: '#2563eb', bg: '#eff6ff',  icon: 'bi-person-check-fill' },
-    { label: t('res.metrics.canceled'),  value: counts.canceled,   color: '#9ca3af', bg: '#f3f4f6',  icon: 'bi-x-circle' },
-    { label: t('res.metrics.noShow'),    value: counts.noShow,     color: '#dc2626', bg: '#fef2f2',  icon: 'bi-person-x-fill' },
-  ];
-
-  return (
-    <div className="ff-res-metrics-row">
-      {metrics.map((m) => (
-        <div
-          key={m.label}
-          style={{
-            background: '#fff',
-            border: '1px solid #e5e7eb',
-            borderRadius: 10,
-            padding: '9px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            minWidth: 108,
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              background: m.bg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <i className={`bi ${m.icon}`} style={{ color: m.color, fontSize: '1rem' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, lineHeight: 1, color: m.color, fontVariantNumeric: 'tabular-nums' }}>
-              {m.value}
-            </div>
-            <div style={{ fontSize: '0.71rem', color: '#9ca3af', marginTop: 1, fontWeight: 600 }}>{m.label}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ─── ReservationCard ──────────────────────────────────────────────────────────
 
 interface ReservationCardProps {
@@ -2366,7 +2301,7 @@ function ReservationsInner({ lang, onLangChange }: { lang: LanguageCode; onLangC
               <div className="ff-res-chip-row">
                 {(['', 'PENDING', 'CONFIRMED', 'SEATED', 'COMPLETED', 'CANCELED', 'NO_SHOW'] as const).map((s) => (
                   <button key={s || 'all'} className={`ff-res-chip${filterStatus === s ? ' active' : ''}`} onClick={() => setFilterStatus(s)}>
-                    {s === '' ? t('res.scope.all') : <><i className={`bi ${STATUS_CONFIG[s].icon}`} style={{ fontSize: 11 }} />{t(STATUS_CONFIG[s].labelKey)}</>}
+                    {s === '' ? t('res.scope.all') : <><i className={`bi ${STATUS_CONFIG[s].icon}`} style={{ fontSize: 11, color: filterStatus === s ? 'inherit' : STATUS_CONFIG[s].accent }} />{t(STATUS_CONFIG[s].labelKey)}</>}
                     {s !== '' && (
                       <span style={{ background: filterStatus === s ? 'rgba(255,255,255,.2)' : '#e5e7eb', color: filterStatus === s ? '#fff' : '#6b7280', borderRadius: 10, padding: '0 5px', fontSize: 10, fontWeight: 800, marginLeft: 2 }}>
                         {reservations.filter((r) => r.status === s).length}
@@ -2383,12 +2318,7 @@ function ReservationsInner({ lang, onLangChange }: { lang: LanguageCode; onLangC
           {tab === 'reservations' && (
             <>
               {view === 'agenda' && (
-                <>
-                  <MetricsRow reservations={reservations} />
-                  <div style={{ marginTop: 16 }}>
-                    <AgendaView filtered={filtered} todayStr={todayStr} tables={tables} onStatusChange={handleStatusChange} onEdit={(r) => setEditTarget(r)} />
-                  </div>
-                </>
+                <AgendaView filtered={filtered} todayStr={todayStr} tables={tables} onStatusChange={handleStatusChange} onEdit={(r) => setEditTarget(r)} />
               )}
               {view === 'table' && (
                 <ReservationTableView reservations={filtered} tables={tables} onStatusChange={handleStatusChange} onEdit={(r) => setEditTarget(r)} />

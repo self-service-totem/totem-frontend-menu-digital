@@ -47,6 +47,7 @@ const branch: Branch = {
   queueMessage: 'Acompanhe seu pedido aqui!',
   serviceFeeRate: 0.1,
   currency: 'BRL',
+  paymentMethods: { card: true, pix: true, mercadoPago: true, cash: true },
   createdAt: NOW,
   updatedAt: NOW,
 };

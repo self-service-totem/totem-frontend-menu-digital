@@ -66,6 +66,22 @@ export interface Tenant {
   updatedAt: string;
 }
 
+export type PaymentMethodId = 'CARD' | 'PIX' | 'MERCADO_PAGO' | 'CASH';
+
+export interface BranchPaymentMethods {
+  card: boolean;
+  pix: boolean;
+  mercadoPago: boolean;
+  cash: boolean;
+}
+
+export const DEFAULT_PAYMENT_METHODS: BranchPaymentMethods = {
+  card: true,
+  pix: true,
+  mercadoPago: true,
+  cash: true,
+};
+
 export interface Branch {
   id: string;
   tenantId: string;
@@ -76,6 +92,7 @@ export interface Branch {
   queueMessage?: string;
   serviceFeeRate: number;
   currency: string;
+  paymentMethods?: BranchPaymentMethods;
   logoUrl?: string;
   createdAt: string;
   updatedAt: string;

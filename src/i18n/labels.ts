@@ -175,6 +175,18 @@ export type LabelKey =
   | 'kiosk.payment.pixDesc'
   | 'kiosk.payment.cash'
   | 'kiosk.payment.cashDesc'
+  | 'kiosk.payment.mercadoPago'
+  | 'kiosk.payment.mercadoPagoDesc'
+  | 'kiosk.payment.cardInstrTitle'
+  | 'kiosk.payment.cardInstrDesc'
+  | 'kiosk.payment.qrTitle'
+  | 'kiosk.payment.qrDesc'
+  | 'kiosk.payment.waiting'
+  | 'kiosk.payment.cashTitle'
+  | 'kiosk.payment.cashSubtitle'
+  | 'kiosk.payment.cashInstr'
+  | 'kiosk.payment.orderLabel'
+  | 'kiosk.payment.itemsLabel'
   | 'kiosk.payment.confirm'
   | 'kiosk.payment.processing'
   | 'kiosk.payment.approved'
@@ -189,6 +201,10 @@ export type LabelKey =
   | 'kiosk.confirm.newOrder'
   | 'kiosk.menu.categories'
   | 'kiosk.menu.added'
+  | 'kiosk.menu.featured'
+  | 'kiosk.menu.featuredSub'
+  | 'kiosk.menu.bestseller'
+  | 'kiosk.menu.upsellHint'
   | 'kiosk.idle.title'
   | 'kiosk.idle.subtitle'
   | 'kiosk.idle.continue'
@@ -320,6 +336,14 @@ export type LabelKey =
   | 'adminSettings.currency'
   | 'adminSettings.serviceFee'
   | 'adminSettings.serviceFeeHint'
+  | 'adminSettings.payments'
+  | 'adminSettings.paymentsDesc'
+  | 'adminSettings.payCard'
+  | 'adminSettings.payPix'
+  | 'adminSettings.payMercadoPago'
+  | 'adminSettings.payCash'
+  | 'adminSettings.paymentOn'
+  | 'adminSettings.paymentOff'
   | 'adminSettings.queueSection'
   | 'adminSettings.queueDesc'
   | 'adminSettings.queueEnabledLabel'
@@ -1128,6 +1152,18 @@ const ptBR: LabelMap = {
   'kiosk.payment.pixDesc': 'Escaneie o QR Code',
   'kiosk.payment.cash': 'Dinheiro',
   'kiosk.payment.cashDesc': 'Pague no caixa',
+  'kiosk.payment.mercadoPago': 'Mercado Pago',
+  'kiosk.payment.mercadoPagoDesc': 'Escaneie o QR Code',
+  'kiosk.payment.cardInstrTitle': 'Use a maquininha',
+  'kiosk.payment.cardInstrDesc': 'Insira, aproxime ou passe seu cartão na maquininha ao lado.',
+  'kiosk.payment.qrTitle': 'Escaneie para pagar',
+  'kiosk.payment.qrDesc': 'Abra o app e escaneie o QR Code abaixo.',
+  'kiosk.payment.waiting': 'Aguardando confirmação do pagamento…',
+  'kiosk.payment.cashTitle': 'Pague no caixa',
+  'kiosk.payment.cashSubtitle': 'Apresente este ticket no caixa para finalizar o pagamento',
+  'kiosk.payment.cashInstr': 'Seu pedido foi registrado. Dirija-se ao caixa com o número abaixo.',
+  'kiosk.payment.orderLabel': 'Pedido',
+  'kiosk.payment.itemsLabel': 'Itens',
   'kiosk.payment.confirm': 'Confirmar pagamento',
   'kiosk.payment.processing': 'Processando pagamento…',
   'kiosk.payment.approved': 'Pagamento aprovado!',
@@ -1142,6 +1178,10 @@ const ptBR: LabelMap = {
   'kiosk.confirm.newOrder': 'Novo pedido',
   'kiosk.menu.categories': 'Categorias',
   'kiosk.menu.added': 'Adicionado',
+  'kiosk.menu.featured': 'Mais pedidos',
+  'kiosk.menu.featuredSub': 'os favoritos da casa',
+  'kiosk.menu.bestseller': 'Mais vendido',
+  'kiosk.menu.upsellHint': 'Que tal acompanhar com',
   'kiosk.idle.title': 'Você ainda está aí?',
   'kiosk.idle.subtitle': 'Sua sessão será reiniciada em {s}s',
   'kiosk.idle.continue': 'Sim, continuar',
@@ -1268,6 +1308,14 @@ const ptBR: LabelMap = {
   'adminSettings.currency': 'Moeda',
   'adminSettings.serviceFee': 'Taxa de serviço',
   'adminSettings.serviceFeeHint': 'Ex: 0.1 = 10%',
+  'adminSettings.payments': 'Formas de pagamento',
+  'adminSettings.paymentsDesc': 'Escolha quais formas de pagamento o totem oferece ao cliente.',
+  'adminSettings.payCard': 'Cartão',
+  'adminSettings.payPix': 'PIX',
+  'adminSettings.payMercadoPago': 'Mercado Pago',
+  'adminSettings.payCash': 'Dinheiro',
+  'adminSettings.paymentOn': 'Habilitado',
+  'adminSettings.paymentOff': 'Desabilitado',
   'adminSettings.queueSection': 'Fila de espera',
   'adminSettings.queueDesc': 'Configuração da fila visível no Menu Digital.',
   'adminSettings.queueEnabledLabel': 'Fila habilitada',
@@ -2068,6 +2116,18 @@ const es: LabelMap = {
   'kiosk.payment.pixDesc': 'Escaneá el código QR',
   'kiosk.payment.cash': 'Efectivo',
   'kiosk.payment.cashDesc': 'Pagá en la caja',
+  'kiosk.payment.mercadoPago': 'Mercado Pago',
+  'kiosk.payment.mercadoPagoDesc': 'Escaneá el código QR',
+  'kiosk.payment.cardInstrTitle': 'Usá el posnet',
+  'kiosk.payment.cardInstrDesc': 'Insertá, acercá o pasá tu tarjeta en el posnet de al lado.',
+  'kiosk.payment.qrTitle': 'Escaneá para pagar',
+  'kiosk.payment.qrDesc': 'Abrí la app y escaneá el código QR de abajo.',
+  'kiosk.payment.waiting': 'Esperando la confirmación del pago…',
+  'kiosk.payment.cashTitle': 'Pagá en la caja',
+  'kiosk.payment.cashSubtitle': 'Presentá este ticket en la caja para finalizar el pago',
+  'kiosk.payment.cashInstr': 'Tu pedido fue registrado. Acercate a la caja con el número de abajo.',
+  'kiosk.payment.orderLabel': 'Pedido',
+  'kiosk.payment.itemsLabel': 'Ítems',
   'kiosk.payment.confirm': 'Confirmar pago',
   'kiosk.payment.processing': 'Procesando pago…',
   'kiosk.payment.approved': '¡Pago aprobado!',
@@ -2082,6 +2142,10 @@ const es: LabelMap = {
   'kiosk.confirm.newOrder': 'Nuevo pedido',
   'kiosk.menu.categories': 'Categorías',
   'kiosk.menu.added': 'Agregado',
+  'kiosk.menu.featured': 'Más pedidos',
+  'kiosk.menu.featuredSub': 'los favoritos de la casa',
+  'kiosk.menu.bestseller': 'Más vendido',
+  'kiosk.menu.upsellHint': '¿Qué tal acompañar con',
   'kiosk.idle.title': '¿Seguís ahí?',
   'kiosk.idle.subtitle': 'Tu sesión se reiniciará en {s}s',
   'kiosk.idle.continue': 'Sí, continuar',
@@ -2208,6 +2272,14 @@ const es: LabelMap = {
   'adminSettings.currency': 'Moneda',
   'adminSettings.serviceFee': 'Cargo por servicio',
   'adminSettings.serviceFeeHint': 'Ej: 0.1 = 10%',
+  'adminSettings.payments': 'Formas de pago',
+  'adminSettings.paymentsDesc': 'Elegí qué formas de pago ofrece el tótem al cliente.',
+  'adminSettings.payCard': 'Tarjeta',
+  'adminSettings.payPix': 'PIX',
+  'adminSettings.payMercadoPago': 'Mercado Pago',
+  'adminSettings.payCash': 'Efectivo',
+  'adminSettings.paymentOn': 'Habilitado',
+  'adminSettings.paymentOff': 'Deshabilitado',
   'adminSettings.queueSection': 'Fila de espera',
   'adminSettings.queueDesc': 'Configuración de la fila visible en el Menú Digital.',
   'adminSettings.queueEnabledLabel': 'Fila habilitada',
@@ -2997,6 +3069,18 @@ const en: LabelMap = {
   'kiosk.payment.pixDesc': 'Scan the QR code',
   'kiosk.payment.cash': 'Cash',
   'kiosk.payment.cashDesc': 'Pay at the counter',
+  'kiosk.payment.mercadoPago': 'Mercado Pago',
+  'kiosk.payment.mercadoPagoDesc': 'Scan the QR code',
+  'kiosk.payment.cardInstrTitle': 'Use the card machine',
+  'kiosk.payment.cardInstrDesc': 'Insert, tap or swipe your card on the machine beside you.',
+  'kiosk.payment.qrTitle': 'Scan to pay',
+  'kiosk.payment.qrDesc': 'Open your app and scan the QR code below.',
+  'kiosk.payment.waiting': 'Waiting for payment confirmation…',
+  'kiosk.payment.cashTitle': 'Pay at the counter',
+  'kiosk.payment.cashSubtitle': 'Show this ticket at the counter to complete your payment',
+  'kiosk.payment.cashInstr': 'Your order has been registered. Head to the counter with the number below.',
+  'kiosk.payment.orderLabel': 'Order',
+  'kiosk.payment.itemsLabel': 'Items',
   'kiosk.payment.confirm': 'Confirm payment',
   'kiosk.payment.processing': 'Processing payment…',
   'kiosk.payment.approved': 'Payment approved!',
@@ -3011,6 +3095,10 @@ const en: LabelMap = {
   'kiosk.confirm.newOrder': 'New order',
   'kiosk.menu.categories': 'Categories',
   'kiosk.menu.added': 'Added',
+  'kiosk.menu.featured': 'Most ordered',
+  'kiosk.menu.featuredSub': 'house favourites',
+  'kiosk.menu.bestseller': 'Best seller',
+  'kiosk.menu.upsellHint': 'How about adding',
   'kiosk.idle.title': 'Are you still there?',
   'kiosk.idle.subtitle': 'Your session will restart in {s}s',
   'kiosk.idle.continue': 'Yes, continue',
@@ -3134,6 +3222,14 @@ const en: LabelMap = {
   'adminSettings.currency': 'Currency',
   'adminSettings.serviceFee': 'Service fee',
   'adminSettings.serviceFeeHint': 'E.g.: 0.1 = 10%',
+  'adminSettings.payments': 'Payment methods',
+  'adminSettings.paymentsDesc': 'Choose which payment methods the kiosk offers customers.',
+  'adminSettings.payCard': 'Card',
+  'adminSettings.payPix': 'PIX',
+  'adminSettings.payMercadoPago': 'Mercado Pago',
+  'adminSettings.payCash': 'Cash',
+  'adminSettings.paymentOn': 'Enabled',
+  'adminSettings.paymentOff': 'Disabled',
   'adminSettings.queueSection': 'Queue',
   'adminSettings.queueDesc': 'Queue configuration visible on Menu Digital.',
   'adminSettings.queueEnabledLabel': 'Queue enabled',
