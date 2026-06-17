@@ -5,6 +5,7 @@ import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
 import { formatMoney } from '@/utils/format';
+import { printDemoTicket } from '@/lib/printing/demoTicket';
 
 interface ConfirmationState {
   orderNumber: string;
@@ -24,6 +25,19 @@ export function OrderConfirmationPage() {
 
   function goToMenu() {
     navigate(tableId ? `/menu/${tableId}` : '/menu');
+  }
+
+  function printTicket() {
+    if (!state) return;
+    printDemoTicket({
+      restaurantName: menuContext?.restaurantName ?? 'Mi Restaurante',
+      orderNumber,
+      customerName,
+      tableName: menuContext?.tableName,
+      itemCount,
+      total,
+      currency,
+    });
   }
 
   // If landed here without state (e.g. direct URL access), redirect to menu.
@@ -121,6 +135,9 @@ export function OrderConfirmationPage() {
         <PrimaryButton onClick={goToMenu}>
           {t('confirmation.backToMenu')}
         </PrimaryButton>
+        <SecondaryButton onClick={printTicket}>
+          <i className="bi bi-printer" /> {t('confirmation.print')}
+        </SecondaryButton>
         <SecondaryButton onClick={() => navigate('/rating')}>
           <i className="bi bi-star" /> {t('confirmation.rate')}
         </SecondaryButton>

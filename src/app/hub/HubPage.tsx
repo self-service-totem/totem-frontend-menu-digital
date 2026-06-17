@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resetDb, seedDb } from '@/lib/mock-db';
+import { CardPreviewModal } from '@/components/printing/CardPreviewModal';
 import { useRole } from '@/app/RoleContext';
 import { I18nProvider, useLabels } from '@/i18n/I18nContext';
 import { useAdminLanguage } from '@/i18n/useAdminLanguage';
@@ -17,15 +19,15 @@ const CUSTOMER_AREAS: AreaDef[] = [
 const OPERATIONAL_AREAS: AreaDef[] = [
   { path: '/kitchen/orders', icon: 'bi-fire', titleKey: 'hub.area.kitchen.title', descKey: 'hub.area.kitchen.desc', color: '#d97706' },
   { path: '/waiter-staff/tables', icon: 'bi-person-badge', titleKey: 'hub.area.waiter.title', descKey: 'hub.area.waiter.desc', color: '#059669' },
-  { path: '/cashier/orders', icon: 'bi-cash-register', titleKey: 'hub.area.cashier.title', descKey: 'hub.area.cashier.desc', color: '#9333ea' },
-  { path: '/admin/dashboard', icon: 'bi-grid-1x2', titleKey: 'hub.area.admin.title', descKey: 'hub.area.admin.desc', color: '#475569' },
+  { path: '/cashier/orders', icon: 'bi-cash-coin', titleKey: 'hub.area.cashier.title', descKey: 'hub.area.cashier.desc', color: '#9333ea' },
+  { path: '/admin/dashboard', icon: 'bi-grid-1x2', titleKey: 'hub.area.admin.title', descKey: 'hub.area.admin.desc', color: '#ec4899' },
 ];
 
 const NEW_AREAS: AreaDef[] = [
   { path: '/delivery', icon: 'bi-bicycle', titleKey: 'hub.area.delivery.title', descKey: 'hub.area.delivery.desc', color: '#06b6d4' },
   { path: '/reservations', icon: 'bi-calendar-check', titleKey: 'hub.area.reservations.title', descKey: 'hub.area.reservations.desc', color: '#8b5cf6' },
-  { path: '/reports', icon: 'bi-bar-chart', titleKey: 'hub.area.reports.title', descKey: 'hub.area.reports.desc', color: '#0f172a' },
-  { path: '/login', icon: 'bi-person-lock', titleKey: 'hub.area.login.title', descKey: 'hub.area.login.desc', color: '#374151' },
+  { path: '/reports', icon: 'bi-bar-chart', titleKey: 'hub.area.reports.title', descKey: 'hub.area.reports.desc', color: '#ffffff' },
+  { path: '/login', icon: 'bi-person-lock', titleKey: 'hub.area.login.title', descKey: 'hub.area.login.desc', color: '#60a5fa' },
 ];
 
 function AreaGrid({ areas }: { areas: AreaDef[] }) {
@@ -57,6 +59,7 @@ export function HubPage() {
 function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l: LanguageCode) => void }) {
   const { t } = useLabels();
   const { currentUser, logout } = useRole();
+  const [cardPreviewOpen, setCardPreviewOpen] = useState(false);
 
   function handleReset() {
     if (window.confirm(t('hub.resetConfirm'))) {
@@ -105,10 +108,21 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
         <AreaGrid areas={NEW_AREAS} />
       </div>
 
-      <button className="ff-hub-reset-btn" onClick={handleReset}>
-        <i className="bi bi-arrow-counterclockwise me-1" />
-        {t('hub.resetBtn')}
-      </button>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button
+          onClick={() => setCardPreviewOpen(true)}
+          style={{ background: 'rgba(59,130,246,.15)', border: '1px solid rgba(59,130,246,.3)', color: '#93c5fd', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}
+        >
+          <i className="bi bi-printer me-1" />
+          {t('hub.printCard')}
+        </button>
+        <button className="ff-hub-reset-btn" onClick={handleReset}>
+          <i className="bi bi-arrow-counterclockwise me-1" />
+          {t('hub.resetBtn')}
+        </button>
+      </div>
+
+      <CardPreviewModal open={cardPreviewOpen} onClose={() => setCardPreviewOpen(false)} />
     </div>
   );
 }

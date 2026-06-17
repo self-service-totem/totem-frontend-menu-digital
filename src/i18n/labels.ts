@@ -144,6 +144,7 @@ export type LabelKey =
   | 'confirmation.note'
   | 'confirmation.backToMenu'
   | 'confirmation.rate'
+  | 'confirmation.print'
   | 'kiosk.welcome.title'
   | 'kiosk.welcome.subtitle'
   | 'kiosk.welcome.eatIn'
@@ -199,6 +200,7 @@ export type LabelKey =
   | 'kiosk.confirm.hint'
   | 'kiosk.confirm.restarting'
   | 'kiosk.confirm.newOrder'
+  | 'kiosk.confirm.print'
   | 'kiosk.menu.categories'
   | 'kiosk.menu.added'
   | 'kiosk.menu.featured'
@@ -938,6 +940,8 @@ export type LabelKey =
   | 'hub.logout'
   | 'hub.resetConfirm'
   | 'hub.resetBtn'
+  | 'hub.printCard'
+  | 'hub.cardPreviewTitle'
   | 'hub.sectionCustomer'
   | 'hub.sectionOps'
   | 'hub.sectionNew'
@@ -1121,6 +1125,7 @@ const ptBR: LabelMap = {
   'confirmation.note': 'Acompanhe o status pelo painel ou aguarde ser chamado.',
   'confirmation.backToMenu': 'Voltar ao menu',
   'confirmation.rate': 'Avaliar experiência',
+  'confirmation.print': 'Imprimir comprovante',
   'kiosk.welcome.title': 'Bem-vindo!',
   'kiosk.welcome.subtitle': 'Como você deseja pedir?',
   'kiosk.welcome.eatIn': 'Comer aqui',
@@ -1176,6 +1181,7 @@ const ptBR: LabelMap = {
   'kiosk.confirm.hint': 'Acompanhe pelo painel de fila ou aguarde ser chamado pelo número acima',
   'kiosk.confirm.restarting': 'Reiniciando em {s}s…',
   'kiosk.confirm.newOrder': 'Novo pedido',
+  'kiosk.confirm.print': 'Imprimir comprovante',
   'kiosk.menu.categories': 'Categorias',
   'kiosk.menu.added': 'Adicionado',
   'kiosk.menu.featured': 'Mais pedidos',
@@ -1903,6 +1909,8 @@ const ptBR: LabelMap = {
   'hub.logout': 'Sair',
   'hub.resetConfirm': 'Resetar dados de demonstração? Todas as interações serão apagadas.',
   'hub.resetBtn': 'Resetar dados de demonstração',
+  'hub.printCard': 'Imprimir cartão',
+  'hub.cardPreviewTitle': 'Prévia do cartão',
   'hub.sectionCustomer': 'Áreas do cliente',
   'hub.sectionOps': 'Operação',
   'hub.sectionNew': 'Novas funcionalidades',
@@ -2085,6 +2093,7 @@ const es: LabelMap = {
   'confirmation.note': 'Seguí el estado en el panel o esperá que te llamen.',
   'confirmation.backToMenu': 'Volver al menú',
   'confirmation.rate': 'Calificar experiencia',
+  'confirmation.print': 'Imprimir ticket',
   'kiosk.welcome.title': '¡Bienvenido!',
   'kiosk.welcome.subtitle': '¿Cómo querés pedir?',
   'kiosk.welcome.eatIn': 'Comer acá',
@@ -2140,6 +2149,7 @@ const es: LabelMap = {
   'kiosk.confirm.hint': 'Seguilo en el panel de turnos o esperá a que te llamen por el número de arriba',
   'kiosk.confirm.restarting': 'Reiniciando en {s}s…',
   'kiosk.confirm.newOrder': 'Nuevo pedido',
+  'kiosk.confirm.print': 'Imprimir ticket',
   'kiosk.menu.categories': 'Categorías',
   'kiosk.menu.added': 'Agregado',
   'kiosk.menu.featured': 'Más pedidos',
@@ -2867,6 +2877,8 @@ const es: LabelMap = {
   'hub.logout': 'Salir',
   'hub.resetConfirm': '¿Resetear datos de demostración? Todas las interacciones serán borradas.',
   'hub.resetBtn': 'Resetear datos de demostración',
+  'hub.printCard': 'Imprimir tarjeta',
+  'hub.cardPreviewTitle': 'Vista previa de la tarjeta',
   'hub.sectionCustomer': 'Áreas del cliente',
   'hub.sectionOps': 'Operación',
   'hub.sectionNew': 'Nuevas funcionalidades',
@@ -3038,6 +3050,7 @@ const en: LabelMap = {
   'confirmation.note': 'Track the status on the board or wait to be called.',
   'confirmation.backToMenu': 'Back to menu',
   'confirmation.rate': 'Rate your experience',
+  'confirmation.print': 'Print receipt',
   'kiosk.welcome.title': 'Welcome!',
   'kiosk.welcome.subtitle': 'How would you like to order?',
   'kiosk.welcome.eatIn': 'Dine in',
@@ -3093,6 +3106,7 @@ const en: LabelMap = {
   'kiosk.confirm.hint': 'Track it on the queue board or wait to be called by the number above',
   'kiosk.confirm.restarting': 'Restarting in {s}s…',
   'kiosk.confirm.newOrder': 'New order',
+  'kiosk.confirm.print': 'Print receipt',
   'kiosk.menu.categories': 'Categories',
   'kiosk.menu.added': 'Added',
   'kiosk.menu.featured': 'Most ordered',
@@ -3802,6 +3816,8 @@ const en: LabelMap = {
   'hub.logout': 'Sign out',
   'hub.resetConfirm': 'Reset demo data? All interactions will be deleted.',
   'hub.resetBtn': 'Reset demo data',
+  'hub.printCard': 'Print card',
+  'hub.cardPreviewTitle': 'Card preview',
   'hub.sectionCustomer': 'Customer areas',
   'hub.sectionOps': 'Operations',
   'hub.sectionNew': 'New features',

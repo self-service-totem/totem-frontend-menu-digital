@@ -10,6 +10,7 @@ import type { DbCategory, DbProduct, CartItem, QueueTicket, DbOrder, BranchPayme
 import { DEFAULT_PAYMENT_METHODS } from '@/lib/types';
 import type { LabelKey } from '@/i18n/labels';
 import { formatCurrency as formatBRL } from '@/utils/format';
+import { printDemoTicket } from '@/lib/printing/demoTicket';
 
 const IDLE_COUNTDOWN_S = 10;
 
@@ -686,13 +687,28 @@ function KioskConfirmationScreen({
   onReset: () => void;
 }) {
   const [countdown, setCountdown] = useState(15);
+  const [paused, setPaused] = useState(false);
   const { t } = useLabels();
 
   useEffect(() => {
+    if (paused) return; // al imprimir, congelamos el auto-reset
     if (countdown <= 0) { onReset(); return; }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
-  }, [countdown, onReset]);
+  }, [countdown, paused, onReset]);
+
+  function handlePrint() {
+    setPaused(true);
+    printDemoTicket({
+      restaurantName: 'Pertinho do Céu',
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      queueNumber: queueTicket.ticketNumber,
+      itemCount: order.items.reduce((n, it) => n + it.quantity, 0),
+      total: order.total,
+      currency: 'BRL',
+    });
+  }
 
   return (
     <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
@@ -720,7 +736,12 @@ function KioskConfirmationScreen({
       </div>
 
       <div className="ff-kiosk-confirm-bottom">
-        <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
+        {!paused && (
+          <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
+        )}
+        <button className="ff-kiosk-checkout-btn" onClick={handlePrint}>
+          <i className="bi bi-printer" /> {t('kiosk.confirm.print')}
+        </button>
         <button className="ff-kiosk-checkout-btn" onClick={onReset}>
           {t('kiosk.confirm.newOrder')}
         </button>
@@ -787,13 +808,27 @@ function KioskCashTicketScreen({
   onReset: () => void;
 }) {
   const [countdown, setCountdown] = useState(20);
+  const [paused, setPaused] = useState(false);
   const { t } = useLabels();
 
   useEffect(() => {
+    if (paused) return; // al imprimir, congelamos el auto-reset
     if (countdown <= 0) { onReset(); return; }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
-  }, [countdown, onReset]);
+  }, [countdown, paused, onReset]);
+
+  function handlePrint() {
+    setPaused(true);
+    printDemoTicket({
+      restaurantName: 'Pertinho do Céu',
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      itemCount,
+      total,
+      currency: 'BRL',
+    });
+  }
 
   return (
     <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
@@ -823,7 +858,12 @@ function KioskCashTicketScreen({
       </div>
 
       <div className="ff-kiosk-confirm-bottom">
-        <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
+        {!paused && (
+          <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
+        )}
+        <button className="ff-kiosk-checkout-btn" onClick={handlePrint}>
+          <i className="bi bi-printer" /> {t('kiosk.confirm.print')}
+        </button>
         <button className="ff-kiosk-checkout-btn" onClick={onReset}>
           {t('kiosk.confirm.newOrder')}
         </button>
