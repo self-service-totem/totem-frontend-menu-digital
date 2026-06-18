@@ -18,5 +18,10 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 /** Envía bytes ESC/POS crudos a RawBT. */
 export function printViaRawBt(bytes: Uint8Array): void {
-  window.location.href = 'rawbt:base64,' + bytesToBase64(bytes);
+  const url = 'rawbt:base64,' + bytesToBase64(bytes);
+  const a = document.createElement('a');
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }

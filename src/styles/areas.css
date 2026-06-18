@@ -2393,8 +2393,8 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 .ff-kiosk-catbar {
   flex-shrink: 0;
   display: flex;
-  gap: clamp(8px, 1vw, 12px);
-  padding: clamp(12px, 1.4vw, 18px) clamp(20px, 2.4vw, 32px);
+  gap: clamp(10px, 1.2vw, 16px);
+  padding: clamp(14px, 1.6vw, 20px) clamp(20px, 2.4vw, 32px);
   background: #f6f6f7;
   border-bottom: 1px solid #ececef;
   overflow-x: auto;
@@ -2407,8 +2407,8 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: clamp(6px, 0.8vw, 10px);
-  padding: clamp(8px, 0.9vw, 12px) clamp(14px, 1.6vw, 20px);
+  gap: clamp(8px, 1vw, 12px);
+  padding: clamp(12px, 1.4vw, 16px) clamp(20px, 2.2vw, 28px);
   background: #fff;
   border: 1.5px solid #ececef;
   border-radius: 999px;
@@ -2425,19 +2425,19 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 }
 
 .ff-kiosk-cat-icon {
-  width: clamp(28px, 3vw, 36px);
-  height: clamp(28px, 3vw, 36px);
+  width: clamp(40px, 4vw, 52px);
+  height: clamp(40px, 4vw, 52px);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: clamp(14px, 1.5vw, 18px);
+  font-size: clamp(18px, 2vw, 24px);
   color: #fff;
   flex-shrink: 0;
 }
 .ff-kiosk-cat.active .ff-kiosk-cat-icon { background: rgba(255,255,255,0.22) !important; }
 
 .ff-kiosk-cat-label {
-  font-size: clamp(14px, 1.5vw, 18px);
+  font-size: clamp(16px, 1.8vw, 20px);
   font-weight: 700;
   color: #15161a;
   white-space: nowrap;

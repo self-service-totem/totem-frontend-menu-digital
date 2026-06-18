@@ -687,18 +687,10 @@ function KioskConfirmationScreen({
   onReset: () => void;
 }) {
   const [countdown, setCountdown] = useState(15);
-  const [paused, setPaused] = useState(false);
   const { t } = useLabels();
 
+  // Auto-print on arrival — no dialog, no button needed
   useEffect(() => {
-    if (paused) return; // al imprimir, congelamos el auto-reset
-    if (countdown <= 0) { onReset(); return; }
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, paused, onReset]);
-
-  function handlePrint() {
-    setPaused(true);
     printDemoTicket({
       restaurantName: 'Pertinho do Céu',
       orderNumber: order.orderNumber,
@@ -708,7 +700,14 @@ function KioskConfirmationScreen({
       total: order.total,
       currency: 'BRL',
     });
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) { onReset(); return; }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, onReset]);
 
   return (
     <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
@@ -736,12 +735,7 @@ function KioskConfirmationScreen({
       </div>
 
       <div className="ff-kiosk-confirm-bottom">
-        {!paused && (
-          <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
-        )}
-        <button className="ff-kiosk-checkout-btn" onClick={handlePrint}>
-          <i className="bi bi-printer" /> {t('kiosk.confirm.print')}
-        </button>
+        <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
         <button className="ff-kiosk-checkout-btn" onClick={onReset}>
           {t('kiosk.confirm.newOrder')}
         </button>
@@ -808,18 +802,10 @@ function KioskCashTicketScreen({
   onReset: () => void;
 }) {
   const [countdown, setCountdown] = useState(20);
-  const [paused, setPaused] = useState(false);
   const { t } = useLabels();
 
+  // Auto-print on arrival
   useEffect(() => {
-    if (paused) return; // al imprimir, congelamos el auto-reset
-    if (countdown <= 0) { onReset(); return; }
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, paused, onReset]);
-
-  function handlePrint() {
-    setPaused(true);
     printDemoTicket({
       restaurantName: 'Pertinho do Céu',
       orderNumber: order.orderNumber,
@@ -828,7 +814,14 @@ function KioskCashTicketScreen({
       total,
       currency: 'BRL',
     });
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) { onReset(); return; }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, onReset]);
 
   return (
     <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
@@ -858,12 +851,7 @@ function KioskCashTicketScreen({
       </div>
 
       <div className="ff-kiosk-confirm-bottom">
-        {!paused && (
-          <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
-        )}
-        <button className="ff-kiosk-checkout-btn" onClick={handlePrint}>
-          <i className="bi bi-printer" /> {t('kiosk.confirm.print')}
-        </button>
+        <span className="ff-kiosk-countdown">{t('kiosk.confirm.restarting', { s: countdown })}</span>
         <button className="ff-kiosk-checkout-btn" onClick={onReset}>
           {t('kiosk.confirm.newOrder')}
         </button>

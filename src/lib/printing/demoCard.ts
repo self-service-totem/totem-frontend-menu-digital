@@ -4,7 +4,7 @@
 
 export const demoCard = {
   tagline: 'Menú digital y autogestión para tu local',
-  product: 'TÓTEM SELF-SERVICE',
+  product: 'TOTEM SELF-SERVICE',
   url: 'https://totem.fernandofresco.click', // <-- el QR del ticket apunta acá
   web: 'totem.fernandofresco.click',
   sellerName: 'Fernando Fresco',
