@@ -696,6 +696,7 @@ function KioskConfirmationScreen({
       orderNumber: order.orderNumber,
       customerName: order.customerName,
       queueNumber: queueTicket.ticketNumber,
+      items: order.items.map((it) => ({ name: it.name, quantity: it.quantity, unitPrice: it.unitPrice })),
       itemCount: order.items.reduce((n, it) => n + it.quantity, 0),
       total: order.total,
       currency: 'BRL',
@@ -810,9 +811,11 @@ function KioskCashTicketScreen({
       restaurantName: 'Pertinho do Céu',
       orderNumber: order.orderNumber,
       customerName: order.customerName,
+      items: order.items.map((it) => ({ name: it.name, quantity: it.quantity, unitPrice: it.unitPrice })),
       itemCount,
       total,
       currency: 'BRL',
+      footerNote: 'Presentate en caja para pagar',
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -913,8 +916,9 @@ export function KioskPaymentPage() {
   async function handleConfirm() {
     if (!method) return;
     if (method === 'CASH') {
-      // Cash is settled at the counter: register the order and hand out the slip.
-      const { order: o } = await kioskService.placeOrder('Cliente Totem', cart, serviceType);
+      // Efectivo: registra el pedido sin enviarlo a cocina ni generar turno.
+      // La caja confirma el pago y ahí sí genera el turno e imprime el ticket.
+      const { order: o } = await kioskService.placeCashOrder('Cliente Totem', cart);
       setOrder(o);
       setStep('cashTicket');
       return;

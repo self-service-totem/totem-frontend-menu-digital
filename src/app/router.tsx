@@ -70,6 +70,7 @@ export const router = createBrowserRouter([
   // ─── Cashier ──────────────────────────────────────────────────────────────
   { path: '/cashier', element: <Navigate to="/cashier/orders" replace /> },
   { path: '/cashier/orders', element: <CashierPage /> },
+  { path: '/cashier/kiosk', element: <CashierPage /> },
   { path: '/cashier/history', element: <CashierPage /> },
   { path: '/cashier/receipts', element: <CashierPage /> },
   { path: '/cashier/invoices', element: <CashierPage /> },

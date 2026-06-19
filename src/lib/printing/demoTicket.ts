@@ -9,6 +9,12 @@ import { demoCard } from './demoCard';
 
 const WIDTH = 48; // caracteres por línea a 80mm (fuente A)
 
+export interface DemoTicketItem {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 export interface DemoTicketInput {
   restaurantName: string;
   orderNumber: string;
@@ -16,9 +22,12 @@ export interface DemoTicketInput {
   tableName?: string;
   /** Número de turno/llamado (kiosk). Si viene, se imprime destacado. */
   queueNumber?: number | string;
+  items?: DemoTicketItem[];
   itemCount: number;
   total: number;
   currency: CurrencyCode;
+  /** Mensaje al pie, centrado y en negrita. Usar para instrucciones de pago en efectivo. */
+  footerNote?: string;
 }
 
 /** Fila etiqueta-valor justificada a los extremos del papel. */
@@ -32,32 +41,54 @@ export function buildDemoTicket(input: DemoTicketInput): Uint8Array {
 
   // --- Cabecera: nombre del local ---
   b.align('center').bold(true).size(2, 2).line(input.restaurantName);
-  b.size(1, 1).bold(false).line('TICKET DEMO').feed(1);
+  b.size(1, 1).bold(false);
+  if (input.tableName) b.line(input.tableName);
+  b.feed(1);
 
-  // --- Turno (kiosk): el dato clave para esperar el pedido ---
+  // --- Turno: número grande y centrado ---
   if (input.queueNumber != null) {
+    b.align('center');
     b.line('TURNO');
-    b.bold(true).size(3, 3).line(String(input.queueNumber)).size(1, 1).bold(false).feed(1);
+    b.bold(true).size(4, 4).line(String(input.queueNumber)).size(1, 1).bold(false);
+    b.feed(1);
   }
 
-  // --- Datos del pedido ---
+  // --- Número de pedido ---
+  b.align('center');
+  b.line('PEDIDO');
+  b.bold(true).size(3, 3).line(String(input.orderNumber)).size(1, 1).bold(false);
+  b.rule().feed(1);
+
+  // --- Detalle de ítems ---
   b.align('left');
-  b.line(row('Pedido', input.orderNumber));
-  b.line(row('Cliente', input.customerName));
-  if (input.tableName) b.line(row('Mesa', input.tableName));
-  b.line(row('Ítems', String(input.itemCount)));
+  if (input.items && input.items.length > 0) {
+    for (const item of input.items) {
+      const qty   = `${item.quantity}x`;
+      const price = formatMoney(item.unitPrice * item.quantity, input.currency);
+      const nameW = WIDTH - qty.length - price.length - 2;
+      const name  = item.name.length > nameW ? item.name.slice(0, nameW - 1) + '.' : item.name;
+      const pad   = Math.max(1, WIDTH - qty.length - name.length - price.length);
+      b.bold(true).text(qty + ' ').bold(false);
+      b.text(name + ' '.repeat(pad));
+      b.line(price);
+    }
+  } else {
+    b.line(row('Ítems', String(input.itemCount)));
+  }
+
   b.rule();
   b.bold(true).line(row('TOTAL', formatMoney(input.total, input.currency))).bold(false);
   b.rule();
 
-  // --- Pie: tarjeta comercial con QR ---
-  b.feed(1).align('center');
-  b.line(demoCard.tagline);
-  b.bold(true).line(demoCard.product).bold(false).feed(1);
-  b.qr(demoCard.url, 7).feed(1);
-  b.line(demoCard.web);
-  b.line(demoCard.sellerName);
-  b.line(demoCard.phone);
+  // --- Cliente ---
+  b.align('center').feed(1);
+  b.line(input.customerName);
+
+  // --- Nota al pie (ej: "Presentate en caja para pagar") ---
+  if (input.footerNote) {
+    b.feed(1);
+    b.bold(true).line(input.footerNote).bold(false);
+  }
 
   b.feed(4).cut();
   return b.build();

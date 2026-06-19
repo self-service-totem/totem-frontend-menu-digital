@@ -5,9 +5,10 @@
 export const demoCard = {
   tagline: 'Menú digital y autogestión para tu local',
   product: 'TOTEM SELF-SERVICE',
-  url: 'https://totem.fernandofresco.click', // <-- el QR del ticket apunta acá
+  url: 'https://totem.fernandofresco.click/', // <-- el QR del ticket apunta acá
   web: 'totem.fernandofresco.click',
   sellerName: 'Fernando Fresco',
+  mail: 'ffresco@gmail.com',
   phone: 'WhatsApp +54 9 11 4049-5643',
 };
 

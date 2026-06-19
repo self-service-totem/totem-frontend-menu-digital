@@ -2,6 +2,8 @@ import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cashierService } from '@/lib/services/cashierService';
 import type { TableGroup, CustomerGroup } from '@/lib/services/cashierService';
+import { kioskService } from '@/lib/services/kioskService';
+import { printDemoTicket } from '@/lib/printing/demoTicket';
 import { useNotify } from '@/lib/notifications';
 import { useElapsed, elapsedMins, fmtElapsed, ageSeverity, SEVERITY_STYLE } from '@/lib/utils/useElapsed';
 import type { Payment, PaymentMethod, Receipt, Invoice, DbTable } from '@/lib/types';
@@ -14,7 +16,7 @@ import type { SidebarNavGroup } from '@/components/layout';
 import { AdminModal, MetricChip, AdminFilterBar, AdminSearchInput, AdminLanguageSelector } from '@/components/admin';
 import type { FilterOption } from '@/components/admin';
 
-type Tab = 'tables' | 'orders' | 'history' | 'receipts' | 'invoices';
+type Tab = 'tables' | 'orders' | 'kiosk' | 'history' | 'receipts' | 'invoices';
 type PaymentFilter = 'all' | 'pending' | 'partial' | 'paid';
 
 // ─── Payment method config ─────────────────────────────────────────────────────
@@ -589,6 +591,100 @@ function TableGroupCard({
   );
 }
 
+// ─── Kiosk pay modal ───────────────────────────────────────────────────────────
+
+type KioskPayState = 'confirm' | 'loading' | 'done';
+
+function KioskPayModal({
+  order,
+  onClose,
+  onConfirm,
+}: {
+  order: import('@/lib/types').DbOrder;
+  onClose: () => void;
+  onConfirm: (orderId: string) => Promise<import('@/lib/types').QueueTicket>;
+}) {
+  const [state, setState] = useState<KioskPayState>('confirm');
+  const [queueTicket, setQueueTicket] = useState<import('@/lib/types').QueueTicket | null>(null);
+
+  async function handlePay() {
+    setState('loading');
+    try {
+      const qt = await onConfirm(order.id);
+      setQueueTicket(qt);
+      setState('done');
+    } catch {
+      setState('confirm');
+    }
+  }
+
+  const footer = state === 'confirm' ? (
+    <>
+      <button className="btn btn-success flex-1" style={{ fontWeight: 800, fontSize: 15 }} onClick={handlePay}>
+        <i className="bi bi-cash-coin me-1" />Confirmar cobro {formatBRL(order.total)}
+      </button>
+      <button className="btn btn-outline-secondary" onClick={onClose}>Cancelar</button>
+    </>
+  ) : state === 'done' && queueTicket ? (
+    <>
+      <button className="btn btn-outline-secondary flex-1" onClick={() => onConfirm(order.id).catch(() => {})}>
+        <i className="bi bi-printer me-1" />Reimprimir
+      </button>
+      <button className="btn btn-primary flex-1" style={{ fontWeight: 700 }} onClick={onClose}>
+        Cerrar
+      </button>
+    </>
+  ) : null;
+
+  return (
+    <AdminModal
+      title={state === 'done' ? 'Cobrado ✓' : `Cobrar ${order.orderNumber}`}
+      onClose={onClose}
+      footer={footer ?? undefined}
+    >
+      {state === 'loading' && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+          <div className="spinner-border text-success" style={{ width: 48, height: 48 }} />
+        </div>
+      )}
+
+      {state === 'done' && queueTicket && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#ecfdf5', border: '2px solid #6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+            <i className="bi bi-check2-circle" style={{ color: '#059669' }} />
+          </div>
+          <div style={{ fontSize: 13, color: '#6b7280' }}>{order.orderNumber} · {order.customerName}</div>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '14px 32px', width: '100%' }}>
+            <div style={{ fontSize: 11, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em' }}>Turno asignado</div>
+            <div style={{ fontSize: 56, fontWeight: 900, color: '#059669', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{queueTicket.ticketNumber}</div>
+          </div>
+          <div style={{ fontSize: 12, color: '#9ca3af' }}>Ticket impreso — el pedido fue enviado a cocina</div>
+        </div>
+      )}
+
+      {state === 'confirm' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>{order.customerName} · hace {elapsedMins(order.createdAt)} min</div>
+          {order.items.map((item, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < order.items.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 22, height: 22, borderRadius: 6, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#374151' }}>
+                  {item.quantity}
+                </span>
+                <span style={{ fontSize: 13 }}>{item.name}</span>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{formatBRL(item.unitPrice * item.quantity)}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 16, borderTop: '2px solid #e5e7eb', paddingTop: 10, marginTop: 4 }}>
+            <span>Total</span><span style={{ color: '#e11d2a' }}>{formatBRL(order.total)}</span>
+          </div>
+        </div>
+      )}
+    </AdminModal>
+  );
+}
+
 // ─── Pay context type ──────────────────────────────────────────────────────────
 
 type PayContext =
@@ -601,6 +697,7 @@ type PayContext =
 function tabFromPath(pathname: string): Tab {
   if (pathname.includes('/history')) return 'history';
   if (pathname.includes('/orders')) return 'orders';
+  if (pathname.includes('/kiosk')) return 'kiosk';
   if (pathname.includes('/receipts')) return 'receipts';
   if (pathname.includes('/invoices')) return 'invoices';
   return 'tables';
@@ -668,6 +765,10 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [pendingKioskOrders, setPendingKioskOrders] = useState<import('@/lib/types').DbOrder[]>([]);
+  const [paidKioskOrders, setPaidKioskOrders] = useState<(import('@/lib/types').DbOrder & { ticketNumber?: number })[]>([]);
+  const [kioskView, setKioskView] = useState<'pending' | 'paid'>('pending');
+  const [kioskPayOrder, setKioskPayOrder] = useState<import('@/lib/types').DbOrder | null>(null);
   const [summary, setSummary] = useState({ totalPaid: 0, paidCount: 0, pendingAmount: 0, pendingCount: 0 });
   const [payContext, setPayContext] = useState<PayContext>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -704,6 +805,8 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
     setReceipts(rec);
     setInvoices(inv);
     setSummary(cashierService.getDailySummary());
+    setPendingKioskOrders(kioskService.listPendingCashOrders());
+    setPaidKioskOrders(kioskService.listPaidKioskOrdersToday());
     const keys = new Set<string>();
     for (const g of groups) {
       for (const c of g.customers) {
@@ -790,6 +893,23 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
     load();
   }
 
+  async function handlePayKioskOrder(orderId: string): Promise<import('@/lib/types').QueueTicket> {
+    const { order, queueTicket } = await kioskService.confirmCashPayment(orderId);
+    notify(`Pedido ${order.orderNumber} cobrado — turno ${queueTicket.ticketNumber}`);
+    printDemoTicket({
+      restaurantName: 'Pertinho do Céu',
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      queueNumber: queueTicket.ticketNumber,
+      items: order.items.map((it) => ({ name: it.name, quantity: it.quantity, unitPrice: it.unitPrice })),
+      itemCount: order.items.reduce((n, it) => n + it.quantity, 0),
+      total: order.total,
+      currency: 'BRL',
+    });
+    load();
+    return queueTicket;
+  }
+
   // ── Filtered table groups ────────────────────────────────────────────────────
 
   const filteredGroups = tableGroups.filter((g) => {
@@ -811,6 +931,7 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
 
   const navItems: { label: string; value: Tab; icon: string }[] = [
     { label: t('cashier.tab.orders'),   value: 'orders',   icon: 'bi-grid-3x3-gap' },
+    { label: 'Kiosk',                   value: 'kiosk',    icon: 'bi-display' },
     { label: t('cashier.tab.history'),  value: 'history',  icon: 'bi-list-check' },
     { label: t('cashier.tab.receipts'), value: 'receipts', icon: 'bi-receipt' },
     { label: t('cashier.tab.invoices'), value: 'invoices', icon: 'bi-file-earmark-text' },
@@ -829,7 +950,9 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
       key: n.value,
       label: n.label,
       icon: n.icon,
-      badge: n.value === 'orders' && payments.length > 0 ? payments.length : undefined,
+      badge: n.value === 'orders' && payments.length > 0 ? payments.length
+           : n.value === 'kiosk' && pendingKioskOrders.length > 0 ? pendingKioskOrders.length
+           : undefined,
     })),
   }];
 
@@ -944,6 +1067,151 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
                 {tableSearch && filteredGroups.length === 0 && tableGroups.length > 0 && (
                   <div className="text-muted text-center py-4">Nenhuma mesa encontrada para "{tableSearch}"</div>
                 )}
+              </div>
+            )}
+
+            {/* ── Kiosk — pedidos en efectivo ── */}
+            {tab === 'kiosk' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Toggle pendientes / pagados */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    style={{ flex: 1, padding: '10px', border: `2px solid ${kioskView === 'pending' ? '#d97706' : '#e5e7eb'}`, borderRadius: 10, background: kioskView === 'pending' ? '#fffbeb' : '#fff', color: kioskView === 'pending' ? '#d97706' : '#6b7280', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                    onClick={() => setKioskView('pending')}
+                  >
+                    <i className="bi bi-hourglass-split me-1" />Pendientes
+                    {pendingKioskOrders.length > 0 && (
+                      <span style={{ marginLeft: 6, background: '#d97706', color: '#fff', borderRadius: 999, padding: '1px 7px', fontSize: 11 }}>{pendingKioskOrders.length}</span>
+                    )}
+                  </button>
+                  <button
+                    style={{ flex: 1, padding: '10px', border: `2px solid ${kioskView === 'paid' ? '#059669' : '#e5e7eb'}`, borderRadius: 10, background: kioskView === 'paid' ? '#f0fdf4' : '#fff', color: kioskView === 'paid' ? '#059669' : '#6b7280', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                    onClick={() => setKioskView('paid')}
+                  >
+                    <i className="bi bi-check-circle me-1" />Pagados hoy
+                    {paidKioskOrders.length > 0 && (
+                      <span style={{ marginLeft: 6, background: '#059669', color: '#fff', borderRadius: 999, padding: '1px 7px', fontSize: 11 }}>{paidKioskOrders.length}</span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Vista pendientes */}
+                {kioskView === 'pending' && pendingKioskOrders.length === 0 && (
+                  <div className="ff-empty-state">
+                    <i className="bi bi-display ff-empty-state-icon" />
+                    <div className="ff-empty-state-title">Sin pedidos pendientes</div>
+                    <div className="ff-empty-state-desc">Los pedidos en efectivo del kiosk aparecen acá para cobrar.</div>
+                  </div>
+                )}
+                {kioskView === 'pending' && pendingKioskOrders.map((order) => {
+                  const elapsed = elapsedMins(order.createdAt);
+                  const sev = ageSeverity(elapsed, 5, 10);
+                  const sevStyle = SEVERITY_STYLE[sev];
+                  return (
+                    <div key={order.id} className="ff-data-card" style={{ borderLeft: '4px solid #d97706', padding: 0, overflow: 'hidden' }}>
+                      {/* Header */}
+                      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, background: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 10, background: '#fef3c7', border: '1.5px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <i className="bi bi-cash-coin" style={{ fontSize: 20, color: '#d97706' }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: '#1a1a1a', letterSpacing: '-0.01em' }}>{order.orderNumber}</div>
+                          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>{order.customerName}</div>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999, background: sevStyle.bg, color: sevStyle.color, border: `1px solid ${sevStyle.border}`, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <i className="bi bi-clock" style={{ fontSize: 10 }} />{fmtElapsed(elapsed)}
+                        </span>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: 11, color: '#9ca3af' }}>Total</div>
+                          <div style={{ fontWeight: 900, fontSize: 20, color: '#e11d2a', letterSpacing: '-0.02em' }}>{formatBRL(order.total)}</div>
+                        </div>
+                      </div>
+
+                      {/* Items */}
+                      <div style={{ padding: '10px 16px' }}>
+                        {order.items.map((item, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: i < order.items.length - 1 ? '1px solid #f9fafb' : 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ width: 22, height: 22, borderRadius: 6, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: '#374151', flexShrink: 0 }}>
+                                {item.quantity}
+                              </span>
+                              <span style={{ fontSize: 13, color: '#374151' }}>{item.name}</span>
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{formatBRL(item.unitPrice * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Cobrar button */}
+                      <div style={{ padding: '12px 16px', borderTop: '1px solid #fde68a', background: '#fffbeb' }}>
+                        <button
+                          style={{ width: '100%', padding: '12px', border: 'none', borderRadius: 10, background: '#059669', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                          onClick={() => setKioskPayOrder(order)}
+                        >
+                          <i className="bi bi-cash-coin" />
+                          Cobrar {formatBRL(order.total)} — imprimir turno
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Vista pagados */}
+                {kioskView === 'paid' && paidKioskOrders.length === 0 && (
+                  <div className="ff-empty-state">
+                    <i className="bi bi-check-circle ff-empty-state-icon" />
+                    <div className="ff-empty-state-title">Sin pagados hoy</div>
+                    <div className="ff-empty-state-desc">Los pedidos cobrados hoy aparecen acá.</div>
+                  </div>
+                )}
+                {kioskView === 'paid' && paidKioskOrders.map((order) => (
+                  <div key={order.id} className="ff-data-card" style={{ borderLeft: '4px solid #059669', padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, background: '#f0fdf4', borderBottom: '1px solid #bbf7d0' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: '#dcfce7', border: '1.5px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className="bi bi-check-circle-fill" style={{ fontSize: 20, color: '#059669' }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: '#1a1a1a' }}>{order.orderNumber}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>{order.customerName}</div>
+                      </div>
+                      {order.ticketNumber && (
+                        <div style={{ textAlign: 'center', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 14px' }}>
+                          <div style={{ fontSize: 10, color: '#059669', fontWeight: 700, textTransform: 'uppercase' }}>Turno</div>
+                          <div style={{ fontSize: 24, fontWeight: 900, color: '#059669', lineHeight: 1 }}>{order.ticketNumber}</div>
+                        </div>
+                      )}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>Total</div>
+                        <div style={{ fontWeight: 900, fontSize: 18, color: '#059669' }}>{formatBRL(order.total)}</div>
+                      </div>
+                    </div>
+                    <div style={{ padding: '8px 16px' }}>
+                      {order.items.map((item, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', color: '#6b7280', borderBottom: i < order.items.length - 1 ? '1px solid #f9fafb' : 'none' }}>
+                          <span>{item.quantity}× {item.name}</span>
+                          <span>{formatBRL(item.unitPrice * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ padding: '10px 16px', borderTop: '1px solid #bbf7d0', background: '#f0fdf4' }}>
+                      <button
+                        style={{ width: '100%', padding: '9px', border: '1.5px solid #bbf7d0', borderRadius: 9, background: '#fff', color: '#059669', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                        onClick={() => printDemoTicket({
+                          restaurantName: 'Pertinho do Céu',
+                          orderNumber: order.orderNumber,
+                          customerName: order.customerName,
+                          queueNumber: order.ticketNumber,
+                          items: order.items.map((it) => ({ name: it.name, quantity: it.quantity, unitPrice: it.unitPrice })),
+                          itemCount: order.items.reduce((n, it) => n + it.quantity, 0),
+                          total: order.total,
+                          currency: 'BRL',
+                        })}
+                      >
+                        <i className="bi bi-printer" /> Reimprimir ticket
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -1136,6 +1404,14 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
 
       {selectedReceipt && (
         <ReceiptModal receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />
+      )}
+
+      {kioskPayOrder && (
+        <KioskPayModal
+          order={kioskPayOrder}
+          onClose={() => setKioskPayOrder(null)}
+          onConfirm={handlePayKioskOrder}
+        />
       )}
     </>
   );
