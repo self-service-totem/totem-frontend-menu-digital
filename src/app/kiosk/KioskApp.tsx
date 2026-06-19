@@ -11,6 +11,7 @@ import { DEFAULT_PAYMENT_METHODS } from '@/lib/types';
 import type { LabelKey } from '@/i18n/labels';
 import { formatCurrency as formatBRL } from '@/utils/format';
 import { printDemoTicket } from '@/lib/printing/demoTicket';
+import { canAutoPrint } from '@/lib/printing/rawbt';
 
 const IDLE_COUNTDOWN_S = 10;
 
@@ -689,9 +690,12 @@ function KioskConfirmationScreen({
   const [countdown, setCountdown] = useState(15);
   const { t } = useLabels();
 
-  // Auto-print on arrival — no dialog, no button needed
+  // Auto-print on arrival.
+  // Native bridges (AndroidPrint / Fully Kiosk) don't need a user gesture.
+  // Plain Chrome on HTTPS blocks rawbt: without one — fire on first touch instead,
+  // which happens naturally when the customer taps any part of the screen.
   useEffect(() => {
-    printDemoTicket({
+    const doPrint = () => printDemoTicket({
       restaurantName: 'Pertinho do Céu',
       orderNumber: order.orderNumber,
       customerName: order.customerName,
@@ -701,6 +705,17 @@ function KioskConfirmationScreen({
       total: order.total,
       currency: 'BRL',
     });
+
+    if (canAutoPrint()) {
+      doPrint();
+    } else {
+      window.addEventListener('touchstart', doPrint, { once: true, passive: true });
+      window.addEventListener('click', doPrint, { once: true });
+      return () => {
+        window.removeEventListener('touchstart', doPrint);
+        window.removeEventListener('click', doPrint);
+      };
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -805,9 +820,9 @@ function KioskCashTicketScreen({
   const [countdown, setCountdown] = useState(20);
   const { t } = useLabels();
 
-  // Auto-print on arrival
+  // Auto-print on arrival (same gesture strategy as KioskConfirmationScreen).
   useEffect(() => {
-    printDemoTicket({
+    const doPrint = () => printDemoTicket({
       restaurantName: 'Pertinho do Céu',
       orderNumber: order.orderNumber,
       customerName: order.customerName,
@@ -817,6 +832,17 @@ function KioskCashTicketScreen({
       currency: 'BRL',
       footerNote: 'Presentate en caja para pagar',
     });
+
+    if (canAutoPrint()) {
+      doPrint();
+    } else {
+      window.addEventListener('touchstart', doPrint, { once: true, passive: true });
+      window.addEventListener('click', doPrint, { once: true });
+      return () => {
+        window.removeEventListener('touchstart', doPrint);
+        window.removeEventListener('click', doPrint);
+      };
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

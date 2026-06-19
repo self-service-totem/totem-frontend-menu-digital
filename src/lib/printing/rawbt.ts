@@ -18,6 +18,16 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/**
+ * True when a native bridge is available and can print without a user gesture.
+ * On plain Chrome (HTTPS) custom schemes require a user-initiated event.
+ */
+export function canAutoPrint(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+  return !!(w.AndroidPrint?.print || w.fully?.openBrowser);
+}
+
 /** Envía bytes ESC/POS crudos a RawBT. */
 export function printViaRawBt(bytes: Uint8Array): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
