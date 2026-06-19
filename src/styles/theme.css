@@ -29,6 +29,7 @@ body,
 
 body {
   margin: 0;
+  font-size: 17px;
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -441,6 +442,8 @@ img {
 
 .ff-product-section {
   margin: 0;
+  /* Small gap above when auto-scrolled into view on accordion open */
+  scroll-margin-top: 12px;
 }
 
 /* Category image banner */

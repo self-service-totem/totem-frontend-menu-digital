@@ -17,6 +17,7 @@ import { CashierPage } from './cashier/CashierPage';
 import { AdminPage } from './admin/AdminPage';
 import { KioskWelcomePage, KioskMenuPage, KioskCartPage, KioskPaymentPage } from './kiosk/KioskApp';
 import { AttractScreen } from './kiosk/AttractScreen';
+import { KioskReceiptPage } from './kiosk/KioskReceiptPage';
 import { LoginPage } from './login/LoginPage';
 import { ReportsPage } from './reports/ReportsPage';
 import { ReservationsPage } from './reservations/ReservationsPage';
@@ -86,6 +87,7 @@ export const router = createBrowserRouter([
   { path: '/kiosk/menu', element: <KioskMenuPage /> },
   { path: '/kiosk/cart', element: <KioskCartPage /> },
   { path: '/kiosk/payment', element: <KioskPaymentPage /> },
+  { path: '/receipt/:orderId', element: <KioskReceiptPage /> },
 
   // ─── New features ─────────────────────────────────────────────────────────
   { path: '/login', element: <LoginPage /> },

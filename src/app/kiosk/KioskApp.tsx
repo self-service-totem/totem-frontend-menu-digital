@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { kioskService } from '@/lib/services/kioskService';
 import { branchService } from '@/lib/services/adminService';
 import { useNotify } from '@/lib/notifications';
@@ -86,35 +87,11 @@ function KioskIdleModal({ onContinue, onRestart }: { onContinue: () => void; onR
   );
 }
 
-/**
- * Accessibility toggle. Flips a class on <html> so the CSS can drop the whole
- * kiosk UI into the lower, wheelchair-reachable half of the screen. State is
- * self-contained and persisted in sessionStorage so it survives navigation.
- */
-function KioskA11yToggle() {
-  const { t } = useLabels();
-  const [on, setOn] = useState(() => sessionStorage.getItem('ff_kiosk_a11y') === '1');
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('ff-kiosk-a11y', on);
-    sessionStorage.setItem('ff_kiosk_a11y', on ? '1' : '0');
-  }, [on]);
-
-  return (
-    <button
-      className={`ff-kiosk-a11y-btn${on ? ' active' : ''}`}
-      onClick={() => setOn((v) => !v)}
-      aria-pressed={on}
-      aria-label={t('kiosk.a11y.label')}
-      title={t('kiosk.a11y.label')}
-    >
-      <i className="bi bi-universal-access" />
-    </button>
-  );
-}
 
 function getCategoryIcon(name: string): string {
   const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (n.includes('combo') || n.includes('promocao') || n.includes('oferta')) return 'bi-lightning-charge-fill';
+  if (n.includes('mais pedido') || n.includes('popular') || n.includes('destaque') || n.includes('favorito')) return 'bi-trophy-fill';
   if (n.includes('cafe') || n.includes('coffee') || n.includes('expresso')) return 'bi-cup-hot';
   if (n.includes('bebida') || n.includes('drink') || n.includes('suco') || n.includes('juice') || n.includes('agua') || n.includes('refri')) return 'bi-cup-straw';
   if (n.includes('sobremesa') || n.includes('dessert') || n.includes('doce') || n.includes('sorvete')) return 'bi-cake2';
@@ -132,6 +109,8 @@ function getCategoryIcon(name: string): string {
 
 function getCategoryColor(name: string): string {
   const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (n.includes('combo') || n.includes('promocao') || n.includes('oferta')) return '#d97706';
+  if (n.includes('mais pedido') || n.includes('popular') || n.includes('destaque') || n.includes('favorito')) return '#059669';
   if (n.includes('cafe') || n.includes('coffee')) return '#b45309';
   if (n.includes('bebida') || n.includes('drink') || n.includes('suco') || n.includes('agua') || n.includes('refri')) return '#2563eb';
   if (n.includes('sobremesa') || n.includes('dessert') || n.includes('doce') || n.includes('sorvete')) return '#db2777';
@@ -193,11 +172,9 @@ export function KioskWelcomePage() {
 
   return (
     <div className="ff-kiosk-layout ff-kiosk-welcome-layout">
-      {/* Header — brand name + accessibility toggle */}
+      {/* Header — brand name */}
       <div className="ff-kiosk-welcome-header">
-        <div style={{ width: 56 }} />
         <span className="ff-kiosk-welcome-brand">Pertinho do Céu</span>
-        <KioskA11yToggle />
       </div>
 
       {/* Language selector — prominent bar below header */}
@@ -281,7 +258,9 @@ export function KioskMenuPage() {
     ? products.filter((p) => p.categoryId === activeCat)
     : products;
 
-  const featuredProducts = displayed.filter((p) => p.featured).slice(0, 2);
+  const featuredCandidates = displayed.filter((p) => p.featured).slice(0, 2);
+  // Only promote to hero if we have 2 cards — a single card stretches full-width and wastes premium space
+  const featuredProducts = featuredCandidates.length >= 2 ? featuredCandidates : [];
   const featuredIds = new Set(featuredProducts.map((p) => p.id));
   const regularProducts = displayed.filter((p) => !featuredIds.has(p.id));
 
@@ -341,29 +320,34 @@ export function KioskMenuPage() {
       {/* Stepper */}
       <KioskSteps current={1} />
 
-      {/* Horizontal category bar */}
+      {/* Horizontal category bar — commercial categories first, Todos last */}
       <nav className="ff-kiosk-catbar" aria-label={t('kiosk.menu.categories')}>
+        {categories.map((c) => {
+          const isPromo = c.name.toLowerCase().includes('combo') || c.name.toLowerCase().includes('promoç');
+          const isMaisPedidos = c.name.toLowerCase().includes('mais pedido');
+          return (
+            <button
+              key={c.id}
+              className={`ff-kiosk-cat${activeCat === c.id ? ' active' : ''}${isPromo ? ' ff-kiosk-cat--promo' : ''}${isMaisPedidos ? ' ff-kiosk-cat--popular' : ''}`}
+              onClick={() => setActiveCat(c.id)}
+            >
+              <span className="ff-kiosk-cat-icon" style={{ background: getCategoryColor(c.name) }}>
+                <i className={`bi ${getCategoryIcon(c.name)}`} />
+              </span>
+              <span className="ff-kiosk-cat-label">{c.name}</span>
+              {isPromo && <span className="ff-kiosk-cat-hot">HOT</span>}
+            </button>
+          );
+        })}
         <button
-          className={`ff-kiosk-cat${!activeCat ? ' active' : ''}`}
+          className={`ff-kiosk-cat ff-kiosk-cat--all${!activeCat ? ' active' : ''}`}
           onClick={() => setActiveCat(null)}
         >
-          <span className="ff-kiosk-cat-icon" style={{ background: 'var(--ff-primary)' }}>
-            <i className="bi bi-grid-fill" />
+          <span className="ff-kiosk-cat-icon" style={{ background: '#6b7280' }}>
+            <i className="bi bi-grid" />
           </span>
           <span className="ff-kiosk-cat-label">{t('kiosk.menu.all')}</span>
         </button>
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            className={`ff-kiosk-cat${activeCat === c.id ? ' active' : ''}`}
-            onClick={() => setActiveCat(c.id)}
-          >
-            <span className="ff-kiosk-cat-icon" style={{ background: getCategoryColor(c.name) }}>
-              <i className={`bi ${getCategoryIcon(c.name)}`} />
-            </span>
-            <span className="ff-kiosk-cat-label">{c.name}</span>
-          </button>
-        ))}
       </nav>
 
       {/* Scrollable product area */}
@@ -511,22 +495,30 @@ export function KioskMenuPage() {
           </div>
         )}
         <div className="ff-kiosk-orderbar-main">
+          {/* Left: totals or empty hint */}
           <div className="ff-kiosk-orderbar-totals">
             <span className="ff-kiosk-orderbar-label">{t('kiosk.order.label')} · {serviceLabel}</span>
-            <span className="ff-kiosk-orderbar-amount">
-              {cartCount > 0
-                ? <>{formatBRL(cartTotal)} <small>+ {t('kiosk.order.tax')} {formatBRL(cartTax)}</small></>
-                : <span style={{ color: '#9ca3af', fontSize: '0.6em', fontWeight: 600 }}>{t('kiosk.order.emptyHint')}</span>
-              }
+            {cartCount > 0 ? (
+              <span className="ff-kiosk-orderbar-amount">
+                {formatBRL(cartTotal)} <small>+ {t('kiosk.order.tax')} {formatBRL(cartTax)}</small>
+              </span>
+            ) : (
+              <span className="ff-kiosk-orderbar-empty-hint">{t('kiosk.order.emptyHint')}</span>
+            )}
+          </div>
+
+          {/* Center: large item count */}
+          <div className="ff-kiosk-orderbar-count-center">
+            <span className={`ff-kiosk-orderbar-count-num${cartCount === 0 ? ' zero' : ''}`}>
+              {cartCount}
+            </span>
+            <span className="ff-kiosk-orderbar-count-lbl">
+              {cartCount === 1 ? t('kiosk.order.item') : t('kiosk.order.items')}
             </span>
           </div>
-          {cartCount > 0 && (
-            <span className="ff-kiosk-orderbar-count">
-              <i className="bi bi-bag-fill" />
-              {cartCount} {cartCount === 1 ? t('kiosk.order.item') : t('kiosk.order.items')}
-            </span>
-          )}
+
           <span style={{ flex: 1 }} />
+
           <button className="ff-kiosk-cta" onClick={toCart} disabled={cartCount === 0}>
             {t('kiosk.order.review')} <i className="bi bi-arrow-right" />
           </button>
@@ -552,11 +544,13 @@ export function KioskCartPage() {
   const { warning, dismiss, goHome } = useKioskIdleTimeout();
 
   function setQty(productId: string, qty: number) {
-    setCart((prev) =>
-      qty <= 0
+    setCart((prev) => {
+      const next = qty <= 0
         ? prev.filter((i) => i.productId !== productId)
-        : prev.map((i) => i.productId === productId ? { ...i, quantity: qty } : i),
-    );
+        : prev.map((i) => i.productId === productId ? { ...i, quantity: qty } : i);
+      sessionStorage.setItem('ff_kiosk_cart', JSON.stringify(next));
+      return next;
+    });
   }
 
   const subtotal   = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
@@ -578,7 +572,6 @@ export function KioskCartPage() {
         </button>
         <span className="ff-kiosk-topbar-title">{t('kiosk.cart.title')}</span>
         <div className="ff-kiosk-topbar-actions">
-          <KioskA11yToggle />
           <LanguageSelector variant="pills" showLabels={false} className="ff-kiosk-topbar-lang-pills" />
         </div>
       </div>
@@ -678,6 +671,8 @@ export function KioskCartPage() {
 
 // ─── Confirmation ─────────────────────────────────────────────────────────────
 
+type PrintState = 'printing' | 'done';
+
 function KioskConfirmationScreen({
   order,
   queueTicket,
@@ -687,15 +682,15 @@ function KioskConfirmationScreen({
   queueTicket: QueueTicket;
   onReset: () => void;
 }) {
-  const [countdown, setCountdown] = useState(15);
+  const [countdown, setCountdown] = useState(30);
+  const [printState, setPrintState] = useState<PrintState>('printing');
+  const [helpSent, setHelpSent] = useState(false);
   const { t } = useLabels();
 
-  // Auto-print on arrival.
-  // Native bridges (AndroidPrint / Fully Kiosk) don't need a user gesture.
-  // Plain Chrome on HTTPS blocks rawbt: without one — fire on first touch instead,
-  // which happens naturally when the customer taps any part of the screen.
-  useEffect(() => {
-    const doPrint = () => printDemoTicket({
+  const receiptUrl = `${window.location.origin}/receipt/${order.id}`;
+
+  const printTicket = useCallback(() => {
+    printDemoTicket({
       restaurantName: 'Pertinho do Céu',
       orderNumber: order.orderNumber,
       customerName: order.customerName,
@@ -705,15 +700,21 @@ function KioskConfirmationScreen({
       total: order.total,
       currency: 'BRL',
     });
+    setTimeout(() => setPrintState('done'), 1800);
+  }, [order, queueTicket]);
 
+  // Auto-print on arrival. Native bridges don't need a gesture; plain Chrome does.
+  useEffect(() => {
     if (canAutoPrint()) {
-      doPrint();
+      printTicket();
     } else {
-      window.addEventListener('touchstart', doPrint, { once: true, passive: true });
-      window.addEventListener('click', doPrint, { once: true });
+      setPrintState('printing');
+      const onGesture = () => { printTicket(); };
+      window.addEventListener('touchstart', onGesture, { once: true, passive: true });
+      window.addEventListener('click', onGesture, { once: true });
       return () => {
-        window.removeEventListener('touchstart', doPrint);
-        window.removeEventListener('click', doPrint);
+        window.removeEventListener('touchstart', onGesture);
+        window.removeEventListener('click', onGesture);
       };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -725,28 +726,77 @@ function KioskConfirmationScreen({
     return () => clearTimeout(timer);
   }, [countdown, onReset]);
 
+  function handleReprint() {
+    setPrintState('printing');
+    printTicket();
+  }
+
+  function handleHelp() {
+    if (helpSent) return;
+    kioskService.createAlert({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      total: order.total,
+      paymentStatus: order.paymentStatus,
+      issueType: 'NEEDS_HELP',
+      kioskNumber: 1,
+    });
+    setHelpSent(true);
+  }
+
   return (
     <div className="ff-kiosk-layout ff-kiosk-confirm-layout">
-      {/* Step 4 done — no red topbar on confirmation */}
       <KioskSteps current={4} allDone />
 
       <div className="ff-kiosk-confirm-body">
-        <div className="ff-kiosk-confirm-icon">
-          <i className="bi bi-check-circle-fill" />
-        </div>
-        <div className="ff-kiosk-confirm-title">{t('kiosk.confirm.title')}</div>
-        <div className="ff-kiosk-confirm-subtitle">
-          {t('kiosk.confirm.subtitle')}
+
+        {/* Success icon + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center' }}>
+          <i className="bi bi-check-circle-fill" style={{ fontSize: 'clamp(36px, 4vw, 52px)', color: '#059669', lineHeight: 1, flexShrink: 0 }} />
+          <div className="ff-kiosk-confirm-title" style={{ margin: 0, textAlign: 'left' }}>
+            {t('kiosk.confirm.title')}
+          </div>
         </div>
 
-        <div className="ff-kiosk-ticket-box">
-          <div className="ff-kiosk-ticket-label">{t('kiosk.confirm.ticketLabel')}</div>
-          <div className="ff-kiosk-ticket-number">{queueTicket.ticketNumber}</div>
-          <div className="ff-kiosk-ticket-order">{order.orderNumber}</div>
+        {/* Comprobante card — the hero element */}
+        <div className="ff-kiosk-receipt-card">
+          <div className="ff-kiosk-receipt-label">{t('kiosk.confirm.orderLabel')}</div>
+          <div className="ff-kiosk-receipt-number">{order.orderNumber}</div>
+          <div className="ff-kiosk-receipt-photo-hint">{t('kiosk.confirm.photoHint')}</div>
+          <div className={`ff-kiosk-print-badge${printState === 'done' ? ' done' : ''}`}>
+            <i className={`bi ${printState === 'done' ? 'bi-printer-fill' : 'bi-hourglass-split'}`} />
+            {printState === 'done' ? t('kiosk.confirm.printOk') : t('kiosk.confirm.printing')}
+          </div>
         </div>
 
-        <div className="ff-kiosk-confirm-hint">
-          {t('kiosk.confirm.hint')}
+        {/* QR code */}
+        <div className="ff-kiosk-qr-section">
+          <div style={{ background: '#fff', borderRadius: 16, padding: 12, display: 'inline-block', boxShadow: '0 2px 12px rgba(0,0,0,.10)' }}>
+            <QRCodeSVG value={receiptUrl} size={140} level="M" />
+          </div>
+          <div className="ff-kiosk-qr-hint">{t('kiosk.confirm.qrHint')}</div>
+        </div>
+
+        {/* Queue number — secondary */}
+        <div className="ff-kiosk-queue-secondary">
+          <span className="ff-kiosk-queue-secondary-label">{t('kiosk.confirm.queueLabel')}</span>
+          <span className="ff-kiosk-queue-secondary-number">{queueTicket.ticketNumber}</span>
+        </div>
+
+        {/* Action buttons */}
+        <div className="ff-kiosk-confirm-actions">
+          <button className="ff-kiosk-reprint-btn" onClick={handleReprint}>
+            <i className="bi bi-printer" />
+            {t('kiosk.confirm.reprintBtn')}
+          </button>
+          <button
+            className={`ff-kiosk-help-btn${helpSent ? ' sent' : ''}`}
+            onClick={handleHelp}
+            disabled={helpSent}
+          >
+            <i className={`bi ${helpSent ? 'bi-check2' : 'bi-headset'}`} />
+            {helpSent ? t('kiosk.confirm.helpSent') : t('kiosk.confirm.helpBtn')}
+          </button>
         </div>
       </div>
 
@@ -1056,7 +1106,6 @@ export function KioskPaymentPage() {
         </button>
         <span className="ff-kiosk-topbar-title">{t('kiosk.payment.title')}</span>
         <div className="ff-kiosk-topbar-actions">
-          <KioskA11yToggle />
           <LanguageSelector variant="pills" showLabels={false} className="ff-kiosk-topbar-lang-pills" />
         </div>
       </div>

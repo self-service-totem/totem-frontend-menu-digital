@@ -2444,6 +2444,43 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 }
 .ff-kiosk-cat.active .ff-kiosk-cat-label { color: #fff; }
 
+/* Promo (Combos) variant — amber border + glow */
+.ff-kiosk-cat--promo {
+  border-color: #f59e0b;
+  box-shadow: 0 2px 12px rgba(245,158,11,0.28);
+  position: relative;
+}
+.ff-kiosk-cat--promo.active {
+  background: #d97706;
+  border-color: #d97706;
+  box-shadow: 0 6px 20px rgba(217,119,6,0.45);
+}
+
+/* Popular (Mais pedidos) variant — green accent */
+.ff-kiosk-cat--popular {
+  border-color: #059669;
+  box-shadow: 0 2px 10px rgba(5,150,105,0.2);
+}
+.ff-kiosk-cat--popular.active {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: 0 6px 18px rgba(5,150,105,0.4);
+}
+
+/* HOT badge on promo pill */
+.ff-kiosk-cat-hot {
+  font-size: clamp(9px, 0.9vw, 11px);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 5px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ff-kiosk-cat.active .ff-kiosk-cat-hot { background: rgba(255,255,255,0.3); }
+
 /* ─── Scrollable content area ────────────────────────────────────────────── */
 .ff-kiosk-content {
   flex: 1;
@@ -2734,6 +2771,41 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   align-items: center;
   gap: clamp(12px, 1.4vw, 20px);
 }
+
+/* Empty cart — intentional guide, not a disabled button */
+.ff-kiosk-orderbar-empty {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.4vw, 18px);
+}
+.ff-kiosk-orderbar-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(44px, 4.6vw, 56px);
+  height: clamp(44px, 4.6vw, 56px);
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: #9ca3af;
+  font-size: clamp(20px, 2.1vw, 26px);
+  flex-shrink: 0;
+}
+.ff-kiosk-orderbar-empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ff-kiosk-orderbar-empty-text strong {
+  font-size: clamp(17px, 1.9vw, 22px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #15161a;
+}
+.ff-kiosk-orderbar-empty-text span {
+  font-size: clamp(13px, 1.4vw, 16px);
+  font-weight: 600;
+  color: #6b7280;
+}
 .ff-kiosk-orderbar-totals { display: flex; flex-direction: column; gap: 2px; }
 .ff-kiosk-orderbar-label {
   font-size: clamp(11px, 1.2vw, 14px);
@@ -2764,6 +2836,39 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   background: var(--ff-primary-soft, #fde8ea);
   padding: clamp(8px, 0.9vw, 11px) clamp(14px, 1.5vw, 18px);
   border-radius: 999px;
+}
+
+/* Empty hint text inside the orderbar */
+.ff-kiosk-orderbar-empty-hint {
+  font-size: clamp(13px, 1.4vw, 16px);
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+/* Center: large item count */
+.ff-kiosk-orderbar-count-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: clamp(56px, 6vw, 80px);
+}
+.ff-kiosk-orderbar-count-num {
+  font-size: clamp(48px, 5.2vw, 64px);
+  font-weight: 900;
+  color: var(--ff-primary);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  transition: color .2s;
+}
+.ff-kiosk-orderbar-count-num.zero { color: #d1d5db; }
+.ff-kiosk-orderbar-count-lbl {
+  font-size: clamp(10px, 1.1vw, 13px);
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* CTA — strongest action in the bar */
@@ -3148,6 +3253,304 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 
 .ff-kiosk-countdown { font-size: clamp(16px, 1.7vw, 21px); color: #9ca3af; font-weight: 500; }
 
+/* ─── Confirmation v2 — receipt card ─────────────────────────────────────── */
+
+.ff-kiosk-receipt-card {
+  background: #fff;
+  border: 2.5px solid #d1fae5;
+  border-radius: 24px;
+  padding: clamp(24px, 2.6vw, 36px) clamp(28px, 3vw, 52px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: clamp(260px, 36vw, 440px);
+  box-shadow: 0 8px 32px rgba(5,150,105,.10);
+  text-align: center;
+}
+
+.ff-kiosk-receipt-label {
+  font-size: clamp(13px, 1.4vw, 17px);
+  color: #059669;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.ff-kiosk-receipt-number {
+  font-size: clamp(72px, 8vw, 110px);
+  font-weight: 900;
+  color: #111827;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.ff-kiosk-receipt-photo-hint {
+  font-size: clamp(16px, 1.8vw, 22px);
+  color: #374151;
+  line-height: 1.5;
+  max-width: clamp(260px, 30vw, 380px);
+  margin-top: 4px;
+}
+
+.ff-kiosk-print-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: clamp(13px, 1.4vw, 16px);
+  font-weight: 600;
+  background: #fef3c7;
+  color: #d97706;
+  border: 1.5px solid #fde68a;
+  margin-top: 4px;
+  transition: background .3s, color .3s, border-color .3s;
+}
+
+.ff-kiosk-print-badge.done {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+/* ─── QR section ─────────────────────────────────────────────────────────── */
+
+.ff-kiosk-qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ff-kiosk-qr-hint {
+  font-size: clamp(14px, 1.5vw, 18px);
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* ─── Queue number (secondary) ───────────────────────────────────────────── */
+
+.ff-kiosk-queue-secondary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 20px;
+}
+
+.ff-kiosk-queue-secondary-label {
+  font-size: clamp(13px, 1.4vw, 16px);
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.ff-kiosk-queue-secondary-number {
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 900;
+  color: #374151;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ─── Confirmation action buttons (reprint / help) ───────────────────────── */
+
+.ff-kiosk-confirm-actions {
+  display: flex;
+  gap: clamp(10px, 1.2vw, 16px);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: clamp(300px, 42vw, 560px);
+}
+
+.ff-kiosk-reprint-btn {
+  flex: 1;
+  min-width: clamp(140px, 16vw, 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: clamp(14px, 1.6vw, 20px) clamp(20px, 2vw, 28px);
+  border-radius: 14px;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: clamp(15px, 1.6vw, 19px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+
+.ff-kiosk-reprint-btn:hover { border-color: #9ca3af; background: #f9fafb; }
+.ff-kiosk-reprint-btn:active { background: #f3f4f6; transform: scale(0.98); }
+
+.ff-kiosk-help-btn {
+  flex: 1;
+  min-width: clamp(140px, 16vw, 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: clamp(14px, 1.6vw, 20px) clamp(20px, 2vw, 28px);
+  border-radius: 14px;
+  border: 2px solid #fca5a5;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: clamp(15px, 1.6vw, 19px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.ff-kiosk-help-btn:hover:not(:disabled) { border-color: #f87171; background: #fee2e2; }
+.ff-kiosk-help-btn:active:not(:disabled) { transform: scale(0.98); }
+.ff-kiosk-help-btn.sent {
+  border-color: #6ee7b7;
+  background: #d1fae5;
+  color: #065f46;
+  cursor: default;
+}
+
+/* ─── Cashier — kiosk alerts panel ───────────────────────────────────────── */
+
+.ff-kiosk-alerts-panel {
+  background: #fff;
+  border: 1.5px solid #fecaca;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.ff-kiosk-alerts-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  font-size: 13px;
+  font-weight: 800;
+  color: #dc2626;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.ff-kiosk-alerts-badge {
+  margin-left: auto;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ff-kiosk-alerts-badge.active {
+  background: #dc2626;
+  color: #fff;
+}
+
+.ff-kiosk-alerts-empty {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.ff-kiosk-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #fef2f2;
+}
+
+.ff-kiosk-alert-card:last-child { border-bottom: none; }
+
+.ff-kiosk-alert-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ff-kiosk-alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.ff-kiosk-alert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ff-kiosk-alert-totem {
+  font-weight: 800;
+  font-size: 14px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ff-kiosk-alert-order {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.ff-kiosk-alert-issue {
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.ff-kiosk-alert-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.ff-kiosk-alert-payment { color: #d97706; }
+.ff-kiosk-alert-payment.paid { color: #059669; }
+
+.ff-kiosk-alert-resolve {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 8px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color .15s, background .15s;
+}
+
+.ff-kiosk-alert-resolve:hover { border-color: #059669; background: #f0fdf4; color: #065f46; }
+
 /* ─── Topbar actions (a11y toggle + language) ────────────────────────────── */
 .ff-kiosk-topbar-actions {
   display: flex;
@@ -3156,31 +3559,6 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   flex-shrink: 0;
 }
 
-/* ─── Accessibility toggle ───────────────────────────────────────────────── */
-.ff-kiosk-a11y-btn {
-  width: clamp(52px, 5.5vw, 66px);
-  height: clamp(52px, 5.5vw, 66px);
-  border-radius: 50%;
-  border: 2.5px solid transparent;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-size: clamp(26px, 2.8vw, 34px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all .15s;
-}
-
-.ff-kiosk-a11y-btn:active { transform: scale(0.92); }
-
-.ff-kiosk-a11y-btn.active {
-  background: #fff;
-  border-color: #fff;
-  color: var(--ff-primary);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
 
 /* ─── Add-to-cart confirmation toast ─────────────────────────────────────── */
 .ff-kiosk-add-toast {
@@ -3297,31 +3675,6 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 .ff-kiosk-idle-continue:active { background: var(--ff-primary-hover); transform: scale(0.98); }
 
 /* ─── Accessibility mode: drop the kiosk UI into the lower, reachable half ── */
-/* Toggled by a class on <html>; applies to every kiosk screen at once.
-   Anchored with position:fixed to the bottom 72vh — no margin-collapsing,
-   no dependence on the parent layout. The idle modal (fixed, inset:0) still
-   covers the whole viewport. */
-html.ff-kiosk-a11y .ff-kiosk-layout {
-  position: fixed;
-  top: 28vh;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: auto;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.12);
-}
-
-/* The dead zone above shows a hint strip so the screen isn't just blank */
-html.ff-kiosk-a11y body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 28vh;
-  background: repeating-linear-gradient(135deg, #f3f4f6 0 24px, #eceef1 24px 48px);
-  z-index: 0;
-}
 
 /* ─── Attract Screen (Idle / Kiosk Entry) ───────────────────────────────── */
 

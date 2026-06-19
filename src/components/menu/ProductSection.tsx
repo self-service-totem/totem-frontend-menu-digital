@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { Product } from '@/types';
 import { useLabels } from '@/i18n/I18nContext';
 import { ProductCard } from './ProductCard';
@@ -25,9 +26,22 @@ export function ProductSection({
 }: ProductSectionProps) {
   const { t } = useLabels();
   const isAccordion = onToggle !== undefined;
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // When an accordion category opens, bring its banner into view so the user
+  // sees what expanded — the panel often sits below the fold otherwise.
+  useEffect(() => {
+    if (!isAccordion || !isExpanded) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const id = window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [isAccordion, isExpanded]);
 
   return (
-    <section className="ff-product-section">
+    <section className="ff-product-section" ref={sectionRef}>
       {/* ── Category banner ────────────────────────────────── */}
       {imageUrl ? (
         <div

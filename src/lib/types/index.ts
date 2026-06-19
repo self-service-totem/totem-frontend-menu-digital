@@ -239,6 +239,24 @@ export interface WaiterCall {
   updatedAt: string;
 }
 
+export type KioskAlertIssue = 'PRINT_FAILED' | 'NEEDS_HELP';
+export type KioskAlertStatus = 'OPEN' | 'RESOLVED';
+
+export interface KioskAlert {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  kioskNumber: number;
+  orderId: string;
+  orderNumber: string;
+  total: number;
+  paymentStatus: PaymentStatus;
+  issueType: KioskAlertIssue;
+  status: KioskAlertStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Payment {
   id: string;
   tenantId: string;

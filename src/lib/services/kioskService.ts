@@ -1,6 +1,6 @@
 import { getCollection, insertOne, updateOne } from '@/lib/mock-db';
 import { BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
-import type { DbProduct, DbCategory, DbOrder, KitchenTicket, QueueTicket, CartItem } from '@/lib/types';
+import type { DbProduct, DbCategory, DbOrder, KitchenTicket, QueueTicket, CartItem, KioskAlert, KioskAlertIssue, PaymentStatus } from '@/lib/types';
 
 function delay<T>(val: T, ms = 200): Promise<T> {
   return new Promise((res) => setTimeout(() => res(val), ms));
@@ -149,6 +149,43 @@ export const kioskService = {
       ...o,
       ticketNumber: queueTickets.find((q) => q.orderId === o.id)?.ticketNumber,
     }));
+  },
+
+  /** Crea una alerta de totem visible en el cálier (ej: necesita ayuda, ticket no impreso). */
+  createAlert(data: {
+    orderId: string;
+    orderNumber: string;
+    total: number;
+    paymentStatus: PaymentStatus;
+    issueType: KioskAlertIssue;
+    kioskNumber?: number;
+  }): KioskAlert {
+    const now = new Date().toISOString();
+    const alert: KioskAlert = {
+      id: `kiosk-alert-${Date.now()}`,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_ID,
+      kioskNumber: data.kioskNumber ?? 1,
+      orderId: data.orderId,
+      orderNumber: data.orderNumber,
+      total: data.total,
+      paymentStatus: data.paymentStatus,
+      issueType: data.issueType,
+      status: 'OPEN',
+      createdAt: now,
+      updatedAt: now,
+    };
+    insertOne('kioskAlerts', alert);
+    return alert;
+  },
+
+  listAlerts(): KioskAlert[] {
+    return getCollection<KioskAlert>('kioskAlerts')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  resolveAlert(id: string): void {
+    updateOne<KioskAlert>('kioskAlerts', id, { status: 'RESOLVED' });
   },
 
   /** Marca el pedido como pagado, envía a cocina y genera el turno. */

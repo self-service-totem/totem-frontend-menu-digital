@@ -159,6 +159,7 @@ export type LabelKey =
   | 'kiosk.order.item'
   | 'kiosk.order.items'
   | 'kiosk.order.tax'
+  | 'kiosk.order.emptyTitle'
   | 'kiosk.order.emptyHint'
   | 'kiosk.order.review'
   | 'kiosk.cart.title'
@@ -201,6 +202,15 @@ export type LabelKey =
   | 'kiosk.confirm.restarting'
   | 'kiosk.confirm.newOrder'
   | 'kiosk.confirm.print'
+  | 'kiosk.confirm.orderLabel'
+  | 'kiosk.confirm.photoHint'
+  | 'kiosk.confirm.printOk'
+  | 'kiosk.confirm.printing'
+  | 'kiosk.confirm.reprintBtn'
+  | 'kiosk.confirm.helpBtn'
+  | 'kiosk.confirm.helpSent'
+  | 'kiosk.confirm.qrHint'
+  | 'kiosk.confirm.queueLabel'
   | 'kiosk.menu.categories'
   | 'kiosk.menu.added'
   | 'kiosk.menu.featured'
@@ -211,7 +221,6 @@ export type LabelKey =
   | 'kiosk.idle.subtitle'
   | 'kiosk.idle.continue'
   | 'kiosk.idle.restart'
-  | 'kiosk.a11y.label'
   | 'kiosk.attract.cta'
   | 'admin.nav.group.operation'
   | 'admin.nav.group.catalog'
@@ -643,6 +652,12 @@ export type LabelKey =
   | 'cashier.status.paid'
   | 'cashier.status.partial'
   | 'cashier.status.pending'
+  | 'cashier.kiosk.alerts'
+  | 'cashier.kiosk.resolve'
+  | 'cashier.kiosk.needsHelp'
+  | 'cashier.kiosk.printFailed'
+  | 'cashier.kiosk.totemN'
+  | 'cashier.kiosk.noAlerts'
   | 'queue.nowCalling'
   | 'queue.pickupAtCounter'
   | 'queue.ticketLabel'
@@ -1140,6 +1155,7 @@ const ptBR: LabelMap = {
   'kiosk.order.item': 'item',
   'kiosk.order.items': 'itens',
   'kiosk.order.tax': 'Taxa',
+  'kiosk.order.emptyTitle': 'Seu carrinho está vazio',
   'kiosk.order.emptyHint': 'Adicione itens ao carrinho para continuar',
   'kiosk.order.review': 'Revisar pedido',
   'kiosk.cart.title': 'Revisão do pedido',
@@ -1182,6 +1198,15 @@ const ptBR: LabelMap = {
   'kiosk.confirm.restarting': 'Reiniciando em {s}s…',
   'kiosk.confirm.newOrder': 'Novo pedido',
   'kiosk.confirm.print': 'Imprimir comprovante',
+  'kiosk.confirm.orderLabel': 'Comprovante',
+  'kiosk.confirm.photoHint': 'Tire uma foto ou mostre este número ao caixa.',
+  'kiosk.confirm.printOk': 'Ticket impresso ✓',
+  'kiosk.confirm.printing': 'Imprimindo…',
+  'kiosk.confirm.reprintBtn': 'Imprimir novamente',
+  'kiosk.confirm.helpBtn': 'Pedir assistência',
+  'kiosk.confirm.helpSent': 'Assistência a caminho!',
+  'kiosk.confirm.qrHint': 'Escaneie para ver seu pedido no celular',
+  'kiosk.confirm.queueLabel': 'Senha',
   'kiosk.menu.categories': 'Categorias',
   'kiosk.menu.added': 'Adicionado',
   'kiosk.menu.featured': 'Mais pedidos',
@@ -1192,7 +1217,6 @@ const ptBR: LabelMap = {
   'kiosk.idle.subtitle': 'Sua sessão será reiniciada em {s}s',
   'kiosk.idle.continue': 'Sim, continuar',
   'kiosk.idle.restart': 'Começar de novo',
-  'kiosk.a11y.label': 'Modo acessível',
   'kiosk.attract.cta': 'Toque para começar',
   'admin.nav.group.operation': 'Operação',
   'admin.nav.group.catalog': 'Catálogo',
@@ -1612,6 +1636,12 @@ const ptBR: LabelMap = {
   'cashier.status.paid': 'Pago',
   'cashier.status.partial': 'Parcial',
   'cashier.status.pending': 'Pendente',
+  'cashier.kiosk.alerts': 'Alertas do Totem',
+  'cashier.kiosk.resolve': 'Resolver',
+  'cashier.kiosk.needsHelp': 'Precisa de ajuda',
+  'cashier.kiosk.printFailed': 'Ticket não impresso',
+  'cashier.kiosk.totemN': 'Totem {n}',
+  'cashier.kiosk.noAlerts': 'Sem alertas ativos',
   'queue.nowCalling': 'CHAMANDO AGORA',
   'queue.pickupAtCounter': 'Retire seu pedido no balcão',
   'queue.ticketLabel': 'SENHA',
@@ -2108,6 +2138,7 @@ const es: LabelMap = {
   'kiosk.order.item': 'ítem',
   'kiosk.order.items': 'ítems',
   'kiosk.order.tax': 'Servicio',
+  'kiosk.order.emptyTitle': 'Tu carrito está vacío',
   'kiosk.order.emptyHint': 'Agregá ítems al carrito para continuar',
   'kiosk.order.review': 'Revisar pedido',
   'kiosk.cart.title': 'Revisión del pedido',
@@ -2150,6 +2181,15 @@ const es: LabelMap = {
   'kiosk.confirm.restarting': 'Reiniciando en {s}s…',
   'kiosk.confirm.newOrder': 'Nuevo pedido',
   'kiosk.confirm.print': 'Imprimir ticket',
+  'kiosk.confirm.orderLabel': 'Comprobante',
+  'kiosk.confirm.photoHint': 'Sacá una foto o mostrale este número al cajero.',
+  'kiosk.confirm.printOk': 'Ticket impreso ✓',
+  'kiosk.confirm.printing': 'Imprimiendo…',
+  'kiosk.confirm.reprintBtn': 'Imprimir nuevamente',
+  'kiosk.confirm.helpBtn': 'Pedir asistencia',
+  'kiosk.confirm.helpSent': '¡Asistencia en camino!',
+  'kiosk.confirm.qrHint': 'Escaneá para ver tu pedido en el teléfono',
+  'kiosk.confirm.queueLabel': 'Turno',
   'kiosk.menu.categories': 'Categorías',
   'kiosk.menu.added': 'Agregado',
   'kiosk.menu.featured': 'Más pedidos',
@@ -2160,7 +2200,6 @@ const es: LabelMap = {
   'kiosk.idle.subtitle': 'Tu sesión se reiniciará en {s}s',
   'kiosk.idle.continue': 'Sí, continuar',
   'kiosk.idle.restart': 'Empezar de nuevo',
-  'kiosk.a11y.label': 'Modo accesible',
   'kiosk.attract.cta': 'Toca para comenzar',
   'admin.nav.group.operation': 'Operación',
   'admin.nav.group.catalog': 'Catálogo',
@@ -2580,6 +2619,12 @@ const es: LabelMap = {
   'cashier.status.paid': 'Pagado',
   'cashier.status.partial': 'Parcial',
   'cashier.status.pending': 'Pendiente',
+  'cashier.kiosk.alerts': 'Alertas de Totem',
+  'cashier.kiosk.resolve': 'Resolver',
+  'cashier.kiosk.needsHelp': 'Necesita ayuda',
+  'cashier.kiosk.printFailed': 'Ticket no impreso',
+  'cashier.kiosk.totemN': 'Totem {n}',
+  'cashier.kiosk.noAlerts': 'Sin alertas activas',
   'queue.nowCalling': 'LLAMANDO AHORA',
   'queue.pickupAtCounter': 'Retire su pedido en el mostrador',
   'queue.ticketLabel': 'TURNO',
@@ -3065,6 +3110,7 @@ const en: LabelMap = {
   'kiosk.order.item': 'item',
   'kiosk.order.items': 'items',
   'kiosk.order.tax': 'Fee',
+  'kiosk.order.emptyTitle': 'Your cart is empty',
   'kiosk.order.emptyHint': 'Add items to your cart to continue',
   'kiosk.order.review': 'Review order',
   'kiosk.cart.title': 'Order review',
@@ -3107,6 +3153,15 @@ const en: LabelMap = {
   'kiosk.confirm.restarting': 'Restarting in {s}s…',
   'kiosk.confirm.newOrder': 'New order',
   'kiosk.confirm.print': 'Print receipt',
+  'kiosk.confirm.orderLabel': 'Receipt',
+  'kiosk.confirm.photoHint': 'Take a photo or show this number to the cashier.',
+  'kiosk.confirm.printOk': 'Ticket printed ✓',
+  'kiosk.confirm.printing': 'Printing…',
+  'kiosk.confirm.reprintBtn': 'Print again',
+  'kiosk.confirm.helpBtn': 'Request assistance',
+  'kiosk.confirm.helpSent': 'Help is on the way!',
+  'kiosk.confirm.qrHint': 'Scan to view your order on your phone',
+  'kiosk.confirm.queueLabel': 'Queue',
   'kiosk.menu.categories': 'Categories',
   'kiosk.menu.added': 'Added',
   'kiosk.menu.featured': 'Most ordered',
@@ -3117,7 +3172,6 @@ const en: LabelMap = {
   'kiosk.idle.subtitle': 'Your session will restart in {s}s',
   'kiosk.idle.continue': 'Yes, continue',
   'kiosk.idle.restart': 'Start over',
-  'kiosk.a11y.label': 'Accessibility mode',
   'kiosk.attract.cta': 'Touch anywhere to start',
   'admin.nav.group.operation': 'Operations',
   'admin.nav.group.catalog': 'Catalog',
@@ -3527,6 +3581,12 @@ const en: LabelMap = {
   'cashier.status.paid': 'Paid',
   'cashier.status.partial': 'Partial',
   'cashier.status.pending': 'Pending',
+  'cashier.kiosk.alerts': 'Kiosk Alerts',
+  'cashier.kiosk.resolve': 'Resolve',
+  'cashier.kiosk.needsHelp': 'Needs help',
+  'cashier.kiosk.printFailed': 'Ticket not printed',
+  'cashier.kiosk.totemN': 'Kiosk {n}',
+  'cashier.kiosk.noAlerts': 'No active alerts',
   'queue.nowCalling': 'NOW CALLING',
   'queue.pickupAtCounter': 'Pick up your order at the counter',
   'queue.ticketLabel': 'TICKET',

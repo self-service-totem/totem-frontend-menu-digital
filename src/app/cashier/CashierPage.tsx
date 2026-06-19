@@ -6,7 +6,7 @@ import { kioskService } from '@/lib/services/kioskService';
 import { printDemoTicket } from '@/lib/printing/demoTicket';
 import { useNotify } from '@/lib/notifications';
 import { useElapsed, elapsedMins, fmtElapsed, ageSeverity, SEVERITY_STYLE } from '@/lib/utils/useElapsed';
-import type { Payment, PaymentMethod, Receipt, Invoice, DbTable } from '@/lib/types';
+import type { Payment, PaymentMethod, Receipt, Invoice, DbTable, KioskAlert } from '@/lib/types';
 import { formatCurrency as formatBRL } from '@/utils/format';
 import { I18nProvider, useLabels } from '@/i18n/I18nContext';
 import { useAdminLanguage } from '@/i18n/useAdminLanguage';
@@ -593,6 +593,75 @@ function TableGroupCard({
 
 // ─── Kiosk pay modal ───────────────────────────────────────────────────────────
 
+// ─── Kiosk Alerts Panel ────────────────────────────────────────────────────────
+
+function KioskAlertsPanel({
+  alerts, onResolve,
+  labelAlerts, labelResolve, labelNeedsHelp, labelPrintFailed, labelTotemN, labelNoAlerts,
+}: {
+  alerts: KioskAlert[];
+  onResolve: (id: string) => void;
+  labelAlerts: string;
+  labelResolve: string;
+  labelNeedsHelp: string;
+  labelPrintFailed: string;
+  labelTotemN: string;
+  labelNoAlerts: string;
+}) {
+  const open = alerts.filter((a) => a.status === 'OPEN');
+
+  return (
+    <div className="ff-kiosk-alerts-panel">
+      <div className="ff-kiosk-alerts-header">
+        <i className="bi bi-bell-fill" />
+        {labelAlerts}
+        <span className={`ff-kiosk-alerts-badge${open.length > 0 ? ' active' : ''}`}>
+          {open.length}
+        </span>
+      </div>
+
+      {open.length === 0 ? (
+        <div className="ff-kiosk-alerts-empty">
+          <i className="bi bi-check2-circle" style={{ fontSize: 18, marginRight: 6 }} />
+          {labelNoAlerts}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {open.map((alert) => (
+            <div key={alert.id} className="ff-kiosk-alert-card">
+              <div className="ff-kiosk-alert-left">
+                <div className="ff-kiosk-alert-icon">
+                  <i className={`bi ${alert.issueType === 'NEEDS_HELP' ? 'bi-headset' : 'bi-printer'}`} />
+                </div>
+                <div className="ff-kiosk-alert-info">
+                  <div className="ff-kiosk-alert-totem">
+                    {format(labelTotemN, { n: alert.kioskNumber })}
+                    <span className="ff-kiosk-alert-order">{alert.orderNumber}</span>
+                  </div>
+                  <div className="ff-kiosk-alert-issue">
+                    {alert.issueType === 'NEEDS_HELP' ? labelNeedsHelp : labelPrintFailed}
+                  </div>
+                  <div className="ff-kiosk-alert-meta">
+                    <span>{formatBRL(alert.total)}</span>
+                    <span className={`ff-kiosk-alert-payment${alert.paymentStatus === 'PAID' ? ' paid' : ''}`}>
+                      {alert.paymentStatus === 'PAID' ? 'Pago' : alert.paymentStatus === 'UNPAID' ? 'Pendiente' : alert.paymentStatus}
+                    </span>
+                    <span>{fmtElapsed(elapsedMins(alert.createdAt))}</span>
+                  </div>
+                </div>
+              </div>
+              <button className="ff-kiosk-alert-resolve" onClick={() => onResolve(alert.id)}>
+                <i className="bi bi-check2" />
+                {labelResolve}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type KioskPayState = 'confirm' | 'loading' | 'done';
 
 function KioskPayModal({
@@ -767,6 +836,7 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pendingKioskOrders, setPendingKioskOrders] = useState<import('@/lib/types').DbOrder[]>([]);
   const [paidKioskOrders, setPaidKioskOrders] = useState<(import('@/lib/types').DbOrder & { ticketNumber?: number })[]>([]);
+  const [kioskAlerts, setKioskAlerts] = useState<KioskAlert[]>([]);
   const [kioskView, setKioskView] = useState<'pending' | 'paid'>('pending');
   const [kioskPayOrder, setKioskPayOrder] = useState<import('@/lib/types').DbOrder | null>(null);
   const [summary, setSummary] = useState({ totalPaid: 0, paidCount: 0, pendingAmount: 0, pendingCount: 0 });
@@ -807,6 +877,7 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
     setSummary(cashierService.getDailySummary());
     setPendingKioskOrders(kioskService.listPendingCashOrders());
     setPaidKioskOrders(kioskService.listPaidKioskOrdersToday());
+    setKioskAlerts(kioskService.listAlerts());
     const keys = new Set<string>();
     for (const g of groups) {
       for (const c of g.customers) {
@@ -893,6 +964,11 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
     load();
   }
 
+  function handleResolveAlert(id: string) {
+    kioskService.resolveAlert(id);
+    load();
+  }
+
   async function handlePayKioskOrder(orderId: string): Promise<import('@/lib/types').QueueTicket> {
     const { order, queueTicket } = await kioskService.confirmCashPayment(orderId);
     notify(`Pedido ${order.orderNumber} cobrado — turno ${queueTicket.ticketNumber}`);
@@ -951,7 +1027,8 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
       label: n.label,
       icon: n.icon,
       badge: n.value === 'orders' && payments.length > 0 ? payments.length
-           : n.value === 'kiosk' && pendingKioskOrders.length > 0 ? pendingKioskOrders.length
+           : n.value === 'kiosk' && (pendingKioskOrders.length + kioskAlerts.filter((a) => a.status === 'OPEN').length) > 0
+             ? pendingKioskOrders.length + kioskAlerts.filter((a) => a.status === 'OPEN').length
            : undefined,
     })),
   }];
@@ -1073,6 +1150,19 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
             {/* ── Kiosk — pedidos en efectivo ── */}
             {tab === 'kiosk' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* ── Kiosk alerts panel ── */}
+                <KioskAlertsPanel
+                  alerts={kioskAlerts}
+                  onResolve={handleResolveAlert}
+                  labelAlerts={t('cashier.kiosk.alerts')}
+                  labelResolve={t('cashier.kiosk.resolve')}
+                  labelNeedsHelp={t('cashier.kiosk.needsHelp')}
+                  labelPrintFailed={t('cashier.kiosk.printFailed')}
+                  labelTotemN={t('cashier.kiosk.totemN')}
+                  labelNoAlerts={t('cashier.kiosk.noAlerts')}
+                />
+
                 {/* Toggle pendientes / pagados */}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
