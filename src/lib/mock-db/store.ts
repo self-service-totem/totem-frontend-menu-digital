@@ -49,7 +49,7 @@ export function clearCollection(key: string): void {
   localStorage.removeItem(PREFIX + key);
 }
 
-const SEED_VERSION = 'v15';
+const SEED_VERSION = 'v16';
 
 export function isSeeded(): boolean {
   const today = new Date().toISOString().slice(0, 10);

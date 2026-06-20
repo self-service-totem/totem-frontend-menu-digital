@@ -4,35 +4,37 @@ import { findById } from '@/lib/mock-db/store';
 import { getCollection } from '@/lib/mock-db/store';
 import type { DbOrder, QueueTicket } from '@/lib/types';
 import { formatCurrency as formatBRL } from '@/utils/format';
+import { useLabels } from '@/i18n/I18nContext';
+import type { LabelKey } from '@/i18n/labels';
 
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Borrador',
-  CREATED: 'Recibido',
-  SENT_TO_KITCHEN: 'En cocina',
-  PREPARING: 'Preparando',
-  READY: 'Listo',
-  DELIVERED: 'Entregado',
-  CLOSED: 'Cerrado',
-  CANCELED: 'Cancelado',
+const STATUS_KEY: Record<string, LabelKey> = {
+  DRAFT:            'receipt.status.draft',
+  CREATED:          'receipt.status.created',
+  SENT_TO_KITCHEN:  'receipt.status.sentToKitchen',
+  PREPARING:        'receipt.status.preparing',
+  READY:            'receipt.status.ready',
+  DELIVERED:        'receipt.status.delivered',
+  CLOSED:           'receipt.status.closed',
+  CANCELED:         'receipt.status.canceled',
 };
 
-const PAYMENT_LABEL: Record<string, string> = {
-  UNPAID: 'Pendiente',
-  PARTIALLY_PAID: 'Pago parcial',
-  PAID: 'Pagado',
-  REFUNDED: 'Reembolsado',
-  CANCELED: 'Cancelado',
+const PAYMENT_KEY: Record<string, LabelKey> = {
+  UNPAID:           'receipt.payment.unpaid',
+  PARTIALLY_PAID:   'receipt.payment.partiallyPaid',
+  PAID:             'receipt.payment.paid',
+  REFUNDED:         'receipt.payment.refunded',
+  CANCELED:         'receipt.payment.canceled',
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  DRAFT: '#9ca3af',
-  CREATED: '#3b82f6',
-  SENT_TO_KITCHEN: '#f59e0b',
-  PREPARING: '#f59e0b',
-  READY: '#10b981',
-  DELIVERED: '#6d28d9',
-  CLOSED: '#6b7280',
-  CANCELED: '#ef4444',
+  DRAFT:            '#9ca3af',
+  CREATED:          '#3b82f6',
+  SENT_TO_KITCHEN:  '#f59e0b',
+  PREPARING:        '#f59e0b',
+  READY:            '#10b981',
+  DELIVERED:        '#6d28d9',
+  CLOSED:           '#6b7280',
+  CANCELED:         '#ef4444',
 };
 
 export function KioskReceiptPage() {
@@ -40,6 +42,7 @@ export function KioskReceiptPage() {
   const [order, setOrder] = useState<DbOrder | null>(null);
   const [queueTicket, setQueueTicket] = useState<QueueTicket | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const { t } = useLabels();
 
   function loadData() {
     if (!orderId) { setNotFound(true); return; }
@@ -62,7 +65,7 @@ export function KioskReceiptPage() {
       <div style={styles.page}>
         <div style={styles.card}>
           <i className="bi bi-exclamation-circle" style={{ fontSize: 48, color: '#9ca3af' }} />
-          <p style={{ color: '#6b7280', marginTop: 12 }}>Pedido no encontrado.</p>
+          <p style={{ color: '#6b7280', marginTop: 12 }}>{t('receipt.notFound')}</p>
         </div>
       </div>
     );
@@ -94,23 +97,23 @@ export function KioskReceiptPage() {
         <div style={styles.chips}>
           <span style={{ ...styles.chip, ...(isPaid ? { background: '#d1fae5', color: '#065f46', borderColor: '#6ee7b7' } : { background: '#fef3c7', color: '#d97706', borderColor: '#fde68a' }) }}>
             <i className={`bi ${isPaid ? 'bi-check-circle-fill' : 'bi-hourglass-split'}`} style={{ fontSize: 12 }} />
-            {PAYMENT_LABEL[order.paymentStatus] ?? order.paymentStatus}
+            {t(PAYMENT_KEY[order.paymentStatus] ?? 'receipt.payment.unpaid')}
           </span>
           <span style={{ ...styles.chip, background: statusColor + '1a', color: statusColor, borderColor: statusColor + '44' }}>
             <i className="bi bi-circle-fill" style={{ fontSize: 8 }} />
-            {STATUS_LABEL[order.status] ?? order.status}
+            {t(STATUS_KEY[order.status] ?? 'receipt.status.created')}
           </span>
           {queueTicket && (
             <span style={{ ...styles.chip, background: '#ede9fe', color: '#5b21b6', borderColor: '#c4b5fd' }}>
               <i className="bi bi-hash" style={{ fontSize: 12 }} />
-              Turno {queueTicket.ticketNumber}
+              {t('kiosk.confirm.queueLabel')} {queueTicket.ticketNumber}
             </span>
           )}
         </div>
 
         {/* Items */}
         <div style={styles.section}>
-          <div style={styles.sectionTitle}>Pedido</div>
+          <div style={styles.sectionTitle}>{t('receipt.order')}</div>
           {order.items.map((item, i) => (
             <div key={i} style={styles.itemRow}>
               <div style={styles.itemLeft}>
@@ -125,22 +128,22 @@ export function KioskReceiptPage() {
         {/* Totals */}
         <div style={styles.totalsBox}>
           <div style={styles.totalRow}>
-            <span>Subtotal</span>
+            <span>{t('summary.subtotal')}</span>
             <span>{formatBRL(order.subtotal)}</span>
           </div>
           <div style={styles.totalRow}>
-            <span>Serviço (10%)</span>
+            <span>{t('kiosk.cart.serviceFee')}</span>
             <span>{formatBRL(order.serviceFee)}</span>
           </div>
           <div style={{ ...styles.totalRow, ...styles.totalFinal }}>
-            <span>Total</span>
+            <span>{t('summary.total')}</span>
             <span>{formatBRL(order.total)}</span>
           </div>
         </div>
 
         <div style={styles.footer}>
           <i className="bi bi-arrow-repeat" style={{ fontSize: 12, marginRight: 4 }} />
-          Atualiza automaticamente
+          {t('receipt.autoUpdate')}
         </div>
       </div>
     </div>

@@ -163,11 +163,12 @@ export type LabelKey =
   | 'kiosk.order.emptyHint'
   | 'kiosk.order.review'
   | 'kiosk.cart.title'
+  | 'kiosk.cart.reviewSubtitle'
   | 'kiosk.cart.empty'
   | 'kiosk.cart.remove'
-  | 'kiosk.cart.serviceFee'
   | 'kiosk.cart.addMore'
   | 'kiosk.cart.confirmPay'
+  | 'kiosk.cart.serviceFee'
   | 'kiosk.payment.title'
   | 'kiosk.payment.totalLabel'
   | 'kiosk.payment.how'
@@ -222,6 +223,22 @@ export type LabelKey =
   | 'kiosk.idle.continue'
   | 'kiosk.idle.restart'
   | 'kiosk.attract.cta'
+  | 'receipt.notFound'
+  | 'receipt.autoUpdate'
+  | 'receipt.order'
+  | 'receipt.status.draft'
+  | 'receipt.status.created'
+  | 'receipt.status.sentToKitchen'
+  | 'receipt.status.preparing'
+  | 'receipt.status.ready'
+  | 'receipt.status.delivered'
+  | 'receipt.status.closed'
+  | 'receipt.status.canceled'
+  | 'receipt.payment.unpaid'
+  | 'receipt.payment.partiallyPaid'
+  | 'receipt.payment.paid'
+  | 'receipt.payment.refunded'
+  | 'receipt.payment.canceled'
   | 'admin.nav.group.operation'
   | 'admin.nav.group.catalog'
   | 'admin.nav.group.establishment'
@@ -1159,11 +1176,12 @@ const ptBR: LabelMap = {
   'kiosk.order.emptyHint': 'Adicione itens ao carrinho para continuar',
   'kiosk.order.review': 'Revisar pedido',
   'kiosk.cart.title': 'Revisão do pedido',
+  'kiosk.cart.reviewSubtitle': 'Confirme os itens antes de pagar',
   'kiosk.cart.empty': 'Carrinho vazio',
   'kiosk.cart.remove': 'Remover',
-  'kiosk.cart.serviceFee': 'Taxa de serviço (10%)',
   'kiosk.cart.addMore': 'Adicionar mais',
   'kiosk.cart.confirmPay': 'Confirmar e pagar',
+  'kiosk.cart.serviceFee': 'Taxa de serviço',
   'kiosk.payment.title': 'Pagamento',
   'kiosk.payment.totalLabel': 'Total a pagar',
   'kiosk.payment.how': 'Como deseja pagar?',
@@ -1218,6 +1236,22 @@ const ptBR: LabelMap = {
   'kiosk.idle.continue': 'Sim, continuar',
   'kiosk.idle.restart': 'Começar de novo',
   'kiosk.attract.cta': 'Toque para começar',
+  'receipt.notFound': 'Pedido não encontrado.',
+  'receipt.autoUpdate': 'Atualiza automaticamente',
+  'receipt.order': 'Pedido',
+  'receipt.status.draft': 'Rascunho',
+  'receipt.status.created': 'Recebido',
+  'receipt.status.sentToKitchen': 'Na cozinha',
+  'receipt.status.preparing': 'Preparando',
+  'receipt.status.ready': 'Pronto',
+  'receipt.status.delivered': 'Entregue',
+  'receipt.status.closed': 'Fechado',
+  'receipt.status.canceled': 'Cancelado',
+  'receipt.payment.unpaid': 'Pendente',
+  'receipt.payment.partiallyPaid': 'Pago parcial',
+  'receipt.payment.paid': 'Pago',
+  'receipt.payment.refunded': 'Reembolsado',
+  'receipt.payment.canceled': 'Cancelado',
   'admin.nav.group.operation': 'Operação',
   'admin.nav.group.catalog': 'Catálogo',
   'admin.nav.group.establishment': 'Estabelecimento',
@@ -2142,11 +2176,12 @@ const es: LabelMap = {
   'kiosk.order.emptyHint': 'Agregá ítems al carrito para continuar',
   'kiosk.order.review': 'Revisar pedido',
   'kiosk.cart.title': 'Revisión del pedido',
+  'kiosk.cart.reviewSubtitle': 'Confirmá los ítems antes de pagar',
   'kiosk.cart.empty': 'Carrito vacío',
   'kiosk.cart.remove': 'Quitar',
-  'kiosk.cart.serviceFee': 'Servicio (10%)',
   'kiosk.cart.addMore': 'Agregar más',
   'kiosk.cart.confirmPay': 'Confirmar y pagar',
+  'kiosk.cart.serviceFee': 'Cargo por servicio',
   'kiosk.payment.title': 'Pago',
   'kiosk.payment.totalLabel': 'Total a pagar',
   'kiosk.payment.how': '¿Cómo querés pagar?',
@@ -2201,6 +2236,22 @@ const es: LabelMap = {
   'kiosk.idle.continue': 'Sí, continuar',
   'kiosk.idle.restart': 'Empezar de nuevo',
   'kiosk.attract.cta': 'Toca para comenzar',
+  'receipt.notFound': 'Pedido no encontrado.',
+  'receipt.autoUpdate': 'Actualiza automáticamente',
+  'receipt.order': 'Pedido',
+  'receipt.status.draft': 'Borrador',
+  'receipt.status.created': 'Recibido',
+  'receipt.status.sentToKitchen': 'En cocina',
+  'receipt.status.preparing': 'Preparando',
+  'receipt.status.ready': 'Listo',
+  'receipt.status.delivered': 'Entregado',
+  'receipt.status.closed': 'Cerrado',
+  'receipt.status.canceled': 'Cancelado',
+  'receipt.payment.unpaid': 'Pendiente',
+  'receipt.payment.partiallyPaid': 'Pago parcial',
+  'receipt.payment.paid': 'Pagado',
+  'receipt.payment.refunded': 'Reembolsado',
+  'receipt.payment.canceled': 'Cancelado',
   'admin.nav.group.operation': 'Operación',
   'admin.nav.group.catalog': 'Catálogo',
   'admin.nav.group.establishment': 'Establecimiento',
@@ -3114,11 +3165,12 @@ const en: LabelMap = {
   'kiosk.order.emptyHint': 'Add items to your cart to continue',
   'kiosk.order.review': 'Review order',
   'kiosk.cart.title': 'Order review',
+  'kiosk.cart.reviewSubtitle': 'Confirm your items before paying',
   'kiosk.cart.empty': 'Cart is empty',
   'kiosk.cart.remove': 'Remove',
-  'kiosk.cart.serviceFee': 'Service fee (10%)',
   'kiosk.cart.addMore': 'Add more',
   'kiosk.cart.confirmPay': 'Confirm & pay',
+  'kiosk.cart.serviceFee': 'Service fee',
   'kiosk.payment.title': 'Payment',
   'kiosk.payment.totalLabel': 'Total to pay',
   'kiosk.payment.how': 'How would you like to pay?',
@@ -3173,6 +3225,22 @@ const en: LabelMap = {
   'kiosk.idle.continue': 'Yes, continue',
   'kiosk.idle.restart': 'Start over',
   'kiosk.attract.cta': 'Touch anywhere to start',
+  'receipt.notFound': 'Order not found.',
+  'receipt.autoUpdate': 'Auto-updating',
+  'receipt.order': 'Order',
+  'receipt.status.draft': 'Draft',
+  'receipt.status.created': 'Received',
+  'receipt.status.sentToKitchen': 'In kitchen',
+  'receipt.status.preparing': 'Preparing',
+  'receipt.status.ready': 'Ready',
+  'receipt.status.delivered': 'Delivered',
+  'receipt.status.closed': 'Closed',
+  'receipt.status.canceled': 'Cancelled',
+  'receipt.payment.unpaid': 'Unpaid',
+  'receipt.payment.partiallyPaid': 'Partially paid',
+  'receipt.payment.paid': 'Paid',
+  'receipt.payment.refunded': 'Refunded',
+  'receipt.payment.canceled': 'Cancelled',
   'admin.nav.group.operation': 'Operations',
   'admin.nav.group.catalog': 'Catalog',
   'admin.nav.group.establishment': 'Establishment',

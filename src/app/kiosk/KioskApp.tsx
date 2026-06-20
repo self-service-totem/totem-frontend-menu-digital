@@ -127,10 +127,10 @@ function getCategoryColor(name: string): string {
 
 const STEP_KEYS: LabelKey[] = ['kiosk.steps.menu', 'kiosk.steps.review', 'kiosk.steps.payment', 'kiosk.steps.done'];
 
-function KioskSteps({ current, allDone = false }: { current: 1 | 2 | 3 | 4; allDone?: boolean }) {
+function KioskSteps({ current, allDone = false, compact = false }: { current: 1 | 2 | 3 | 4; allDone?: boolean; compact?: boolean }) {
   const { t } = useLabels();
   return (
-    <div className="ff-kiosk-steps">
+    <div className={`ff-kiosk-steps${compact ? ' ff-kiosk-steps--compact' : ''}`}>
       {STEP_KEYS.map((key, i) => {
         const label = t(key);
         const n = i + 1;
@@ -266,8 +266,7 @@ export function KioskMenuPage() {
 
   const cartCount    = cart.reduce((s, i) => s + i.quantity, 0);
   const cartSubtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const cartTax      = +(cartSubtotal * 0.1).toFixed(2);
-  const cartTotal    = +(cartSubtotal + cartTax).toFixed(2);
+  const cartTotal    = cartSubtotal;
 
   const serviceParam = new URLSearchParams(window.location.search).get('service') ?? 'EAT_IN';
   const serviceLabel = serviceParam === 'EAT_IN' ? t('kiosk.welcome.eatIn') : t('kiosk.welcome.takeaway');
@@ -300,25 +299,13 @@ export function KioskMenuPage() {
 
   return (
     <div className="ff-kiosk-layout">
-      {/* Premium header */}
-      <header className="ff-kiosk-header">
-        <button className="ff-kiosk-header-back" onClick={() => navigate('/kiosk/start')}>
+      {/* Compact ordering nav */}
+      <div className="ff-kiosk-ordernav">
+        <button className="ff-kiosk-ordernav-back" onClick={() => navigate('/kiosk/start')}>
           <i className="bi bi-arrow-left" />
         </button>
-        <div className="ff-kiosk-header-brand">
-          <span className="ff-kiosk-header-logo"><i className="bi bi-cup-hot-fill" /></span>
-          <div>
-            <div className="ff-kiosk-header-name">Pertinho do Céu</div>
-            <div className="ff-kiosk-header-tagline">Cozinha artesanal · Pedido no totem</div>
-          </div>
-        </div>
-        <div className="ff-kiosk-topbar-actions">
-          <LanguageSelector variant="pills" showLabels={false} className="ff-kiosk-topbar-lang-pills" />
-        </div>
-      </header>
-
-      {/* Stepper */}
-      <KioskSteps current={1} />
+        <KioskSteps current={1} compact />
+      </div>
 
       {/* Horizontal category bar — commercial categories first, Todos last */}
       <nav className="ff-kiosk-catbar" aria-label={t('kiosk.menu.categories')}>
@@ -500,7 +487,7 @@ export function KioskMenuPage() {
             <span className="ff-kiosk-orderbar-label">{t('kiosk.order.label')} · {serviceLabel}</span>
             {cartCount > 0 ? (
               <span className="ff-kiosk-orderbar-amount">
-                {formatBRL(cartTotal)} <small>+ {t('kiosk.order.tax')} {formatBRL(cartTax)}</small>
+                {formatBRL(cartTotal)}
               </span>
             ) : (
               <span className="ff-kiosk-orderbar-empty-hint">{t('kiosk.order.emptyHint')}</span>
@@ -553,9 +540,7 @@ export function KioskCartPage() {
     });
   }
 
-  const subtotal   = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const serviceFee = +(subtotal * 0.1).toFixed(2);
-  const total      = +(subtotal + serviceFee).toFixed(2);
+  const total = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
 
   function proceed() {
     sessionStorage.setItem('ff_kiosk_cart', JSON.stringify(cart));
@@ -565,19 +550,13 @@ export function KioskCartPage() {
 
   return (
     <div className="ff-kiosk-layout">
-      {/* Topbar */}
-      <div className="ff-kiosk-topbar">
-        <button className="ff-kiosk-topbar-back" onClick={() => navigate(-1)}>
+      {/* Compact ordering nav */}
+      <div className="ff-kiosk-ordernav">
+        <button className="ff-kiosk-ordernav-back" onClick={() => navigate(-1)}>
           <i className="bi bi-arrow-left" />
         </button>
-        <span className="ff-kiosk-topbar-title">{t('kiosk.cart.title')}</span>
-        <div className="ff-kiosk-topbar-actions">
-          <LanguageSelector variant="pills" showLabels={false} className="ff-kiosk-topbar-lang-pills" />
-        </div>
+        <KioskSteps current={2} compact />
       </div>
-
-      {/* Step 2 */}
-      <KioskSteps current={2} />
 
       {/* Service toggle */}
       <div className="ff-kiosk-service-toggle-wrap">
@@ -602,48 +581,52 @@ export function KioskCartPage() {
             <i className="bi bi-cart-x" />
             <span>{t('kiosk.cart.empty')}</span>
           </div>
-        ) : cart.map((item) => (
-          <div key={item.productId} className="ff-kiosk-cart-row-v2">
-            <img
-              src={item.imageUrl}
-              alt={item.name}
-              className="ff-kiosk-cart-row-img"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-            <div className="ff-kiosk-cart-row-info">
-              <div className="ff-kiosk-cart-row-name">{item.name}</div>
-              <div className="ff-kiosk-cart-row-price">{formatBRL(item.unitPrice)}</div>
-              <button
-                className="ff-kiosk-cart-delete-btn"
-                onClick={() => setQty(item.productId, 0)}
-              >
-                <i className="bi bi-trash3" /> {t('kiosk.cart.remove')}
-              </button>
+        ) : (
+          <>
+            <div className="ff-kiosk-cart-review-header">
+              <div className="ff-kiosk-cart-review-title">{t('kiosk.cart.title')}</div>
+              <div className="ff-kiosk-cart-review-subtitle">{t('kiosk.cart.reviewSubtitle')}</div>
             </div>
-            <div className="ff-kiosk-qty-group">
-              <button
-                className="ff-kiosk-qty-btn"
-                onClick={() => setQty(item.productId, item.quantity - 1)}
-              >−</button>
-              <span className="ff-kiosk-qty-val">{item.quantity}</span>
-              <button
-                className="ff-kiosk-qty-btn"
-                onClick={() => setQty(item.productId, item.quantity + 1)}
-              >+</button>
-            </div>
-          </div>
-        ))}
+            {cart.map((item) => (
+              <div key={item.productId} className="ff-kiosk-cart-card">
+                <div className="ff-kiosk-cart-row-v2">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="ff-kiosk-cart-row-img"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  <div className="ff-kiosk-cart-row-info">
+                    <div className="ff-kiosk-cart-row-name">{item.name}</div>
+                    <div className="ff-kiosk-cart-row-price">{formatBRL(item.unitPrice)}</div>
+                    <button
+                      className="ff-kiosk-cart-delete-btn"
+                      onClick={() => setQty(item.productId, 0)}
+                    >
+                      <i className="bi bi-trash3" /> {t('kiosk.cart.remove')}
+                    </button>
+                  </div>
+                  <div className="ff-kiosk-qty-pill">
+                    <button
+                      className="ff-kiosk-qty-btn"
+                      onClick={() => setQty(item.productId, item.quantity - 1)}
+                    >−</button>
+                    <span className="ff-kiosk-qty-val">{item.quantity}</span>
+                    <button
+                      className="ff-kiosk-qty-btn"
+                      onClick={() => setQty(item.productId, item.quantity + 1)}
+                    >+</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Summary */}
       {cart.length > 0 && (
         <div className="ff-kiosk-cart-summary">
-          <div className="ff-kiosk-summary-row">
-            <span>{t('summary.subtotal')}</span><span>{formatBRL(subtotal)}</span>
-          </div>
-          <div className="ff-kiosk-summary-row">
-            <span>{t('kiosk.cart.serviceFee')}</span><span>{formatBRL(serviceFee)}</span>
-          </div>
           <div className="ff-kiosk-summary-row ff-kiosk-summary-total">
             <span>{t('summary.total')}</span><span>{formatBRL(total)}</span>
           </div>
@@ -880,7 +863,7 @@ function KioskCashTicketScreen({
       itemCount,
       total,
       currency: 'BRL',
-      footerNote: 'Presentate en caja para pagar',
+      footerNote: t('kiosk.payment.cashInstr'),
     });
 
     if (canAutoPrint()) {
@@ -959,8 +942,7 @@ export function KioskPaymentPage() {
     try { return JSON.parse(sessionStorage.getItem('ff_kiosk_cart') ?? '[]'); } catch { return []; }
   })();
   const serviceType = (sessionStorage.getItem('ff_kiosk_service') ?? 'EAT_IN') as 'EAT_IN' | 'TAKEAWAY';
-  const subtotal    = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const total       = +(subtotal * 1.1).toFixed(2);
+  const total       = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const itemCount   = cart.reduce((s, i) => s + i.quantity, 0);
 
   // Load the enabled payment methods configured in admin and preselect the first.
@@ -1100,18 +1082,13 @@ export function KioskPaymentPage() {
 
   return (
     <div className="ff-kiosk-layout">
-      <div className="ff-kiosk-topbar">
-        <button className="ff-kiosk-topbar-back" onClick={() => navigate(-1)}>
+      {/* Compact ordering nav */}
+      <div className="ff-kiosk-ordernav">
+        <button className="ff-kiosk-ordernav-back" onClick={() => navigate(-1)}>
           <i className="bi bi-arrow-left" />
         </button>
-        <span className="ff-kiosk-topbar-title">{t('kiosk.payment.title')}</span>
-        <div className="ff-kiosk-topbar-actions">
-          <LanguageSelector variant="pills" showLabels={false} className="ff-kiosk-topbar-lang-pills" />
-        </div>
+        <KioskSteps current={3} compact />
       </div>
-
-      {/* Step 3 */}
-      <KioskSteps current={3} />
 
       <div className="ff-kiosk-payment-body">
         <div className="ff-kiosk-payment-total-box">

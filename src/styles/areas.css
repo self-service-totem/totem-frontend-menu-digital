@@ -2153,6 +2153,34 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   margin-top: 2px;
 }
 
+/* ─── Compact ordering nav (back button + stepper, no brand/lang) ─────── */
+.ff-kiosk-ordernav {
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(12px, 1.6vw, 24px);
+  height: clamp(58px, 6vw, 72px);
+  background: #fff;
+  border-bottom: 1px solid #ececef;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.ff-kiosk-ordernav-back {
+  flex-shrink: 0;
+  width: clamp(40px, 4.2vw, 50px);
+  height: clamp(40px, 4.2vw, 50px);
+  border-radius: 50%;
+  border: 1.5px solid #e4e5e9;
+  background: #f8f9fa;
+  color: #374151;
+  font-size: clamp(18px, 1.9vw, 22px);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ff-kiosk-ordernav-back:active { background: #e4e5e9; }
+
 /* ─── Progress stepper (compact, secondary) ─────────────────────────────── */
 .ff-kiosk-steps {
   display: flex;
@@ -2225,6 +2253,14 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   .ff-kiosk-step { font-size: 16px; gap: 8px; }
   .ff-kiosk-step-dot { width: 34px; height: 34px; font-size: 15px; }
   .ff-kiosk-step-line { width: 32px; }
+}
+
+/* When embedded inside ff-kiosk-ordernav — strip standalone chrome */
+.ff-kiosk-steps--compact {
+  flex: 1;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
 }
 
 /* ─── Welcome page ───────────────────────────────────────────────────────── */
@@ -2959,14 +2995,46 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
   overflow-y: auto;
   overscroll-behavior: contain;
   min-height: 0;
+  padding-bottom: 8px;
+}
+
+/* Review header */
+.ff-kiosk-cart-review-header {
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ff-kiosk-cart-review-title {
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 900;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.ff-kiosk-cart-review-subtitle {
+  font-size: clamp(14px, 1.5vw, 18px);
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* Item card */
+.ff-kiosk-cart-card {
+  margin: 14px 16px 0;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07);
+  overflow: hidden;
+}
+
+.ff-kiosk-cart-card:last-child {
+  margin-bottom: 14px;
 }
 
 .ff-kiosk-cart-row-v2 {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 24px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 18px 20px;
 }
 
 .ff-kiosk-cart-row-img {
@@ -3001,11 +3069,32 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 
 .ff-kiosk-cart-delete-btn:active { color: var(--ff-primary); }
 
-.ff-kiosk-qty-group {
+/* Qty pill — unified segmented control */
+.ff-kiosk-qty-pill {
   display: flex;
   align-items: center;
-  gap: 14px;
   flex-shrink: 0;
+  background: #f3f4f6;
+  border-radius: 999px;
+  border: 2px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.ff-kiosk-qty-pill .ff-kiosk-qty-btn {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ff-kiosk-qty-pill .ff-kiosk-qty-btn:active {
+  background: #e5e7eb;
+  border-color: transparent;
+  transform: none;
+}
+
+.ff-kiosk-qty-pill .ff-kiosk-qty-val {
+  border-left: 1.5px solid #e5e7eb;
+  border-right: 1.5px solid #e5e7eb;
 }
 
 .ff-kiosk-qty-btn {
