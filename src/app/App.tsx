@@ -6,11 +6,21 @@ import { I18nProvider } from '@/i18n/I18nContext';
 import { resolveLanguage } from '@/i18n/labels';
 import { NotificationProvider } from '@/lib/notifications';
 import { seedDb } from '@/lib/mock-db';
+import { firebaseEnabled } from '@/lib/firebase/config';
+import { initFirestoreSync, ensureFirestoreSeeded } from '@/lib/firebase/sync';
 import { RoleProvider } from './RoleContext';
 import type { ReactNode } from 'react';
 
-// Seed the shared mock-db on startup (idempotent)
+// Seed the shared mock-db on startup (idempotent). Local seed da estado inmediato
+// y sirve de fallback cuando Firebase está deshabilitado.
 seedDb();
+
+// Con Firebase activo: suscribir las colecciones vivas (mantiene el espejo local
+// fresco entre dispositivos) y sembrar Firestore una vez si está vacío.
+if (firebaseEnabled) {
+  initFirestoreSync();
+  void ensureFirestoreSeeded();
+}
 
 function I18nFromMenuContext({ children }: { children: ReactNode }) {
   const { menuContext, language } = useSession();

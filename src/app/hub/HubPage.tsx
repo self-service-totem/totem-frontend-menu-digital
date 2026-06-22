@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resetDb, seedDb } from '@/lib/mock-db';
+import { firebaseEnabled } from '@/lib/firebase/config';
+import { clearLiveCollections, pushSeedCollections } from '@/lib/firebase/sync';
 import { CardPreviewModal } from '@/components/printing/CardPreviewModal';
 import { TableQrModal } from '@/components/printing/TableQrModal';
 import { useRole } from '@/app/RoleContext';
@@ -63,12 +65,18 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
   const [cardPreviewOpen, setCardPreviewOpen] = useState(false);
   const [tableQrOpen, setTableQrOpen] = useState(false);
 
-  function handleReset() {
-    if (window.confirm(t('hub.resetConfirm'))) {
-      resetDb();
-      seedDb();
-      window.location.reload();
+  async function handleReset() {
+    if (!window.confirm(t('hub.resetConfirm'))) return;
+    resetDb();
+    seedDb();
+    // Reset de demo compartido: vaciar las colecciones vivas en Firestore y volver
+    // a subir el seed inicial (mesas, reservas, walk-ins), así todos los dispositivos
+    // arrancan con el mismo estado limpio de demo.
+    if (firebaseEnabled) {
+      await clearLiveCollections();
+      pushSeedCollections();
     }
+    window.location.reload();
   }
 
   return (

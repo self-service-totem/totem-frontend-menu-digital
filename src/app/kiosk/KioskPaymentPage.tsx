@@ -326,14 +326,20 @@ export function KioskPaymentPage() {
 
   async function doPay() {
     setStep('processing');
-    const approved = Math.random() > 0.1;
-    if (approved) {
-      const { order: o, queueTicket: qt } = await kioskService.placeOrder('Cliente Totem', cart, serviceType);
-      setOrder(o);
-      setQueueTicket(qt);
-      setResult('approved');
-      notify(t('kiosk.payment.approved'));
-    } else {
+    try {
+      const approved = Math.random() > 0.1;
+      if (approved) {
+        const { order: o, queueTicket: qt } = await kioskService.placeOrder('Cliente Totem', cart, serviceType);
+        setOrder(o);
+        setQueueTicket(qt);
+        setResult('approved');
+        notify(t('kiosk.payment.approved'));
+      } else {
+        setResult('rejected');
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[KioskPayment] doPay error', err);
       setResult('rejected');
     }
     setStep('result');

@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Local environment (Firebase web config — not secret, but kept out of VCS)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

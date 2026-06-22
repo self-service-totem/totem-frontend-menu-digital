@@ -1,6 +1,12 @@
 // Lightweight localStorage-backed store for cross-area mock persistence.
 // All app areas share the same storage keys so mutations in one area are
 // immediately visible in another.
+//
+// Cuando Firebase está habilitado (ver src/lib/firebase), las colecciones "vivas"
+// se sincronizan a Firestore: las escrituras propagan el documento (fire-and-forget)
+// y onSnapshot vuelve a volcar el snapshot al espejo local vía setCollectionLocal.
+// Las lecturas (getCollection) siguen siendo síncronas desde localStorage.
+import { firestoreWriteHook } from '@/lib/firebase/writeHook';
 
 const PREFIX = 'ff_mock_db_';
 
@@ -13,14 +19,24 @@ export function getCollection<T>(key: string): T[] {
   }
 }
 
-export function setCollection<T>(key: string, data: T[]): void {
+// Escritura SOLO local (no propaga a Firestore). La usa el listener de Firestore
+// para volcar snapshots sin disparar un bucle de escritura.
+export function setCollectionLocal<T>(key: string, data: T[]): void {
   localStorage.setItem(PREFIX + key, JSON.stringify(data));
+}
+
+// Reemplaza una colección completa. Local-only: el seeding de Firestore para
+// colecciones vivas se hace explícitamente (ver firebase/sync: ensureFirestoreSeeded
+// y el reset del Hub), no en cada escritura masiva.
+export function setCollection<T>(key: string, data: T[]): void {
+  setCollectionLocal(key, data);
 }
 
 export function insertOne<T extends { id: string }>(key: string, item: T): T {
   const col = getCollection<T>(key);
   col.push(item);
-  setCollection(key, col);
+  setCollectionLocal(key, col);
+  firestoreWriteHook.push(key, item);
   return item;
 }
 
@@ -33,7 +49,8 @@ export function updateOne<T extends { id: string }>(
   const idx = col.findIndex((x) => x.id === id);
   if (idx === -1) return null;
   col[idx] = { ...col[idx], ...patch, updatedAt: new Date().toISOString() } as T;
-  setCollection(key, col);
+  setCollectionLocal(key, col);
+  firestoreWriteHook.push(key, col[idx]);
   return col[idx];
 }
 
