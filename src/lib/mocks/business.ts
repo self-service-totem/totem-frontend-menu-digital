@@ -1,4 +1,4 @@
-import type { Business, MenuContext, Table } from '@/types';
+import type { Business, MenuContext, Table } from '@/lib/types';
 
 export const mockBusiness: Business = {
   id: 'biz-1',

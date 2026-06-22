@@ -1,4 +1,4 @@
-import type { BillItem, CurrencyCode } from '@/types';
+import type { BillItem, CurrencyCode } from '@/lib/types';
 import { useLabels } from '@/i18n/I18nContext';
 import { formatMoney } from '@/utils/format';
 

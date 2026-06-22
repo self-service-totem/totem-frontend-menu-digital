@@ -1,4 +1,4 @@
-import type { WaiterCallRequest } from '@/types';
+import type { WaiterCallRequest } from '@/lib/types';
 import { delay } from './api';
 import { insertOne, getCollection, updateOne, BRANCH_ID, TENANT_ID } from '@/lib/mock-db';
 import type { WaiterCall } from '@/lib/types';

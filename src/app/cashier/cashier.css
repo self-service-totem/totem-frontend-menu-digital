@@ -1,0 +1,23 @@
+/* Cashier — clases co-locadas para los patrones estáticos repetidos que antes
+   eran style={{}}. Los valores data-driven (colores por status/severidad, bordes
+   de card) siguen inline porque dependen del estado del pago. */
+
+/* Badge de cantidad (item rows en modales y cards de kiosk) */
+.ff-csh-qty-badge {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: #f3f4f6; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #374151; flex-shrink: 0;
+}
+
+/* Círculo de éxito (modales de cobro / confirmación) */
+.ff-csh-success-circle {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: #ecfdf5; border: 2px solid #6ee7b7;
+  display: flex; align-items: center; justify-content: center; font-size: 32px;
+}
+
+/* Columna centrada para estados "done" */
+.ff-csh-center-col { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+
+/* Scroll de tablas (history / receipts / invoices) */
+.ff-csh-table-scroll { overflow: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - 260px); }

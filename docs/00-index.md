@@ -14,6 +14,7 @@ docs/02-ui-component-standard.md
 docs/03-api-integration-standard.md
 docs/04-modal-toast-standard.md
 docs/05-testing-strategy.md
+docs/06-how-to-add-a-screen.md
 docs/UI_STANDARDS.md
 docs/DESIGN_SYSTEM.md
 docs/planning/frontend-masterplan-prs.md
@@ -56,6 +57,10 @@ Canonical rules for modals, confirmations, alerts, notifications and avoiding ad
 ### `05-testing-strategy.md`
 
 Testing expectations for pages, components, hooks and API integration.
+
+### `06-how-to-add-a-screen.md`
+
+Step-by-step recipe for adding a new screen: folder structure, hook pattern, which layout shell to use, styling rules, service/API calls, error handling, tables, buttons, modals, i18n, routing, and a final checklist.
 
 ### `planning/frontend-masterplan-prs.md`
 

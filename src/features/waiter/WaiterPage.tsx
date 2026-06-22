@@ -9,7 +9,7 @@ import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
 import type { LabelKey } from '@/i18n/labels';
-import { waiterService, orderService } from '@/services';
+import { waiterService, orderService } from '@/lib/services';
 import type { WaiterCall } from '@/lib/types';
 
 type ActionId = 'call' | 'bill' | 'order' | 'other';

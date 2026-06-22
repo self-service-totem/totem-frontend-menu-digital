@@ -1,0 +1,64 @@
+/* Kiosk — estilos co-locados, extraídos de los inline styles al dividir KioskApp.
+   El resto de las clases ff-kiosk-* siguen en src/styles/areas.css (de-globalización
+   incremental: esta hoja sólo cubre lo que antes era style={{}}). */
+
+/* Spinners por tamaño */
+.ff-kiosk-spin-56 { width: 56px; height: 56px; }
+.ff-kiosk-spin-64 { width: 64px; height: 64px; }
+.ff-kiosk-spin-40 { width: 40px; height: 40px; }
+.ff-kiosk-spin-28 { width: 28px; height: 28px; }
+
+.ff-kiosk-spacer { flex: 1; }
+
+/* Menu */
+.ff-kiosk-section--spaced { margin-top: clamp(16px, 1.8vw, 24px); }
+.ff-kiosk-section-title--dark { color: #15161a; }
+.ff-kiosk-section-icon--muted { color: #9ca3af; }
+
+/* Cart */
+.ff-kiosk-empty--pad { padding: 80px 20px; }
+.ff-kiosk-cart-bottom--end { justify-content: flex-end; }
+.ff-kiosk-pay-btn--narrow { max-width: 360px; }
+
+/* Confirmation — success header */
+.ff-kiosk-confirm-success-head { display: flex; align-items: center; gap: 14px; justify-content: center; }
+.ff-kiosk-confirm-success-icon { font-size: clamp(36px, 4vw, 52px); color: #059669; line-height: 1; flex-shrink: 0; }
+.ff-kiosk-confirm-title--inline { margin: 0; text-align: left; }
+
+/* QR real del comprobante */
+.ff-kiosk-qr-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  display: inline-block;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .10);
+}
+
+/* Cash ticket — meta */
+.ff-kiosk-ticket-meta { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 16px; }
+.ff-kiosk-ticket-meta-row { display: flex; justify-content: space-between; }
+.ff-kiosk-ticket-meta-row--total { font-weight: 700; }
+
+/* Payment — pantallas centradas (instruction / qr / rejected) */
+.ff-kiosk-pay-center { text-align: center; max-width: 460px; }
+.ff-kiosk-pay-center--narrow { text-align: center; }
+.ff-kiosk-pay-icon { font-size: 88px; color: var(--ff-primary); line-height: 1; }
+.ff-kiosk-pay-heading { font-size: 30px; font-weight: 800; margin: 20px 0 10px; }
+.ff-kiosk-pay-heading--tight { font-size: 30px; font-weight: 800; margin-bottom: 10px; }
+.ff-kiosk-pay-sub { color: #6b7280; font-size: 18px; margin-bottom: 28px; }
+.ff-kiosk-pay-sub--tight { color: #6b7280; font-size: 18px; margin-bottom: 22px; }
+.ff-kiosk-pay-qrwrap {
+  display: inline-block;
+  padding: 16px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, .1);
+}
+.ff-kiosk-pay-waitrow { margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.ff-kiosk-pay-wait-text { color: #6b7280; }
+.ff-kiosk-fakeqr { background: #fff; border-radius: 12px; }
+
+/* Payment — rejected */
+.ff-kiosk-pay-reject-x { font-size: 80px; color: var(--ff-primary); margin-bottom: 20px; line-height: 1; }
+.ff-kiosk-pay-reject-title { font-size: 30px; font-weight: 800; margin-bottom: 12px; }
+.ff-kiosk-pay-reject-desc { color: #6b7280; margin-bottom: 36px; font-size: 18px; }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { cashbackService } from '@/services';
-import type { CashbackSummary } from '@/mocks/cashback';
+import { cashbackService } from '@/lib/services';
+import type { CashbackSummary } from '@/lib/mocks/cashback';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
 import { useNotify } from '@/lib/notifications';

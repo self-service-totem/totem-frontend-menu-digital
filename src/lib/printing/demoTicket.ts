@@ -1,7 +1,7 @@
 // Compone e imprime el ticket de demo: resumen del pedido + "tarjeta" comercial
 // con QR al pie. Pensado para mostrar el producto en vivo en los locales.
 
-import type { CurrencyCode } from '@/types';
+import type { CurrencyCode } from '@/lib/types';
 import { formatMoney } from '@/utils/format';
 import { EscPosBuilder } from './escpos';
 import { printViaRawBt } from './rawbt';
@@ -107,6 +107,7 @@ export function buildBusinessCard(): Uint8Array {
   b.qr(demoCard.url, 8).feed(1);
   b.bold(true).line(demoCard.web).bold(false);
   b.line(demoCard.sellerName);
+  b.line(demoCard.mail);
   b.line(demoCard.phone);
   b.feed(4).cut();
   return b.build();

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resetDb, seedDb } from '@/lib/mock-db';
 import { CardPreviewModal } from '@/components/printing/CardPreviewModal';
+import { TableQrModal } from '@/components/printing/TableQrModal';
 import { useRole } from '@/app/RoleContext';
 import { I18nProvider, useLabels } from '@/i18n/I18nContext';
 import { useAdminLanguage } from '@/i18n/useAdminLanguage';
@@ -60,6 +61,7 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
   const { t } = useLabels();
   const { currentUser, logout } = useRole();
   const [cardPreviewOpen, setCardPreviewOpen] = useState(false);
+  const [tableQrOpen, setTableQrOpen] = useState(false);
 
   function handleReset() {
     if (window.confirm(t('hub.resetConfirm'))) {
@@ -116,6 +118,13 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
           <i className="bi bi-printer me-1" />
           {t('hub.printCard')}
         </button>
+        <button
+          onClick={() => setTableQrOpen(true)}
+          style={{ background: 'rgba(16,185,129,.15)', border: '1px solid rgba(16,185,129,.3)', color: '#6ee7b7', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}
+        >
+          <i className="bi bi-qr-code me-1" />
+          {t('hub.printTableQr')}
+        </button>
         <button className="ff-hub-reset-btn" onClick={handleReset}>
           <i className="bi bi-arrow-counterclockwise me-1" />
           {t('hub.resetBtn')}
@@ -123,6 +132,7 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
       </div>
 
       <CardPreviewModal open={cardPreviewOpen} onClose={() => setCardPreviewOpen(false)} />
+      <TableQrModal open={tableQrOpen} onClose={() => setTableQrOpen(false)} />
     </div>
   );
 }

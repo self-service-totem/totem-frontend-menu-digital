@@ -1,5 +1,5 @@
-import type { Customer } from '@/types';
-import { mockCustomer } from '@/mocks';
+import type { Customer } from '@/lib/types';
+import { mockCustomer } from '@/lib/mocks';
 import { delay } from './api';
 
 const STORAGE_KEYS = {

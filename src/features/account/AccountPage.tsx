@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Order } from '@/types';
+import type { Order } from '@/lib/types';
 import type { LoyaltyCard } from '@/lib/types';
-import { orderService } from '@/services';
+import { orderService } from '@/lib/services';
 import { loyaltyService } from '@/lib/services/loyaltyService';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';

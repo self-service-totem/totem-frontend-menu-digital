@@ -3,7 +3,7 @@
 // This isolates the JSON:API contract from the component props shape.
 
 import type { JsonApiCollectionResponse, JsonApiResponse, JsonApiResource } from './types';
-import type { MenuContext, Category, Product } from '@/types';
+import type { MenuContext, Category, Product } from '@/lib/types';
 
 // ─── Attribute shapes (mirror future backend contract) ────────────────────────
 

@@ -1,4 +1,4 @@
-import type { Bill, BillCustomer, BillItem, CartItem, Order, PlaceOrderRequest } from '@/types';
+import type { Bill, BillCustomer, BillItem, CartItem, Order, PlaceOrderRequest } from '@/lib/types';
 import { delay } from './api';
 import {
   insertOne,

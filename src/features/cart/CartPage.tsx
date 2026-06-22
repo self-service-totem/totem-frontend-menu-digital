@@ -9,7 +9,7 @@ import { Modal } from '@/components/common/Modal';
 import { TextField } from '@/components/common/TextField';
 import { OrderSummary } from '@/components/account/OrderSummary';
 import { formatMoney } from '@/utils/format';
-import { orderService } from '@/services';
+import { orderService } from '@/lib/services';
 
 export function CartPage() {
   const navigate = useNavigate();

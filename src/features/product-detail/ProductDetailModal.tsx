@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CartModifier, Product } from '@/types';
+import type { CartModifier, Product } from '@/lib/types';
 import type { ModifierGroup } from '@/lib/types';
-import { menuService } from '@/services';
+import { menuService } from '@/lib/services';
 import { modifierService } from '@/lib/services/modifierService';
 import { mapProductResponseToViewModel } from '@/lib/jsonapi';
 import { useCart } from '@/app/CartContext';

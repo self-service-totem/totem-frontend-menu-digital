@@ -1,4 +1,4 @@
-import type { Product } from '@/types';
+import type { Product } from '@/lib/types';
 import { formatMoney } from '@/utils/format';
 
 const FALLBACK_PRODUCT =

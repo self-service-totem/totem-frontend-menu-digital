@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { CartItem, CartModifier, Product } from '@/types';
+import type { CartItem, CartModifier, Product } from '@/lib/types';
 
 interface AddToCartInput {
   product: Product;

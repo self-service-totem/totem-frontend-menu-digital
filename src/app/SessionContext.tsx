@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { Customer, MenuContext } from '@/types';
-import { menuContextService, sessionService } from '@/services';
+import type { Customer, MenuContext } from '@/lib/types';
+import { menuContextService, sessionService } from '@/lib/services';
 import { mapMenuContextResponseToViewModel } from '@/lib/jsonapi';
 import { resolveLanguage, type LanguageCode } from '@/i18n/labels';
 

@@ -1,4 +1,4 @@
-import type { CurrencyCode, Order, OrderStatus } from '@/types';
+import type { CurrencyCode, Order, OrderStatus } from '@/lib/types';
 import { useLabels } from '@/i18n/I18nContext';
 import type { LabelKey } from '@/i18n/labels';
 import { formatMoney } from '@/utils/format';

@@ -1,4 +1,4 @@
-import { mockCashback, type CashbackSummary } from '@/mocks/cashback';
+import { mockCashback, type CashbackSummary } from '@/lib/mocks/cashback';
 import { delay } from './api';
 
 export const cashbackService = {

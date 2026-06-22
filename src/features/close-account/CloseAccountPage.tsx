@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Bill } from '@/types';
-import { orderService } from '@/services';
+import type { Bill } from '@/lib/types';
+import { orderService } from '@/lib/services';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
 import { useNotify } from '@/lib/notifications';

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import type { Category, Product } from '@/types';
-import { menuService } from '@/services';
+import type { Category, Product } from '@/lib/types';
+import { menuService } from '@/lib/services';
 import { mapCategoriesResponseToViewModels, mapProductsResponseToViewModels } from '@/lib/jsonapi';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';

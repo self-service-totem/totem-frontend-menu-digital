@@ -1,4 +1,4 @@
-import type { CurrencyCode } from '@/types';
+import type { CurrencyCode } from '@/lib/types';
 
 const localeByCurrency: Record<CurrencyCode, string> = {
   BRL: 'pt-BR',

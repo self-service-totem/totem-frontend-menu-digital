@@ -32,13 +32,16 @@ React 18
 TypeScript
 Vite
 React Router
-React Bootstrap
 Bootstrap Icons
+Hand-rolled UI with CSS (tokens en src/styles/theme.css + src/styles/areas.css)
 Feature-based pages
 Shared components
-Service layer currently under src/services
-Mocks currently under src/mocks
+Data layer (services, mocks, types, jsonapi) bajo src/lib
+Service layer: src/lib/services — Mocks: src/lib/mocks — Tipos: src/lib/types
 ```
+
+Frontera: `src/lib` = data/infra; `src/app` + `src/features` = UI.
+react-bootstrap está en package.json pero la UI hoy es CSS propio (0 imports reales).
 
 ---
 

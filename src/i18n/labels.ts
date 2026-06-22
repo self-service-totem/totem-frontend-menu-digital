@@ -974,6 +974,8 @@ export type LabelKey =
   | 'hub.resetBtn'
   | 'hub.printCard'
   | 'hub.cardPreviewTitle'
+  | 'hub.printTableQr'
+  | 'hub.tableQrTitle'
   | 'hub.sectionCustomer'
   | 'hub.sectionOps'
   | 'hub.sectionNew'
@@ -1975,6 +1977,8 @@ const ptBR: LabelMap = {
   'hub.resetBtn': 'Resetar dados de demonstração',
   'hub.printCard': 'Imprimir cartão',
   'hub.cardPreviewTitle': 'Prévia do cartão',
+  'hub.printTableQr': 'Imprimir QR da Mesa',
+  'hub.tableQrTitle': 'QR da Mesa',
   'hub.sectionCustomer': 'Áreas do cliente',
   'hub.sectionOps': 'Operação',
   'hub.sectionNew': 'Novas funcionalidades',
@@ -2975,6 +2979,8 @@ const es: LabelMap = {
   'hub.resetBtn': 'Resetear datos de demostración',
   'hub.printCard': 'Imprimir tarjeta',
   'hub.cardPreviewTitle': 'Vista previa de la tarjeta',
+  'hub.printTableQr': 'Imprimir QR de la Mesa',
+  'hub.tableQrTitle': 'QR de la Mesa',
   'hub.sectionCustomer': 'Áreas del cliente',
   'hub.sectionOps': 'Operación',
   'hub.sectionNew': 'Nuevas funcionalidades',
@@ -3946,6 +3952,8 @@ const en: LabelMap = {
   'hub.resetBtn': 'Reset demo data',
   'hub.printCard': 'Print card',
   'hub.cardPreviewTitle': 'Card preview',
+  'hub.printTableQr': 'Print Table QR',
+  'hub.tableQrTitle': 'Table QR',
   'hub.sectionCustomer': 'Customer areas',
   'hub.sectionOps': 'Operations',
   'hub.sectionNew': 'New features',

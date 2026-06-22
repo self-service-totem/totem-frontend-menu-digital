@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Product } from '@/types';
+import type { Product } from '@/lib/types';
 import { useLabels } from '@/i18n/I18nContext';
 import { ProductCard } from './ProductCard';
 

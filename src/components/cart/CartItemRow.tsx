@@ -1,4 +1,4 @@
-import type { CartItem } from '@/types';
+import type { CartItem } from '@/lib/types';
 import { formatMoney } from '@/utils/format';
 import { QuantitySelector } from '@/components/common/QuantitySelector';
 

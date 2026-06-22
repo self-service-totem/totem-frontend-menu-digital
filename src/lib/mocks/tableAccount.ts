@@ -1,4 +1,4 @@
-import type { Bill, TableAccount } from '@/types';
+import type { Bill, TableAccount } from '@/lib/types';
 
 export function buildMockBill(tableId: string): Bill {
   const customers = [

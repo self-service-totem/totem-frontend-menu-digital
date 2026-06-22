@@ -11,8 +11,24 @@ const GS = 0x1d;
 // alguna impresora barata los acentos salen raros, su tabla de códigos difiere
 // y habría que cambiar el page en `init()`.
 const CP850: Record<string, number> = {
+  // Vocales con tilde/acento agudo
   á: 0xa0, é: 0x82, í: 0xa1, ó: 0xa2, ú: 0xa3,
   Á: 0xb5, É: 0x90, Í: 0xd6, Ó: 0xe0, Ú: 0xe9,
+  // Portugués: tilde nasal
+  ã: 0xc6, Ã: 0xc7,
+  // Portugués: circunflejo
+  â: 0x83, Â: 0xb6,
+  ê: 0x88,
+  ô: 0x93,
+  û: 0x96,
+  // Portugués: grave
+  à: 0x85, À: 0xb7,
+  è: 0x8a,
+  ò: 0x95,
+  ù: 0x97,
+  // Portugués: õ no existe en CP850; aproximamos con 'o' para legibilidad
+  õ: 0x6f, Õ: 0x4f,
+  // Resto
   ñ: 0xa4, Ñ: 0xa5, ü: 0x81, Ü: 0x9a, ç: 0x87, Ç: 0x80,
   '¿': 0xa8, '¡': 0xad, '°': 0xf8,
 };

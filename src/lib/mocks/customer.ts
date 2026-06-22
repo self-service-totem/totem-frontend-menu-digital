@@ -1,4 +1,4 @@
-import type { Customer } from '@/types';
+import type { Customer } from '@/lib/types';
 
 export const mockCustomer: Customer = {
   id: 'customer-1',

@@ -1,4 +1,4 @@
-import type { Category } from '@/types';
+import type { Category } from '@/lib/types';
 import { useLabels } from '@/i18n/I18nContext';
 
 const FALLBACK_CAT =

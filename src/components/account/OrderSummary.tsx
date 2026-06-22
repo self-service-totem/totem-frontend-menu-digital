@@ -1,4 +1,4 @@
-import type { CurrencyCode } from '@/types';
+import type { CurrencyCode } from '@/lib/types';
 import { formatMoney } from '@/utils/format';
 
 interface OrderSummaryProps {
