@@ -12,6 +12,7 @@ on:
           - main
           - develop
           - prototype
+          - prototype-sec
 
       release_version:
         description: "Release version. Example: v1.0.0"
