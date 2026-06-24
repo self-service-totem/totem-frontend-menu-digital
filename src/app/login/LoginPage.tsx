@@ -1,30 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useRole } from '@/app/RoleContext';
-import { getCollection } from '@/lib/mock-db';
-import type { MockUser, UserRole } from '@/lib/types';
+import type { UserRole } from '@/lib/types';
 import { I18nProvider, useLabels } from '@/i18n/I18nContext';
 import { useAdminLanguage } from '@/i18n/useAdminLanguage';
 import { AdminLanguageSelector } from '@/components/admin/AdminLanguageSelector';
-import type { LabelKey, LanguageCode } from '@/i18n/labels';
-
-const ROLE_ICONS: Record<UserRole, string> = {
-  OWNER: 'bi-crown',
-  MANAGER: 'bi-person-gear',
-  CASHIER: 'bi-cash-register',
-  WAITER: 'bi-person-badge',
-  KITCHEN: 'bi-fire',
-  SUPPORT: 'bi-headset',
-};
-
-const ROLE_LABEL_KEYS: Record<UserRole, LabelKey> = {
-  OWNER: 'login.role.owner',
-  MANAGER: 'login.role.manager',
-  CASHIER: 'login.role.cashier',
-  WAITER: 'login.role.waiter',
-  KITCHEN: 'login.role.kitchen',
-  SUPPORT: 'login.role.support',
-};
+import type { LanguageCode } from '@/i18n/labels';
 
 const ROLE_DESTINATIONS: Record<UserRole, string> = {
   OWNER: '/admin/dashboard',
@@ -46,19 +27,40 @@ export function LoginPage() {
 
 function LoginInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l: LanguageCode) => void }) {
   const { t } = useLabels();
-  const { login, currentUser, logout } = useRole();
+  const { login, currentUser, logout, isAuthenticated } = useRole();
   const navigate = useNavigate();
-  const users = getCollection<MockUser>('mockUsers');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
 
-  function handleLogin() {
-    if (!selected) return;
-    login(selected);
-    const user = users.find((u) => u.id === selected);
-    if (user) navigate(ROLE_DESTINATIONS[user.role]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || !password) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await login(email.trim(), password);
+      // After login, RoleContext resolves the user and their role.
+      // Navigate with a small delay so currentUser populates from onAuthStateChanged.
+      // The StaffGuard on the destination handles the redirect if still loading.
+      const next = searchParams.get('next');
+      navigate(next ?? '/');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('invalid-credential') || msg.includes('wrong-password') || msg.includes('user-not-found')) {
+        setError(t('login.error.invalidCredentials'));
+      } else {
+        setError(t('login.error.generic'));
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
-  if (currentUser) {
+  if (isAuthenticated && currentUser) {
     return (
       <div className="ff-login-layout">
         <div className="ff-login-card">
@@ -67,16 +69,19 @@ function LoginInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: 
           </div>
           <div className="ff-login-title">{t('login.greeting', { name: currentUser.name })}</div>
           <div style={{ textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
-            {t('login.loggedAs')} <strong>{t(ROLE_LABEL_KEYS[currentUser.role])}</strong>
+            {currentUser.email}
           </div>
-          <button className="btn btn-primary" onClick={() => navigate(ROLE_DESTINATIONS[currentUser.role])}>
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate(ROLE_DESTINATIONS[currentUser.role])}
+          >
             {t('login.goToArea')}
           </button>
-          <button className="btn btn-outline-secondary" onClick={() => { logout(); navigate('/login'); }}>
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => { void logout(); }}
+          >
             {t('login.switchUser')}
-          </button>
-          <button className="btn btn-outline-secondary" onClick={() => navigate('/')}>
-            {t('login.hub')}
           </button>
         </div>
       </div>
@@ -97,48 +102,66 @@ function LoginInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: 
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {users.map((user) => (
+        <form onSubmit={(e) => { void handleLogin(e); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+              {t('login.emailLabel')}
+            </label>
+            <input
+              type="email"
+              className="form-control"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('login.emailPlaceholder')}
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+              {t('login.passwordLabel')}
+            </label>
+            <input
+              type="password"
+              className="form-control"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          {error && (
             <div
-              key={user.id}
-              className={`ff-role-card ${selected === user.id ? 'selected' : ''}`}
-              onClick={() => setSelected(user.id)}
+              style={{
+                background: '#fef2f2',
+                border: '1px solid #fca5a5',
+                borderRadius: 8,
+                padding: '8px 12px',
+                color: '#dc2626',
+                fontSize: 13,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
             >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: selected === user.id ? 'var(--ff-primary)' : '#f3f4f6',
-                  color: selected === user.id ? '#fff' : '#374151',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <i className={`bi ${ROLE_ICONS[user.role]}`} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{user.name}</div>
-                <div style={{ fontSize: 12, color: '#9ca3af' }}>{t(ROLE_LABEL_KEYS[user.role])}</div>
-              </div>
-              {selected === user.id && <i className="bi bi-check-circle-fill text-danger" />}
+              <i className="bi bi-exclamation-circle" />
+              {error}
             </div>
-          ))}
-        </div>
+          )}
 
-        <button className="btn btn-primary btn-lg" onClick={handleLogin} disabled={!selected}>
-          {t('login.submit')}
-        </button>
-
-        <button
-          className="btn btn-outline-secondary btn-sm"
-          onClick={() => navigate('/')}
-          style={{ marginTop: -8 }}
-        >
-          {t('login.continueDemo')}
-        </button>
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg"
+            disabled={loading || !email || !password}
+          >
+            {loading ? (
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+            ) : null}
+            {t('login.submit')}
+          </button>
+        </form>
       </div>
     </div>
   );

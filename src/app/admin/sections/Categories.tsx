@@ -13,6 +13,7 @@ import {
   AdminTable,
   ViewToggle,
   useSortable,
+  ImageUploadField,
 } from '@/components/admin';
 import type { AdminTableColumn, SortDir, ViewMode } from '@/components/admin';
 
@@ -219,19 +220,22 @@ export function Categories() {
             </>
           }
         >
-          {([
-            [t('adminCategories.name'),     'name'],
-            [t('adminCategories.imageUrl'), 'imageUrl'],
-          ] as const).map(([label, field]) => (
-            <div key={field} className="ff-admin-form-row">
-              <label className="ff-admin-form-label">{label}</label>
-              <input
-                className="ff-admin-form-input"
-                value={(form as Record<string, string | boolean>)[field] as string}
-                onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-              />
-            </div>
-          ))}
+          <div className="ff-admin-form-row">
+            <label className="ff-admin-form-label">{t('adminCategories.name')}</label>
+            <input
+              className="ff-admin-form-input"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
+          </div>
+          <div className="ff-admin-form-row">
+            <label className="ff-admin-form-label">{t('adminCategories.imageUrl')}</label>
+            <ImageUploadField
+              folder="categories"
+              value={form.imageUrl}
+              onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+            />
+          </div>
           <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
             {t('adminCategories.isActive')}

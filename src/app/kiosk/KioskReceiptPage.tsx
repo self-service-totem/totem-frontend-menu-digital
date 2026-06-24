@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { findById } from '@/lib/mock-db/store';
 import { getCollection } from '@/lib/mock-db/store';
+import { getBrandName } from '@/lib/services/brand';
 import type { DbOrder, QueueTicket } from '@/lib/types';
 import { formatCurrency as formatBRL } from '@/utils/format';
 import { useLabels } from '@/i18n/I18nContext';
@@ -89,7 +90,7 @@ export function KioskReceiptPage() {
       <div style={styles.card}>
         {/* Header */}
         <div style={styles.header}>
-          <div style={styles.restaurantName}>Pertinho do Céu</div>
+          <div style={styles.restaurantName}>{getBrandName()}</div>
           <div style={styles.orderNumber}>{order.orderNumber}</div>
         </div>
 

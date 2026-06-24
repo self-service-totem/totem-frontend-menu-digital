@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { cashierService, type TableGroup } from '@/lib/services/cashierService';
 import { kioskService } from '@/lib/services/kioskService';
 import { printDemoTicket } from '@/lib/printing/demoTicket';
+import { getBrandName } from '@/lib/services/brand';
 import { useNotify } from '@/lib/notifications';
 import { useElapsed } from '@/lib/utils/useElapsed';
 import { useLabels } from '@/i18n/I18nContext';
@@ -173,7 +174,7 @@ export function useCashier() {
     const { order, queueTicket } = await kioskService.confirmCashPayment(orderId);
     notify(`Pedido ${order.orderNumber} cobrado — turno ${queueTicket.ticketNumber}`);
     printDemoTicket({
-      restaurantName: 'Pertinho do Céu',
+      restaurantName: getBrandName(),
       orderNumber: order.orderNumber,
       customerName: order.customerName,
       queueNumber: queueTicket.ticketNumber,

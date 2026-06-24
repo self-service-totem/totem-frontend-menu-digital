@@ -1,0 +1,19 @@
+// Security Rules de Firebase Storage — Totem piloto con Firebase Auth.
+//
+// Modelo de acceso:
+//   - Lectura pública: cualquiera puede ver las imágenes (clientes del menú).
+//   - Escritura solo para staff autenticado (subir imágenes desde el admin).
+//   - Kill-switch global: fecha de expiración como backstop de seguridad.
+//
+// Aplicar: consola Firebase → Storage → pestaña "Rules" → pegar → Publicar.
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read:  if request.time < timestamp.date(2027, 1, 1);
+      allow write: if request.auth != null
+                   && request.time < timestamp.date(2027, 1, 1);
+    }
+  }
+}

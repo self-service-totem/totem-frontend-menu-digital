@@ -2,10 +2,31 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLabels } from '@/i18n/I18nContext';
 import { loadAttractConfig } from './attractConfig';
+import { getBrand, type Brand } from '@/lib/services/brand';
 import type { LabelKey } from '@/i18n/labels';
 import './kiosk.css';
 
 const IDLE_COUNTDOWN_S = 10;
+const BRAND_POLL_MS = 4000;
+
+/**
+ * Marca del tenant (nombre + logo) para pantallas idle del kiosk. Relee del espejo
+ * local cada pocos segundos: cuando Admin guarda un cambio, la colección `tenants`
+ * se sincroniza vía Firestore y el kiosk lo refleja sin recargar la página.
+ */
+export function useBrand(): Brand {
+  const [brand, setBrand] = useState<Brand>(getBrand);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setBrand((prev) => {
+        const next = getBrand();
+        return prev.name === next.name && prev.logoUrl === next.logoUrl ? prev : next;
+      });
+    }, BRAND_POLL_MS);
+    return () => clearInterval(id);
+  }, []);
+  return brand;
+}
 
 /**
  * Idle handling for a kiosk session. After IDLE_TIMEOUT_MS of no interaction we

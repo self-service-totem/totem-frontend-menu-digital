@@ -2,12 +2,13 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLabels } from '@/i18n/I18nContext';
 import { LanguageSelector } from '@/components/common/LanguageSelector';
-import { useKioskIdleTimeout, KioskIdleModal } from './kioskShared';
+import { useKioskIdleTimeout, KioskIdleModal, useBrand } from './kioskShared';
 
 export function KioskWelcomePage() {
   const navigate = useNavigate();
   const { t } = useLabels();
   const { warning, dismiss, goHome } = useKioskIdleTimeout();
+  const brand = useBrand();
 
   // Fresh session: drop any cart left behind by an abandoned/timed-out order
   useEffect(() => {
@@ -22,7 +23,7 @@ export function KioskWelcomePage() {
     <div className="ff-kiosk-layout ff-kiosk-welcome-layout">
       {/* Header — brand name */}
       <div className="ff-kiosk-welcome-header">
-        <span className="ff-kiosk-welcome-brand">Pertinho do Céu</span>
+        <span className="ff-kiosk-welcome-brand">{brand.name}</span>
       </div>
 
       {/* Language selector — prominent bar below header */}

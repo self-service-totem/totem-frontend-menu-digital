@@ -540,6 +540,9 @@ export type LabelKey =
   | 'adminCategories.createdToast'
   | 'adminCategories.disabledToast'
   | 'adminCategories.enabledToast'
+  // ── Image upload ──
+  | 'imageUpload.urlPlaceholder'
+  | 'imageUpload.uploadButton'
   // ── Kiosks ──
   | 'adminKiosks.title'
   | 'adminKiosks.addKiosk'
@@ -1015,7 +1018,12 @@ export type LabelKey =
   | 'login.role.cashier'
   | 'login.role.waiter'
   | 'login.role.kitchen'
-  | 'login.role.support';
+  | 'login.role.support'
+  | 'login.emailLabel'
+  | 'login.emailPlaceholder'
+  | 'login.passwordLabel'
+  | 'login.error.invalidCredentials'
+  | 'login.error.generic';
 
 type LabelMap = Record<LabelKey, string>;
 
@@ -1544,6 +1552,8 @@ const ptBR: LabelMap = {
   'adminCategories.createdToast': 'Categoria criada',
   'adminCategories.disabledToast': 'Categoria desativada',
   'adminCategories.enabledToast': 'Categoria ativada',
+  'imageUpload.urlPlaceholder': 'Cole uma URL de imagem',
+  'imageUpload.uploadButton': 'Enviar arquivo',
   'adminKiosks.title': 'Kiosks',
   'adminKiosks.addKiosk': 'Adicionar kiosk',
   'adminKiosks.searchPlaceholder': 'Buscar dispositivo...',
@@ -2019,6 +2029,11 @@ const ptBR: LabelMap = {
   'login.role.waiter': 'Garçom',
   'login.role.kitchen': 'Cozinha',
   'login.role.support': 'Suporte',
+  'login.emailLabel': 'Email',
+  'login.emailPlaceholder': 'seu@email.com',
+  'login.passwordLabel': 'Senha',
+  'login.error.invalidCredentials': 'Email ou senha incorretos.',
+  'login.error.generic': 'Erro ao fazer login. Tente novamente.',
 };
 
 const es: LabelMap = {
@@ -2546,6 +2561,8 @@ const es: LabelMap = {
   'adminCategories.createdToast': 'Categoría creada',
   'adminCategories.disabledToast': 'Categoría desactivada',
   'adminCategories.enabledToast': 'Categoría activada',
+  'imageUpload.urlPlaceholder': 'Pegar una URL de imagen',
+  'imageUpload.uploadButton': 'Subir archivo',
   'adminKiosks.title': 'Kiosks',
   'adminKiosks.addKiosk': 'Agregar kiosk',
   'adminKiosks.searchPlaceholder': 'Buscar dispositivo...',
@@ -3021,6 +3038,11 @@ const es: LabelMap = {
   'login.role.waiter': 'Mozo',
   'login.role.kitchen': 'Cocina',
   'login.role.support': 'Soporte',
+  'login.emailLabel': 'Email',
+  'login.emailPlaceholder': 'tu@email.com',
+  'login.passwordLabel': 'Contraseña',
+  'login.error.invalidCredentials': 'Email o contraseña incorrectos.',
+  'login.error.generic': 'Error al iniciar sesión. Inténtalo de nuevo.',
 };
 
 const en: LabelMap = {
@@ -3534,6 +3556,8 @@ const en: LabelMap = {
   'adminCategories.createdToast': 'Category created',
   'adminCategories.disabledToast': 'Category disabled',
   'adminCategories.enabledToast': 'Category enabled',
+  'imageUpload.urlPlaceholder': 'Paste an image URL',
+  'imageUpload.uploadButton': 'Upload file',
   'adminKiosks.title': 'Kiosks',
   'adminKiosks.addKiosk': 'Add kiosk',
   'adminKiosks.searchPlaceholder': 'Search device...',
@@ -3988,6 +4012,11 @@ const en: LabelMap = {
   'login.role.waiter': 'Waiter',
   'login.role.kitchen': 'Kitchen',
   'login.role.support': 'Support',
+  'login.emailLabel': 'Email',
+  'login.emailPlaceholder': 'your@email.com',
+  'login.passwordLabel': 'Password',
+  'login.error.invalidCredentials': 'Invalid email or password.',
+  'login.error.generic': 'Login failed. Please try again.',
 };
 
 export const labels: Record<LanguageCode, LabelMap> = {

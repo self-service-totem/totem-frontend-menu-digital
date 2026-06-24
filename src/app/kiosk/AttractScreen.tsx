@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLabels } from '@/i18n/I18nContext';
 import { loadAttractConfig } from './attractConfig';
+import { useBrand } from './kioskShared';
 
 export function AttractScreen() {
   const [fading, setFading] = useState(false);
   const navigate = useNavigate();
   const { t } = useLabels();
+  // Nombre y logo vienen del tenant (Admin → Configuración); el resto (video,
+  // slogan, timeout) sigue siendo config específica del kiosk.
   const config = loadAttractConfig();
+  const brand = useBrand();
+  const logoUrl = brand.logoUrl ?? config.logoUrl;
 
   function handleTouch() {
     if (fading) return;
@@ -42,14 +47,14 @@ export function AttractScreen() {
 
       <div className="ff-attract-overlay">
         <div className="ff-attract-brand">
-          {config.logoUrl && (
+          {logoUrl && (
             <img
-              src={config.logoUrl}
-              alt={config.restaurantName}
+              src={logoUrl}
+              alt={brand.name}
               className="ff-attract-logo"
             />
           )}
-          <div className="ff-attract-name">{config.restaurantName}</div>
+          <div className="ff-attract-name">{brand.name}</div>
           {config.slogan && (
             <div className="ff-attract-slogan">{config.slogan}</div>
           )}

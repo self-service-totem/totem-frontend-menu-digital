@@ -36,6 +36,10 @@ export const LIVE_COLLECTIONS = new Set<string>([
   'waiterCalls',
   'reservations',
   'walkIns',
+  // Config compartida: se edita en Admin (Configuración) y debe propagarse a todos
+  // los dispositivos (kiosk, caja, cocina), que corren en otros orígenes/localStorage.
+  'tenants',
+  'branches',
 ]);
 
 export function isLiveCollection(key: string): boolean {
@@ -62,7 +66,7 @@ export function initFirestoreSync(): void {
         // Guard: no pisar el seed local con un snapshot vacío para colecciones que
         // tienen datos de demo útiles. Se activa antes de que ensureFirestoreSeeded
         // las suba, o cuando Firestore genuinamente está vacío en el primer arranque.
-        const GUARD_EMPTY = new Set(['tables', 'reservations', 'walkIns']);
+        const GUARD_EMPTY = new Set(['tables', 'reservations', 'walkIns', 'tenants', 'branches']);
         if (GUARD_EMPTY.has(key) && rows.length === 0) return;
         // Escritura local-only: NO re-propaga a Firestore (evita bucles).
         setCollectionLocal(key, rows);
@@ -140,7 +144,7 @@ export async function clearLiveCollections(): Promise<void> {
 
 // Colecciones con datos de demo que deben subirse a Firestore en el primer arranque
 // y después de cada reset, para que todos los dispositivos partan del mismo estado.
-const SEED_COLLECTIONS = ['tables', 'reservations', 'walkIns'] as const;
+const SEED_COLLECTIONS = ['tables', 'reservations', 'walkIns', 'tenants', 'branches'] as const;
 
 /**
  * Siembra Firestore una sola vez: si `tables` está vacío en la nube, sube las

@@ -1,6 +1,7 @@
 import { formatCurrency as formatBRL } from '@/utils/format';
 import { elapsedMins, fmtElapsed, ageSeverity, SEVERITY_STYLE } from '@/lib/utils/useElapsed';
 import { printDemoTicket } from '@/lib/printing/demoTicket';
+import { getBrandName } from '@/lib/services/brand';
 import type { DbOrder } from '@/lib/types';
 import './cashier.css';
 
@@ -89,7 +90,7 @@ export function KioskPaidCard({ order }: { order: DbOrder & { ticketNumber?: num
         <button
           style={{ width: '100%', padding: '9px', border: '1.5px solid #bbf7d0', borderRadius: 9, background: '#fff', color: '#059669', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           onClick={() => printDemoTicket({
-            restaurantName: 'Pertinho do Céu',
+            restaurantName: getBrandName(),
             orderNumber: order.orderNumber,
             customerName: order.customerName,
             queueNumber: order.ticketNumber,

@@ -3,6 +3,8 @@
 // Se inicializa solo si VITE_USE_FIREBASE === 'true' y hay projectId configurado.
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,19 +20,26 @@ export const firebaseEnabled =
 
 let app: FirebaseApp | null = null;
 let firestore: Firestore | null = null;
+let firebaseAuth: Auth | null = null;
+let firebaseStorage: FirebaseStorage | null = null;
 
 if (firebaseEnabled) {
   try {
     app = initializeApp(firebaseConfig);
     firestore = getFirestore(app);
+    firebaseAuth = getAuth(app);
+    firebaseStorage = getStorage(app);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[firebase] init failed, falling back to localStorage-only', err);
     app = null;
     firestore = null;
+    firebaseAuth = null;
+    firebaseStorage = null;
   }
 }
 
-// db es null cuando Firebase está deshabilitado o falló la init → la app funciona
-// 100% local (solo localStorage).
+// db, auth y storageInstance son null cuando Firebase está deshabilitado o falló la init.
 export const db = firestore;
+export const auth = firebaseAuth;
+export const storageInstance = firebaseStorage;

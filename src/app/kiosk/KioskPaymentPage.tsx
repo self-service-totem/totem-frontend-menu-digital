@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { kioskService } from '@/lib/services/kioskService';
 import { branchService } from '@/lib/services/adminService';
+import { getBrandName } from '@/lib/services/brand';
 import { useNotify } from '@/lib/notifications';
 import { useLabels } from '@/i18n/I18nContext';
 import type { CartItem, QueueTicket, DbOrder, BranchPaymentMethods, PaymentMethodId } from '@/lib/types';
@@ -35,7 +36,7 @@ function KioskConfirmationScreen({
 
   const printTicket = useCallback(() => {
     printDemoTicket({
-      restaurantName: 'Pertinho do Céu',
+      restaurantName: getBrandName(),
       orderNumber: order.orderNumber,
       customerName: order.customerName,
       queueNumber: queueTicket.ticketNumber,
@@ -223,7 +224,7 @@ function KioskCashTicketScreen({
       if (fired) return;
       fired = true;
       printDemoTicket({
-        restaurantName: 'Pertinho do Céu',
+        restaurantName: getBrandName(),
         orderNumber: order.orderNumber,
         customerName: order.customerName,
         items: order.items.map((it) => ({ name: it.name, quantity: it.quantity, unitPrice: it.unitPrice })),

@@ -16,6 +16,7 @@ import {
   AdminActionMenu,
   ViewToggle,
   useSortable,
+  ImageUploadField,
 } from '@/components/admin';
 import type { AdminTableColumn, SortDir, ViewMode } from '@/components/admin';
 
@@ -325,7 +326,6 @@ export function Products() {
           {([
             [t('adminProducts.name'),        'name',        'text'],
             [t('adminProducts.price'),        'price',       'number'],
-            [t('adminProducts.imageUrl'),     'imageUrl',    'url'],
             [t('adminProducts.description'),  'description', 'text'],
           ] as const).map(([label, field, type]) => (
             <div key={field} className="ff-admin-form-row">
@@ -338,6 +338,14 @@ export function Products() {
               />
             </div>
           ))}
+          <div className="ff-admin-form-row">
+            <label className="ff-admin-form-label">{t('adminProducts.imageUrl')}</label>
+            <ImageUploadField
+              folder="products"
+              value={form.imageUrl}
+              onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+            />
+          </div>
           <div className="ff-admin-form-row">
             <label className="ff-admin-form-label">{t('adminProducts.category')}</label>
             <select
