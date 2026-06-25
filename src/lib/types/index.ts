@@ -31,6 +31,7 @@ export interface MenuContext {
   language: string;
   currency: CurrencyCode;
   serviceFeeRate: number;
+  tableValidationCode?: string;
 }
 
 // Respuesta de GET /api/tables/{tableId}/bill
@@ -239,6 +240,7 @@ export interface Branch {
   currency: string;
   paymentMethods?: BranchPaymentMethods;
   logoUrl?: string;
+  kioskPin?: string;
   createdAt: string;
   updatedAt: string;
 }

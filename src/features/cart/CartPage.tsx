@@ -28,6 +28,17 @@ export function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [codeModalOpen, setCodeModalOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState(false);
+
+  const TABLE_CODE_KEY = `ff_table_verified_${tableId}`;
+  const tableCodeRequired = Boolean(menuContext?.tableValidationCode);
+  const tableCodeVerified = () => {
+    const expected = menuContext?.tableValidationCode ?? '';
+    return localStorage.getItem(TABLE_CODE_KEY)?.toUpperCase() === expected.toUpperCase();
+  };
+
   const goBackToMenu = () => navigate(tableId ? `/menu/${tableId}` : '/menu');
 
   // Compose a human-readable note (chosen modifiers + free text) so the kitchen
@@ -73,12 +84,37 @@ export function CartPage() {
     setEditOpen(false);
   };
 
-  const handlePlaceOrder = async () => {
+  function verifyTableCode(e: FormEvent) {
+    e.preventDefault();
+    const expected = menuContext?.tableValidationCode ?? '';
+    if (codeInput.trim().toUpperCase() === expected.toUpperCase()) {
+      localStorage.setItem(TABLE_CODE_KEY, codeInput.trim().toUpperCase());
+      setCodeModalOpen(false);
+      setCodeInput('');
+      setCodeError(false);
+      void proceedWithOrder();
+    } else {
+      setCodeError(true);
+      setCodeInput('');
+    }
+  }
+
+  async function proceedWithOrder() {
     if (customer?.name?.trim()) {
       await submitOrder(customer.name.trim());
     } else {
       openEdit();
     }
+  }
+
+  const handlePlaceOrder = async () => {
+    if (tableCodeRequired && !tableCodeVerified()) {
+      setCodeInput('');
+      setCodeError(false);
+      setCodeModalOpen(true);
+      return;
+    }
+    await proceedWithOrder();
   };
 
   return (
@@ -237,6 +273,32 @@ export function CartPage() {
           <PrimaryButton type="submit">
             {t('cart.confirmName')}
           </PrimaryButton>
+        </form>
+      </Modal>
+
+      {/* Table code verification modal */}
+      <Modal
+        open={codeModalOpen}
+        onClose={() => setCodeModalOpen(false)}
+        title={t('tableCode.title')}
+        description={t('tableCode.subtitle')}
+      >
+        <form onSubmit={verifyTableCode}>
+          <TextField
+            label={t('tableCode.label')}
+            type="text"
+            inputMode="text"
+            placeholder={t('tableCode.placeholder')}
+            value={codeInput}
+            onChange={(e) => { setCodeInput(e.target.value.toUpperCase()); setCodeError(false); }}
+            autoFocus
+          />
+          {codeError && (
+            <p style={{ color: 'var(--ff-primary)', fontSize: '0.85rem', margin: '0 0 12px' }}>
+              {t('tableCode.wrong')}
+            </p>
+          )}
+          <PrimaryButton type="submit">{t('tableCode.submit')}</PrimaryButton>
         </form>
       </Modal>
     </div>

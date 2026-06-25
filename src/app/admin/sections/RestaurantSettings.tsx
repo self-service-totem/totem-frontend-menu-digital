@@ -26,6 +26,7 @@ type BranchForm = {
   serviceFeeRate: string;
   currency: string;
   paymentMethods: BranchPaymentMethods;
+  kioskPin: string;
 };
 
 function formsEqual<T extends object>(a: T, b: T) {
@@ -40,8 +41,8 @@ export function RestaurantSettings() {
   const [tenantForm, setTenantForm]           = useState<TenantForm>({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' });
   const [savedTenantForm, setSavedTenantForm] = useState<TenantForm>({ name: '', logoUrl: '', defaultLanguage: 'pt-BR' });
 
-  const [branchForm, setBranchForm]           = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL', paymentMethods: { ...DEFAULT_PAYMENT_METHODS } });
-  const [savedBranchForm, setSavedBranchForm] = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL', paymentMethods: { ...DEFAULT_PAYMENT_METHODS } });
+  const [branchForm, setBranchForm]           = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL', paymentMethods: { ...DEFAULT_PAYMENT_METHODS }, kioskPin: '' });
+  const [savedBranchForm, setSavedBranchForm] = useState<BranchForm>({ name: '', address: '', serviceType: 'TABLE_SERVICE', queueEnabled: true, queueMessage: '', serviceFeeRate: '0.1', currency: 'BRL', paymentMethods: { ...DEFAULT_PAYMENT_METHODS }, kioskPin: '' });
 
   const [saving, setSaving] = useState(false);
   const notify = useNotify();
@@ -62,6 +63,7 @@ export function RestaurantSettings() {
           serviceFeeRate: String(b.serviceFeeRate ?? 0.1),
           currency: b.currency ?? 'BRL',
           paymentMethods: { ...DEFAULT_PAYMENT_METHODS, ...(b.paymentMethods ?? {}) },
+          kioskPin: b.kioskPin ?? '',
         };
         setBranch(b); setBranchForm(bf); setSavedBranchForm(bf);
       }
@@ -286,6 +288,26 @@ export function RestaurantSettings() {
               value={branchForm.queueMessage}
               onChange={bf('queueMessage')}
               placeholder={t('adminSettings.queueMessagePlaceholder')}
+            />
+          </AdminFormRow>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title={t('adminSettings.kioskSection')}
+          description={t('adminSettings.kioskDesc')}
+        >
+          <AdminFormRow
+            label={t('adminSettings.kioskPin')}
+            hint={t('adminSettings.kioskPinDesc')}
+          >
+            <input
+              className="ff-admin-form-input"
+              type="text"
+              inputMode="numeric"
+              maxLength={8}
+              value={branchForm.kioskPin}
+              onChange={bf('kioskPin')}
+              placeholder="ej: 1234"
             />
           </AdminFormRow>
         </AdminFormSection>

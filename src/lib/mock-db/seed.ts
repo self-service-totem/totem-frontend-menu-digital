@@ -48,6 +48,7 @@ const branch: Branch = {
   serviceFeeRate: 0.1,
   currency: 'BRL',
   paymentMethods: { card: true, pix: true, mercadoPago: true, cash: true },
+  kioskPin: '1234',
   createdAt: NOW,
   updatedAt: NOW,
 };

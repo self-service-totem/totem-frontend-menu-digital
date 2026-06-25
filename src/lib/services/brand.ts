@@ -4,7 +4,7 @@
 // fresco en cada dispositivo vía onSnapshot. Centraliza el acceso para que ninguna
 // pantalla vuelva a hardcodear el nombre del restaurante.
 import { getCollection } from '@/lib/mock-db';
-import type { Tenant } from '@/lib/types';
+import type { Tenant, Branch } from '@/lib/types';
 
 const FALLBACK_BRAND_NAME = 'Pertinho do Céu';
 
@@ -23,4 +23,10 @@ export function getBrand(): Brand {
 
 export function getBrandName(): string {
   return getBrand().name;
+}
+
+/** PIN requerido para iniciar sesión del kiosk. null = sin PIN (acceso libre). */
+export function getKioskPin(): string | null {
+  const branch = getCollection<Branch>('branches')[0];
+  return branch?.kioskPin?.trim() || null;
 }

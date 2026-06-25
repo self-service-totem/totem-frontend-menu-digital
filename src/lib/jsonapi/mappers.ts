@@ -14,6 +14,7 @@ export interface MenuContextAttributes {
   language: string;
   currency: string;
   serviceFeeRate: number;
+  tableValidationCode?: string;
 }
 
 export interface BusinessAttributes {
@@ -63,6 +64,7 @@ export function mapMenuContextResponseToViewModel(
     language: attributes.language,
     currency: attributes.currency as MenuContext['currency'],
     serviceFeeRate: attributes.serviceFeeRate,
+    tableValidationCode: attributes.tableValidationCode,
   };
 }
 

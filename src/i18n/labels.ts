@@ -223,6 +223,16 @@ export type LabelKey =
   | 'kiosk.idle.continue'
   | 'kiosk.idle.restart'
   | 'kiosk.attract.cta'
+  | 'kiosk.pin.title'
+  | 'kiosk.pin.subtitle'
+  | 'kiosk.pin.submit'
+  | 'kiosk.pin.wrong'
+  | 'tableCode.title'
+  | 'tableCode.subtitle'
+  | 'tableCode.label'
+  | 'tableCode.placeholder'
+  | 'tableCode.submit'
+  | 'tableCode.wrong'
   | 'receipt.notFound'
   | 'receipt.autoUpdate'
   | 'receipt.order'
@@ -375,6 +385,10 @@ export type LabelKey =
   | 'adminSettings.queueSection'
   | 'adminSettings.queueDesc'
   | 'adminSettings.queueEnabledLabel'
+  | 'adminSettings.kioskSection'
+  | 'adminSettings.kioskDesc'
+  | 'adminSettings.kioskPin'
+  | 'adminSettings.kioskPinDesc'
   | 'adminSettings.queueDisabledLabel'
   | 'adminSettings.queueMessage'
   | 'adminSettings.queueMessageDesc'
@@ -1246,6 +1260,16 @@ const ptBR: LabelMap = {
   'kiosk.idle.continue': 'Sim, continuar',
   'kiosk.idle.restart': 'Começar de novo',
   'kiosk.attract.cta': 'Toque para começar',
+  'kiosk.pin.title': 'Acesso restrito',
+  'kiosk.pin.subtitle': 'Digite o PIN do estabelecimento para iniciar o kiosk.',
+  'kiosk.pin.submit': 'Entrar',
+  'kiosk.pin.wrong': 'PIN incorreto. Tente novamente.',
+  'tableCode.title': 'Confirme sua mesa',
+  'tableCode.subtitle': 'Digite o código impresso na sua mesa para finalizar o pedido.',
+  'tableCode.label': 'Código da mesa',
+  'tableCode.placeholder': 'Ex: AB12',
+  'tableCode.submit': 'Confirmar',
+  'tableCode.wrong': 'Código incorreto. Verifique o código na sua mesa.',
   'receipt.notFound': 'Pedido não encontrado.',
   'receipt.autoUpdate': 'Atualiza automaticamente',
   'receipt.order': 'Pedido',
@@ -1397,6 +1421,10 @@ const ptBR: LabelMap = {
   'adminSettings.queueMessage': 'Mensagem da fila',
   'adminSettings.queueMessageDesc': 'Exibida aos clientes na tela de fila do Menu Digital.',
   'adminSettings.queueMessagePlaceholder': 'ex: Acompanhe seu pedido aqui!',
+  'adminSettings.kioskSection': 'Kiosk',
+  'adminSettings.kioskDesc': 'Configuração do modo kiosk (totem de autoatendimento).',
+  'adminSettings.kioskPin': 'PIN de acesso',
+  'adminSettings.kioskPinDesc': 'PIN numérico exigido para iniciar o kiosk. Deixe em branco para acesso livre.',
   'adminSettings.saveSuccess': 'Configurações salvas com sucesso',
   'adminSettings.saveError': 'Erro ao salvar — tente novamente',
   'adminLoyalty.title': 'Fidelidade',
@@ -2255,6 +2283,16 @@ const es: LabelMap = {
   'kiosk.idle.continue': 'Sí, continuar',
   'kiosk.idle.restart': 'Empezar de nuevo',
   'kiosk.attract.cta': 'Toca para comenzar',
+  'kiosk.pin.title': 'Acceso restringido',
+  'kiosk.pin.subtitle': 'Ingresá el PIN del local para iniciar el kiosk.',
+  'kiosk.pin.submit': 'Ingresar',
+  'kiosk.pin.wrong': 'PIN incorrecto. Intentá de nuevo.',
+  'tableCode.title': 'Confirmá tu mesa',
+  'tableCode.subtitle': 'Ingresá el código impreso en tu mesa para confirmar el pedido.',
+  'tableCode.label': 'Código de mesa',
+  'tableCode.placeholder': 'Ej: AB12',
+  'tableCode.submit': 'Confirmar',
+  'tableCode.wrong': 'Código incorrecto. Verificá el código en tu mesa.',
   'receipt.notFound': 'Pedido no encontrado.',
   'receipt.autoUpdate': 'Actualiza automáticamente',
   'receipt.order': 'Pedido',
@@ -2406,6 +2444,10 @@ const es: LabelMap = {
   'adminSettings.queueMessage': 'Mensaje de la fila',
   'adminSettings.queueMessageDesc': 'Mostrado a los clientes en la pantalla de fila del Menú Digital.',
   'adminSettings.queueMessagePlaceholder': 'ej: ¡Sigue tu pedido aquí!',
+  'adminSettings.kioskSection': 'Kiosk',
+  'adminSettings.kioskDesc': 'Configuración del modo kiosk (totem de autoservicio).',
+  'adminSettings.kioskPin': 'PIN de acceso',
+  'adminSettings.kioskPinDesc': 'PIN numérico requerido para iniciar el kiosk. Dejá en blanco para acceso libre.',
   'adminSettings.saveSuccess': 'Configuración guardada con éxito',
   'adminSettings.saveError': 'Error al guardar — intenta de nuevo',
   'adminLoyalty.title': 'Fidelidad',
@@ -3253,6 +3295,16 @@ const en: LabelMap = {
   'kiosk.idle.continue': 'Yes, continue',
   'kiosk.idle.restart': 'Start over',
   'kiosk.attract.cta': 'Touch anywhere to start',
+  'kiosk.pin.title': 'Restricted access',
+  'kiosk.pin.subtitle': 'Enter the venue PIN to start the kiosk.',
+  'kiosk.pin.submit': 'Enter',
+  'kiosk.pin.wrong': 'Incorrect PIN. Please try again.',
+  'tableCode.title': 'Confirm your table',
+  'tableCode.subtitle': 'Enter the code printed on your table to place the order.',
+  'tableCode.label': 'Table code',
+  'tableCode.placeholder': 'e.g. AB12',
+  'tableCode.submit': 'Confirm',
+  'tableCode.wrong': 'Incorrect code. Check the code on your table.',
   'receipt.notFound': 'Order not found.',
   'receipt.autoUpdate': 'Auto-updating',
   'receipt.order': 'Order',
@@ -3401,6 +3453,10 @@ const en: LabelMap = {
   'adminSettings.queueMessage': 'Queue message',
   'adminSettings.queueMessageDesc': 'Shown to customers on the queue screen of Menu Digital.',
   'adminSettings.queueMessagePlaceholder': 'e.g.: Track your order here!',
+  'adminSettings.kioskSection': 'Kiosk',
+  'adminSettings.kioskDesc': 'Kiosk mode configuration (self-service totem).',
+  'adminSettings.kioskPin': 'Access PIN',
+  'adminSettings.kioskPinDesc': 'Numeric PIN required to start the kiosk. Leave blank for open access.',
   'adminSettings.saveSuccess': 'Settings saved successfully',
   'adminSettings.saveError': 'Error saving — please try again',
   'adminLoyalty.title': 'Loyalty',

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLabels } from '@/i18n/I18nContext';
 import { loadAttractConfig } from './attractConfig';
-import { useBrand } from './kioskShared';
+import { useBrand, useKioskPin } from './kioskShared';
 
 export function AttractScreen() {
   const [fading, setFading] = useState(false);
@@ -13,11 +13,53 @@ export function AttractScreen() {
   const config = loadAttractConfig();
   const brand = useBrand();
   const logoUrl = brand.logoUrl ?? config.logoUrl;
+  const { pin, locked, unlock } = useKioskPin();
+
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+
+  function handlePinSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (pinInput === pin) {
+      unlock();
+      setPinInput('');
+      setPinError(false);
+    } else {
+      setPinError(true);
+      setPinInput('');
+    }
+  }
 
   function handleTouch() {
     if (fading) return;
     setFading(true);
     setTimeout(() => navigate('/kiosk/start'), 420);
+  }
+
+  if (locked) {
+    return (
+      <div className="ff-kiosk-pin-screen">
+        <div className="ff-kiosk-pin-card">
+          {logoUrl && <img src={logoUrl} alt={brand.name} className="ff-kiosk-pin-logo" />}
+          <div className="ff-kiosk-pin-title">{t('kiosk.pin.title')}</div>
+          <div className="ff-kiosk-pin-subtitle">{t('kiosk.pin.subtitle')}</div>
+          <form onSubmit={handlePinSubmit} className="ff-kiosk-pin-form">
+            <input
+              className={`ff-kiosk-pin-input${pinError ? ' error' : ''}`}
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              value={pinInput}
+              autoFocus
+              placeholder="••••"
+              onChange={(e) => { setPinInput(e.target.value); setPinError(false); }}
+            />
+            {pinError && <div className="ff-kiosk-pin-error">{t('kiosk.pin.wrong')}</div>}
+            <button type="submit" className="ff-kiosk-pin-submit">{t('kiosk.pin.submit')}</button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -38,6 +38,7 @@ export const menuContextService = {
         language,
         currency,
         serviceFeeRate,
+        tableValidationCode: table?.validationCode,
       },
       relationships: {
         business: { data: resourceId('business', businessId) },

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLabels } from '@/i18n/I18nContext';
 import { loadAttractConfig } from './attractConfig';
-import { getBrand, type Brand } from '@/lib/services/brand';
+import { getBrand, getKioskPin, type Brand } from '@/lib/services/brand';
 import type { LabelKey } from '@/i18n/labels';
 import './kiosk.css';
 
@@ -26,6 +26,28 @@ export function useBrand(): Brand {
     return () => clearInterval(id);
   }, []);
   return brand;
+}
+
+const KIOSK_UNLOCKED_KEY = 'ff_kiosk_unlocked';
+
+export function useKioskPin() {
+  const [pin, setPin] = useState<string | null>(getKioskPin);
+  const [unlocked, setUnlocked] = useState(
+    () => localStorage.getItem(KIOSK_UNLOCKED_KEY) === 'true',
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => setPin(getKioskPin()), BRAND_POLL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  function unlock() {
+    localStorage.setItem(KIOSK_UNLOCKED_KEY, 'true');
+    setUnlocked(true);
+  }
+
+  const locked = Boolean(pin) && !unlocked;
+  return { pin, locked, unlock };
 }
 
 /**
