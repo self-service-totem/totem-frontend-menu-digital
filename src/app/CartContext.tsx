@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { CartItem, Product } from '@/types';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { CartItem, CartModifier, Product } from '@/lib/types';
 
 interface AddToCartInput {
   product: Product;
   quantity: number;
   note?: string;
+  modifiers?: CartModifier[];
 }
 
 interface CartContextValue {
@@ -19,15 +20,42 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-const buildLineId = (productId: string, note?: string) =>
-  note?.trim() ? `${productId}::${note.trim()}` : productId;
+const STORAGE_KEY = 'ffresco.cart';
+
+// A line is unique by product + chosen modifiers + free-text note, so the same
+// dish with different customizations stays as separate rows.
+const buildLineId = (productId: string, modifiers?: CartModifier[], note?: string) => {
+  const mods = (modifiers ?? []).map((m) => m.optionId).sort().join(',');
+  const trimmedNote = note?.trim() ?? '';
+  return [productId, mods, trimmedNote].filter(Boolean).join('::');
+};
+
+function loadCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as CartItem[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(loadCart);
 
-  const add = useCallback(({ product, quantity, note }: AddToCartInput) => {
+  // Persist on every change so a refresh or tab-switch never loses the cart.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      /* storage indisponível */
+    }
+  }, [items]);
+
+  const add = useCallback(({ product, quantity, note, modifiers }: AddToCartInput) => {
     if (quantity <= 0) return;
-    const id = buildLineId(product.id, note);
+    const modifierPrice = (modifiers ?? []).reduce((s, m) => s + m.priceModifier, 0);
+    const id = buildLineId(product.id, modifiers, note);
     setItems((prev) => {
       const existing = prev.find((i) => i.id === id);
       if (existing) {
@@ -40,9 +68,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         productId: product.id,
         name: product.name,
         imageUrl: product.imageUrl,
-        unitPrice: product.price,
+        basePrice: product.price,
+        unitPrice: product.price + modifierPrice,
         quantity,
         note: note?.trim() ? note.trim() : undefined,
+        modifiers: modifiers && modifiers.length > 0 ? modifiers : undefined,
       };
       return [...prev, newItem];
     });

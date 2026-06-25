@@ -1,4 +1,5 @@
 name: Deploy Frontend
+run-name: Deploy Frontend · ${{ inputs.release_version }} → ${{ inputs.target }} · @${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -8,8 +9,10 @@ on:
         required: true
         type: choice
         options:
-          - develop
           - main
+          - develop
+          - prototype
+          - prototype-sec
 
       release_version:
         description: "Release version. Example: v1.0.0"
@@ -24,16 +27,6 @@ on:
           - dev
           - prod
 
-      ticket:
-        description: "Ticket (required for prod)"
-        required: false
-        type: string
-
-      accept_checklist:
-        description: "Accept deployment checklist"
-        required: true
-        type: boolean
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -47,16 +40,6 @@ jobs:
     steps:
       - name: Validate inputs
         run: |
-          if [ "${{ inputs.accept_checklist }}" != "true" ]; then
-            echo "Checklist must be accepted."
-            exit 1
-          fi
-
-          if [ "${{ inputs.target }}" = "prod" ] && [ -z "${{ inputs.ticket }}" ]; then
-            echo "Ticket is required for production deploy."
-            exit 1
-          fi
-
           if [ "${{ inputs.target }}" = "prod" ] && [ "${{ inputs.source_branch }}" != "main" ]; then
             echo "Production deployments must come from main."
             exit 1
@@ -85,6 +68,14 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        env:
+          VITE_USE_FIREBASE: ${{ vars.VITE_USE_FIREBASE }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

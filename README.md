@@ -95,3 +95,135 @@ Cuando exista el backend:
 ## Git
 para comitear
 gh auth logout
+---
+
+## Prototype Integration — All App Areas
+
+The prototype now contains **7 integrated app areas** sharing a single
+localStorage-backed mock persistence layer (`src/lib/mock-db`).
+
+### Local run
+
+```bash
+npm install
+npm run dev    # http://localhost:5173
+```
+
+Open `http://localhost:5173/` to reach the **Hub** page. From there navigate
+to any area.
+
+### Architecture
+
+```
+src/lib/mock-db/     ← shared localStorage store (source of truth)
+src/lib/types/       ← extended domain types (order/payment/table statuses)
+src/lib/services/    ← kitchenService, cashierService, waiterStaffService,
+                        kioskService, queueService, adminService
+src/lib/notifications/ ← centralized toast/notification hook
+src/app/kitchen/     ← Kitchen Screen
+src/app/admin/       ← Admin / Backoffice
+src/app/kiosk/       ← Kiosk / Self-Service Totem
+src/app/queue-display/ ← Queue Display (TV)
+src/app/waiter-staff/  ← Waiter / Floor Staff
+src/app/cashier/     ← Cashier / Billing
+src/app/hub/         ← Prototype navigation hub
+```
+
+### Table lifecycle
+
+```
+EMPTY → ORDER_IN_PROGRESS → WAITING_FOR_KITCHEN → READY_TO_SERVE
+     → WAITING_FOR_PAYMENT → CLOSED → EMPTY (reset)
+```
+
+### Order lifecycle
+
+```
+CREATED → SENT_TO_KITCHEN → PREPARING → READY → DELIVERED → CLOSED
+```
+
+### Payment lifecycle
+
+```
+UNPAID → PARTIALLY_PAID → PAID
+```
+
+---
+
+## Demo / Integration Test Script
+
+Follow these steps in order, all in the same browser tab (shared mock-db via localStorage).
+
+**1. Create a product in Admin**
+- Go to `/admin/products`
+- Click "Novo produto"
+- Fill in name, price, image URL, select category
+- Save → product is now available in the mock-db
+
+**2. See the product in Digital Menu**
+- Go to `/menu/branch-1/table/140`
+- Scroll or search — the new product appears (reads from mock-db)
+- Prices and availability reflect Admin data
+
+**3. Create an order from Digital Menu**
+- Add 1–2 products to cart
+- Go to `/cart`, enter name, tap "Confirmar pedido"
+- Table 140 → status becomes `ORDER_IN_PROGRESS`
+- Order is persisted to mock-db
+
+**4. See the order in Kitchen**
+- Go to `/kitchen/orders`
+- Order appears in the **Novos** column with items and table number
+- Tap "Iniciar preparo" → table moves to `WAITING_FOR_KITCHEN`
+
+**5. Move order to READY / DELIVERED**
+- Tap "Marcar pronto" → table becomes `READY_TO_SERVE`
+  - If a QueueTicket exists it moves to `CALLED` → visible in Queue Display
+- Tap "Marcar entregue" → table becomes `WAITING_FOR_PAYMENT`
+
+**6. Request bill from Digital Menu**
+- Return to `/menu/branch-1/table/140` → navigate to "Conta" (close-account)
+- Tap "Pedir conta" → a pending Payment is created in mock-db
+- Table status → `WAITING_FOR_PAYMENT`
+- Cashier screen now shows this table
+
+**7. Pay partially in Cashier**
+- Go to `/cashier/orders` or `/cashier` (tables tab)
+- Find the pending payment for table 140
+- Click "Receber" → choose "Valor parcial" → enter 50
+- Choose payment method → confirm
+- Payment status → `PARTIALLY_PAID`, remaining balance shown
+
+**8. Pay remaining amount**
+- Click "Receber" again on the same payment
+- Choose "Total restante" → confirm
+- Payment status → `PAID`
+- Order status → `CLOSED`
+- Table status → `CLOSED`
+
+**9. Verify table closes**
+- Go to `/waiter-staff/tables`
+- Table 140 shows status **Fechada**
+- Go to `/admin/orders` → order shows `paymentStatus: PAID`
+
+**10. Reset table**
+- Return to `/cashier` (tables tab)
+- Click "Liberar mesa" on the closed table
+- Table status → `EMPTY`
+- Ready for next customer
+
+---
+
+### Additional integration flows
+
+| Action | Source | Effect |
+|---|---|---|
+| Admin creates/edits product | `/admin/products` | Visible immediately in Menu + Kiosk |
+| Admin changes category | `/admin/categories` | Visible in Menu + Kiosk |
+| Kiosk order | `/kiosk` | Creates Order + KitchenTicket + QueueTicket |
+| Kitchen → READY | `/kitchen/orders` | QueueTicket → CALLED; Queue Display highlights it |
+| Kitchen → DELIVERED | `/kitchen/orders` | QueueTicket → COMPLETED; removed from Queue Display |
+| Customer calls waiter | Menu → Garçom tab | WaiterCall appears in `/waiter-staff` |
+| Waiter resolves call | `/waiter-staff` | Call disappears from pending list |
+| Waiter requests bill | `/waiter-staff` | Payment appears in `/cashier` |
+| Cashier generates receipt | `/cashier` | Receipt stored; printable modal opens |

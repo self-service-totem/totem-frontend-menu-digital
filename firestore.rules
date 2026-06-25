@@ -1,0 +1,105 @@
+// Security Rules de Firestore — Totem piloto con Firebase Auth.
+//
+// Modelo de acceso:
+//   - staffUsers/{uid}: solo el propio usuario autenticado puede leer su perfil.
+//     Solo admins crean/editan via consola Firebase (no hay write desde la app).
+//   - Colecciones operativas (orders, tables, etc.): requieren request.auth != null.
+//     Cualquier usuario autenticado puede leer y escribir (todos son staff).
+//   - Menú público (products, categories, business): solo lectura, sin auth.
+//   - Kill-switch global: fecha de expiración como backstop de seguridad.
+//
+// Aplicar: consola Firebase → Firestore → pestaña "Rules" → pegar → Publicar.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Kill-switch global ──────────────────────────────────────────────────
+    function notExpired() {
+      return request.time < timestamp.date(2027, 1, 1);
+    }
+
+    function isAuthenticated() {
+      return request.auth != null && notExpired();
+    }
+
+    // ── Perfil del staff ────────────────────────────────────────────────────
+    // Solo el propio usuario puede leer su perfil. Se provisiona manualmente
+    // desde la consola Firebase; nadie escribe desde la app.
+    match /staffUsers/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ── Menú público (catálogo estático) ───────────────────────────────────
+    // Los comensales leen el menú sin login. Nadie escribe desde la app.
+    match /products/{id} {
+      allow read: if notExpired();
+      allow write: if false;
+    }
+    match /categories/{id} {
+      allow read: if notExpired();
+      allow write: if false;
+    }
+    match /business/{id} {
+      allow read: if notExpired();
+      allow write: if false;
+    }
+    match /tenants/{id} {
+      allow read: if notExpired();
+      allow write: if isAuthenticated();
+    }
+    match /branches/{id} {
+      allow read: if notExpired();
+      allow write: if isAuthenticated();
+    }
+
+    // ── Flujo del comensal (sin auth) ──────────────────────────────────────
+    // El comensal puede crear pedidos y llamar al mozo sin tener cuenta.
+    match /orders/{id} {
+      allow create: if notExpired();
+      allow read, update: if isAuthenticated() || notExpired();
+      allow delete: if false;
+    }
+    match /waiterCalls/{id} {
+      allow create: if notExpired();
+      allow read, update, delete: if isAuthenticated();
+    }
+    match /queueTickets/{id} {
+      allow read: if notExpired();
+      allow create: if notExpired();
+      allow update, delete: if isAuthenticated();
+    }
+
+    // ── Operaciones de staff (requieren auth) ──────────────────────────────
+    match /kitchenTickets/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /tables/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /payments/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /receipts/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /invoices/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /kioskAlerts/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /reservations/{id} {
+      allow read, write: if isAuthenticated();
+    }
+    match /walkIns/{id} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ── Deny-all por defecto ───────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -18,6 +18,7 @@ export function AccountTabs({ active, onChange }: AccountTabsProps) {
         className={`ff-tab ${active === 'mesa' ? 'ff-tab--active' : ''}`}
         onClick={() => onChange('mesa')}
       >
+        <i className="bi bi-people" />
         {t('bill.tabTable')}
       </button>
       <button
@@ -27,6 +28,7 @@ export function AccountTabs({ active, onChange }: AccountTabsProps) {
         className={`ff-tab ${active === 'individual' ? 'ff-tab--active' : ''}`}
         onClick={() => onChange('individual')}
       >
+        <i className="bi bi-person" />
         {t('bill.tabIndividual')}
       </button>
     </div>

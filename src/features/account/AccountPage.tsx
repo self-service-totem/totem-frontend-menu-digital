@@ -1,101 +1,113 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Order } from '@/types';
-import { orderService } from '@/services';
+import type { Order } from '@/lib/types';
+import type { LoyaltyCard } from '@/lib/types';
+import { orderService } from '@/lib/services';
+import { loyaltyService } from '@/lib/services/loyaltyService';
 import { useSession } from '@/app/SessionContext';
+import { useLabels } from '@/i18n/I18nContext';
+import { STAMPS_PER_REWARD } from '@/lib/types';
 import { TopBar } from '@/components/layout/TopBar';
 import { SecondaryButton } from '@/components/common/SecondaryButton';
-import { formatMoney } from '@/utils/format';
+import { OrderHistoryCard } from '@/components/account/OrderHistoryCard';
 
 export function AccountPage() {
   const navigate = useNavigate();
-  const { customer } = useSession();
+  const { customer, menuContext } = useSession();
+  const { t } = useLabels();
+  const currency = menuContext?.currency ?? 'BRL';
+
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loyaltyCard, setLoyaltyCard] = useState<LoyaltyCard | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    orderService.listMyOrders().then(setOrders);
-  }, []);
+    setLoading(true);
+    orderService
+      .listMyOrders(customer?.name)
+      .then(setOrders)
+      .finally(() => setLoading(false));
+    if (customer?.phone) loyaltyService.getCard(customer.phone).then(setLoyaltyCard);
+  }, [customer?.name, customer?.phone]);
 
   return (
     <div className="ff-page">
-      <TopBar title="Minha conta" />
+      <TopBar title={t('account.title')} />
 
+      {/* Profile card */}
       <section className="ff-section">
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid var(--ff-border)',
-            borderRadius: 'var(--ff-radius-md)',
-            padding: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-          }}
-        >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              background: 'var(--ff-primary-soft)',
-              color: 'var(--ff-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.4rem',
-              fontWeight: 700,
-              flex: '0 0 auto',
-            }}
-          >
-            {(customer?.name ?? '?').charAt(0)}
+        <div className="ff-account-profile">
+          <div className="ff-account-profile__avatar">
+            {(customer?.name ?? '?').charAt(0).toUpperCase()}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>
-              {customer?.name ?? '—'}
-            </div>
-            <div
-              style={{
-                color: 'var(--ff-text-muted)',
-                fontSize: '0.85rem',
-              }}
-            >
-              {customer?.phone ?? '—'}
-            </div>
+          <div className="ff-account-profile__info">
+            <div className="ff-account-profile__name">{customer?.name ?? '—'}</div>
+            <div className="ff-account-profile__phone">{customer?.phone ?? '—'}</div>
           </div>
         </div>
       </section>
 
-      <section className="ff-section">
-        <h2 className="ff-section-title ff-section-title--lg">Histórico de pedidos</h2>
-      </section>
-
-      {orders.length === 0 ? (
-        <div className="ff-empty">
-          <i className="bi bi-receipt" />
-          <p>Nenhum pedido ainda.</p>
-        </div>
-      ) : (
-        orders.map((o) => (
-          <article key={o.id} className="ff-row">
-            <div>
-              <div className="ff-row__main">Pedido {o.orderNumber}</div>
-              <div className="ff-row__sub">
-                {o.items.length} item(s) • {new Date(o.createdAt).toLocaleString('pt-BR')}
-              </div>
+      {/* Loyalty stamp card */}
+      {loyaltyCard && (
+        <section className="ff-section">
+          <div className="ff-account-loyalty">
+            <div className="ff-account-loyalty__head">
+              <span className="ff-account-loyalty__title">
+                <i className="bi bi-star-fill" aria-hidden /> {t('account.loyaltyTitle')}
+              </span>
+              <span className="ff-account-loyalty__count">
+                {t('account.stamps', { current: loyaltyCard.stamps, total: STAMPS_PER_REWARD })}
+              </span>
             </div>
-            <span style={{ fontWeight: 700 }}>{formatMoney(o.total)}</span>
-          </article>
-        ))
+            <div className="ff-stamp-grid">
+              {Array.from({ length: STAMPS_PER_REWARD }).map((_, i) => (
+                <div key={i} className={`ff-stamp ${i < loyaltyCard.stamps ? 'earned' : ''}`}>
+                  {i < loyaltyCard.stamps ? '⭐' : '○'}
+                </div>
+              ))}
+            </div>
+            <div className="ff-account-loyalty__note">
+              {loyaltyCard.stamps >= STAMPS_PER_REWARD
+                ? t('account.rewardEarned')
+                : t('account.stampsLeft', { n: STAMPS_PER_REWARD - loyaltyCard.stamps })}
+            </div>
+          </div>
+        </section>
       )}
 
+      {/* Order history */}
+      <section className="ff-section">
+        <h2 className="ff-section-title ff-section-title--lg">{t('account.ordersTitle')}</h2>
+      </section>
+
+      <div className="ff-account-orders">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="ff-order-card ff-order-card--skeleton">
+              <div className="ff-skel ff-skel__pill ff-skel__pill--lg" />
+              <div className="ff-skel ff-skel__pill ff-skel__pill--md" />
+              <div className="ff-skel ff-skel__pill ff-skel__pill--sm" />
+            </div>
+          ))
+        ) : orders.length === 0 ? (
+          <div className="ff-empty">
+            <i className="bi bi-receipt" />
+            <p>{t('account.noOrders')}</p>
+          </div>
+        ) : (
+          orders.map((o) => <OrderHistoryCard key={o.id} order={o} currency={currency} />)
+        )}
+      </div>
+
+      {/* Quick actions */}
       <section className="ff-section" style={{ marginTop: 16 }}>
-        <h2 className="ff-section-title">Ações</h2>
+        <h2 className="ff-section-title">{t('account.actionsTitle')}</h2>
         <div className="ff-stack">
           <SecondaryButton onClick={() => navigate('/close-account')}>
-            <i className="bi bi-receipt" /> Fechar conta
+            <i className="bi bi-receipt" /> {t('account.closeBill')}
           </SecondaryButton>
           <SecondaryButton onClick={() => navigate('/cashback')}>
-            <i className="bi bi-piggy-bank" /> Meu cashback
+            <i className="bi bi-piggy-bank" /> {t('account.myCashback')}
           </SecondaryButton>
         </div>
       </section>

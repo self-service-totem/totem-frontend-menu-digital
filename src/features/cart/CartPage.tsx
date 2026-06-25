@@ -3,62 +3,65 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/app/CartContext';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
-import { TopBar } from '@/components/layout/TopBar';
-import { CartItemRow } from '@/components/cart/CartItemRow';
-import { PrimaryButton } from '@/components/common/PrimaryButton';
-import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { EmptyState } from '@/components/common/EmptyState';
-import { OrderSummary } from '@/components/account/OrderSummary';
+import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { Modal } from '@/components/common/Modal';
 import { TextField } from '@/components/common/TextField';
-import { orderService } from '@/services';
+import { OrderSummary } from '@/components/account/OrderSummary';
+import { formatMoney } from '@/utils/format';
+import { orderService } from '@/lib/services';
 
 export function CartPage() {
   const navigate = useNavigate();
   const { items, subtotal, setQuantity, remove, clear } = useCart();
-  const {
-    customer,
-    menuContext,
-    tableId,
-    setCustomerName,
-    setCustomerPhone,
-  } = useSession();
+  const { customer, tableId, menuContext, setCustomerName, setCustomerPhone } = useSession();
   const { t } = useLabels();
 
-  const [editingName, setEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(customer?.name ?? '');
-  const [identifyOpen, setIdentifyOpen] = useState(false);
-  const [identName, setIdentName] = useState(customer?.name ?? '');
-  const [identPhone, setIdentPhone] = useState(customer?.phone ?? '');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const currency = menuContext?.currency ?? 'BRL';
   const serviceFeeRate = menuContext?.serviceFeeRate ?? 0.1;
   const serviceFee = +(subtotal * serviceFeeRate).toFixed(2);
   const total = +(subtotal + serviceFee).toFixed(2);
 
-  const goBackToMenu = () =>
-    navigate(tableId ? `/menu/${tableId}` : '/menu');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [codeModalOpen, setCodeModalOpen] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState(false);
+
+  const TABLE_CODE_KEY = `ff_table_verified_${tableId}`;
+  const tableCodeRequired = Boolean(menuContext?.tableValidationCode);
+  const tableCodeVerified = () => {
+    const expected = menuContext?.tableValidationCode ?? '';
+    return localStorage.getItem(TABLE_CODE_KEY)?.toUpperCase() === expected.toUpperCase();
+  };
+
+  const goBackToMenu = () => navigate(tableId ? `/menu/${tableId}` : '/menu');
+
+  // Compose a human-readable note (chosen modifiers + free text) so the kitchen
+  // and bill keep the customization even though modifiers are stored structured.
+  const composeOrderNote = (it: (typeof items)[number]) => {
+    const mods = (it.modifiers ?? []).map((m) => m.optionName).join(', ');
+    return [mods, it.note].filter(Boolean).join(' | ') || undefined;
+  };
 
   const submitOrder = async (customerName: string) => {
     if (!tableId || items.length === 0) return;
     setSubmitting(true);
     setError(null);
     try {
-      await orderService.placeOrder(
+      const order = await orderService.placeOrder(
         tableId,
-        {
-          customerName,
-          items: items.map((it) => ({
-            productId: it.productId,
-            quantity: it.quantity,
-            notes: it.note,
-          })),
-        },
+        { customerName, items: items.map((it) => ({ productId: it.productId, quantity: it.quantity, notes: composeOrderNote(it) })) },
         items,
       );
       clear();
-      navigate(tableId ? `/menu/${tableId}` : '/menu');
+      navigate('/order-confirmation', {
+        state: { orderNumber: order.orderNumber, total: order.total, customerName, itemCount: items.reduce((s, i) => s + i.quantity, 0) },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'error');
     } finally {
@@ -66,44 +69,64 @@ export function CartPage() {
     }
   };
 
-  const handlePlaceOrder = async () => {
+  const openEdit = () => {
+    setEditName(customer?.name ?? '');
+    setEditPhone(customer?.phone ?? '');
+    setError(null);
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editName.trim()) { setError(t('common.required')); return; }
+    setCustomerName(editName.trim());
+    if (editPhone.trim()) setCustomerPhone(editPhone.trim());
+    setEditOpen(false);
+  };
+
+  function verifyTableCode(e: FormEvent) {
+    e.preventDefault();
+    const expected = menuContext?.tableValidationCode ?? '';
+    if (codeInput.trim().toUpperCase() === expected.toUpperCase()) {
+      localStorage.setItem(TABLE_CODE_KEY, codeInput.trim().toUpperCase());
+      setCodeModalOpen(false);
+      setCodeInput('');
+      setCodeError(false);
+      void proceedWithOrder();
+    } else {
+      setCodeError(true);
+      setCodeInput('');
+    }
+  }
+
+  async function proceedWithOrder() {
     if (customer?.name?.trim()) {
       await submitOrder(customer.name.trim());
+    } else {
+      openEdit();
+    }
+  }
+
+  const handlePlaceOrder = async () => {
+    if (tableCodeRequired && !tableCodeVerified()) {
+      setCodeInput('');
+      setCodeError(false);
+      setCodeModalOpen(true);
       return;
     }
-    setIdentName('');
-    setIdentPhone(customer?.phone ?? '');
-    setError(null);
-    setIdentifyOpen(true);
-  };
-
-  const handleIdentifySubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!identName.trim()) {
-      setError(t('common.required'));
-      return;
-    }
-    setCustomerName(identName.trim());
-    if (identPhone.trim()) setCustomerPhone(identPhone.trim());
-    setIdentifyOpen(false);
-    await submitOrder(identName.trim());
-  };
-
-  const saveName = () => {
-    if (draftName.trim()) setCustomerName(draftName.trim());
-    setEditingName(false);
+    await proceedWithOrder();
   };
 
   return (
+    // Use ff-page (with nav padding) so BottomNav doesn't hide content
     <div className="ff-page">
-      <TopBar
-        title={t('cart.title')}
-        rightSlot={
-          <button type="button" className="ff-link" onClick={goBackToMenu}>
-            {t('cart.continue')}
-          </button>
-        }
-      />
+      {/* Header */}
+      <div className="ff-cart-header">
+        <button type="button" className="ff-cart-header__back" onClick={goBackToMenu}>
+          <i className="bi bi-chevron-left" /> {t('cart.continue')}
+        </button>
+        <h1 className="ff-cart-header__title">{t('cart.title')}</h1>
+      </div>
 
       {items.length === 0 ? (
         <EmptyState
@@ -114,103 +137,124 @@ export function CartPage() {
         />
       ) : (
         <>
-          <div className="ff-customer-card">
-            <div className="ff-customer-card__row">
-              <span className="ff-customer-card__label">{t('cart.phone')}</span>
-              <span className="ff-customer-card__value">{customer?.phone || '—'}</span>
+          {/* Customer info — display labels with edit button (like reference) */}
+          <div className="ff-cart-customer">
+            <div className="ff-cart-customer__row">
+              <i className="bi bi-telephone" aria-hidden />
+              <span className="ff-cart-customer__val">
+                {customer?.phone || t('waiter.phonePlaceholder')}
+              </span>
             </div>
-            <div className="ff-customer-card__row" style={{ marginTop: 8 }}>
-              <span className="ff-customer-card__label">{t('cart.name')}</span>
-              {editingName ? (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input
-                    className="ff-search__input"
-                    style={{
-                      border: '1px solid var(--ff-border)',
-                      borderRadius: 8,
-                      padding: '4px 8px',
-                    }}
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                  />
-                  <button type="button" className="ff-link" onClick={saveName}>
-                    OK
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span className="ff-customer-card__value">
-                    {customer?.name || t('cart.namePlaceholder')}
+            <div className="ff-cart-customer__row">
+              <i className="bi bi-person" aria-hidden />
+              <span className="ff-cart-customer__val ff-cart-customer__val--name">
+                {customer?.name?.toUpperCase() || t('cart.namePlaceholder').toUpperCase()}
+              </span>
+              <button type="button" className="ff-cart-customer__edit" onClick={openEdit}>
+                {t('cart.changeName')}
+              </button>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="ff-cart-items">
+            <h2 className="ff-cart-items__title">{t('cart.items')}</h2>
+            {items.map((it) => (
+              <div key={it.id} className="ff-cart-row">
+                <img className="ff-cart-row__img" src={it.imageUrl} alt={it.name} loading="lazy" />
+                <div className="ff-cart-row__body">
+                  <span className="ff-cart-row__name">{it.name}</span>
+                  {it.modifiers && it.modifiers.length > 0 && (
+                    <span className="ff-cart-row__mods">
+                      {it.modifiers.map((m) => m.optionName).join(', ')}
+                    </span>
+                  )}
+                  {it.note && <span className="ff-cart-row__note">{it.note}</span>}
+                  <span className="ff-cart-row__price">
+                    {formatMoney(it.unitPrice * it.quantity, currency)}
+                    {it.quantity > 1 && (
+                      <span className="ff-cart-row__unit">
+                        {' '}· {formatMoney(it.unitPrice, currency)} {t('cart.each')}
+                      </span>
+                    )}
                   </span>
+                </div>
+                <div className="ff-cart-row__controls">
                   <button
                     type="button"
-                    className="ff-link"
-                    onClick={() => {
-                      setDraftName(customer?.name ?? '');
-                      setEditingName(true);
-                    }}
+                    className="ff-cart-ctrl"
+                    onClick={() => it.quantity > 1 ? setQuantity(it.id, it.quantity - 1) : remove(it.id)}
+                    aria-label={t('cart.decrease')}
                   >
-                    {t('cart.changeName')}
+                    <i className="bi bi-dash-circle-fill" />
+                  </button>
+                  <span className="ff-cart-ctrl__qty">{it.quantity}</span>
+                  <button
+                    type="button"
+                    className="ff-cart-ctrl"
+                    onClick={() => setQuantity(it.id, it.quantity + 1)}
+                    aria-label={t('cart.increase')}
+                  >
+                    <i className="bi bi-plus-circle-fill" />
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-cart-ctrl ff-cart-ctrl--trash"
+                    onClick={() => remove(it.id)}
+                    aria-label={t('cart.removeItem')}
+                  >
+                    <i className="bi bi-trash-fill" />
                   </button>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="ff-cart-list">
-            {items.map((it) => (
-              <CartItemRow
-                key={it.id}
-                item={it}
-                onQuantityChange={setQuantity}
-                onRemove={remove}
-              />
+              </div>
             ))}
-          </div>
 
-          <OrderSummary subtotal={subtotal} serviceFee={serviceFee} total={total} />
-
-          <div style={{ padding: '0 16px 12px' }}>
-            <SecondaryButton onClick={goBackToMenu}>
-              <i className="bi bi-plus-lg" /> {t('cart.addMore')}
-            </SecondaryButton>
+            {/* Price breakdown */}
+            <OrderSummary
+              subtotal={subtotal}
+              serviceFee={serviceFee}
+              total={total}
+              currency={currency}
+              serviceFeeLabel={t('summary.serviceFee')}
+            />
           </div>
 
           {error && (
-            <p
-              style={{
-                color: 'var(--ff-primary)',
-                fontSize: '0.85rem',
-                margin: '0 16px 12px',
-                textAlign: 'center',
-              }}
-            >
+            <p style={{ color: 'var(--ff-primary)', fontSize: '0.85rem', margin: '0 16px 12px', textAlign: 'center' }}>
               {error}
             </p>
           )}
 
-          <div className="ff-sticky-cta">
-            <PrimaryButton onClick={handlePlaceOrder} disabled={submitting}>
-              {submitting ? t('cart.placingOrder') : t('cart.placeOrder')}
-            </PrimaryButton>
+          {/* CTA — sits above BottomNav */}
+          <div className="ff-cart-cta">
+            <button
+              type="button"
+              className="ff-cart-cta__btn"
+              onClick={handlePlaceOrder}
+              disabled={submitting}
+            >
+              <span>{submitting ? t('cart.placingOrder') : t('cart.placeOrder')}</span>
+              {!submitting && <span className="ff-cart-cta__total">{formatMoney(total, currency)}</span>}
+            </button>
           </div>
         </>
       )}
 
+      {/* Edit name/phone modal */}
       <Modal
-        open={identifyOpen}
-        onClose={() => setIdentifyOpen(false)}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
         title={t('cart.namePromptTitle')}
         description={t('cart.namePromptDesc')}
       >
-        <form onSubmit={handleIdentifySubmit}>
+        <form onSubmit={handleEditSubmit}>
           <TextField
             label={t('cart.name')}
             required
             type="text"
             placeholder={t('cart.namePlaceholder')}
-            value={identName}
-            onChange={(e) => setIdentName(e.target.value)}
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
             autoFocus
           />
           <TextField
@@ -218,17 +262,43 @@ export function CartPage() {
             type="tel"
             inputMode="tel"
             placeholder={t('waiter.phonePlaceholder')}
-            value={identPhone}
-            onChange={(e) => setIdentPhone(e.target.value)}
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
           />
           {error && (
             <p style={{ color: 'var(--ff-primary)', fontSize: '0.85rem', margin: '0 0 12px' }}>
               {error}
             </p>
           )}
-          <PrimaryButton type="submit" disabled={submitting}>
-            {submitting ? t('cart.placingOrder') : t('cart.confirmName')}
+          <PrimaryButton type="submit">
+            {t('cart.confirmName')}
           </PrimaryButton>
+        </form>
+      </Modal>
+
+      {/* Table code verification modal */}
+      <Modal
+        open={codeModalOpen}
+        onClose={() => setCodeModalOpen(false)}
+        title={t('tableCode.title')}
+        description={t('tableCode.subtitle')}
+      >
+        <form onSubmit={verifyTableCode}>
+          <TextField
+            label={t('tableCode.label')}
+            type="text"
+            inputMode="text"
+            placeholder={t('tableCode.placeholder')}
+            value={codeInput}
+            onChange={(e) => { setCodeInput(e.target.value.toUpperCase()); setCodeError(false); }}
+            autoFocus
+          />
+          {codeError && (
+            <p style={{ color: 'var(--ff-primary)', fontSize: '0.85rem', margin: '0 0 12px' }}>
+              {t('tableCode.wrong')}
+            </p>
+          )}
+          <PrimaryButton type="submit">{t('tableCode.submit')}</PrimaryButton>
         </form>
       </Modal>
     </div>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Kiosk Menu — Premium Redesign</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS  —  una sola fuente de verdad
+   Escala fluida: --k es la unidad base. Todo en múltiplos de --k.
+   Cambiás --k por breakpoint/orientación y TODO escala junto (12" → 32").
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Brand */
+  --c-primary:        #e11d2a;
+  --c-primary-hover:  #c01724;
+  --c-primary-soft:   #fde8ea;
+  --c-text:           #15161a;
+  --c-muted:          #6b7280;
+  --c-border:         #ececef;
+  --c-surface:        #ffffff;
+  --c-bg:             #f6f6f7;
+
+  /* Accents (badges / category icons) */
+  --c-amber:  #f59e0b;
+  --c-green:  #16a34a;
+  --c-blue:   #2563eb;
+  --c-pink:   #db2777;
+  --c-brown:  #b45309;
+  --c-violet: #7c3aed;
+
+  /* Radii */
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* Shadows — capas suaves, premium */
+  --sh-sm:  0 2px 8px rgba(20,20,30,0.06);
+  --sh-md:  0 8px 24px rgba(20,20,30,0.10);
+  --sh-lg:  0 18px 44px rgba(20,20,30,0.18);
+  --sh-red: 0 8px 20px rgba(225,29,42,0.42);
+
+  /* Scale knob — tablet landscape 12" (~1280px) */
+  --k: 16px;
+
+  /* Spacing scale derived from --k */
+  --s1: calc(var(--k) * 0.5);
+  --s2: calc(var(--k) * 0.85);
+  --s3: calc(var(--k) * 1.2);
+  --s4: calc(var(--k) * 1.7);
+  --s5: calc(var(--k) * 2.4);
+}
+
+/* Portrait tablet — más aire y targets más grandes */
+@media (orientation: portrait) and (min-width: 700px)  { :root { --k: 19px; } }
+/* Kiosk 32" portrait (futuro) — un solo cambio, todo crece */
+@media (orientation: portrait) and (min-width: 1500px) { :root { --k: 27px; } }
+/* Desktop preview grande */
+@media (min-width: 1900px) { :root { --k: 20px; } }
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--c-text);
+  background: var(--c-bg);
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   LAYOUT
+   ════════════════════════════════════════════════════════════════════ */
+.kiosk {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+  overflow: hidden;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+.header {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-hover) 100%);
+  padding: var(--s2) var(--s4);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  box-shadow: var(--sh-md);
+  position: relative;
+  z-index: 5;
+}
+.header__back {
+  flex-shrink: 0;
+  width: calc(var(--k) * 2.9);
+  height: calc(var(--k) * 2.9);
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.16);
+  color: #fff;
+  font-size: calc(var(--k) * 1.25);
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .15s;
+}
+.header__back:active { background: rgba(255,255,255,0.32); }
+.header__brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+.header__logo {
+  flex-shrink: 0;
+  width: calc(var(--k) * 2.9);
+  height: calc(var(--k) * 2.9);
+  border-radius: var(--r-md);
+  background: #fff;
+  color: var(--c-primary);
+  display: grid; place-items: center;
+  font-size: calc(var(--k) * 1.55);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
+}
+.header__name {
+  color: #fff;
+  font-size: calc(var(--k) * 1.7);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header__tagline {
+  color: rgba(255,255,255,0.78);
+  font-size: calc(var(--k) * 0.82);
+  font-weight: 500;
+  margin-top: 3px;
+}
+.lang {
+  flex-shrink: 0;
+  display: flex;
+  background: rgba(255,255,255,0.16);
+  border-radius: var(--r-pill);
+  padding: 4px;
+  gap: 2px;
+}
+.lang button {
+  border: none; background: transparent; color: rgba(255,255,255,0.85);
+  padding: calc(var(--k)*0.45) calc(var(--k)*0.9);
+  border-radius: var(--r-pill);
+  font-size: calc(var(--k)*0.88); font-weight: 700; cursor: pointer;
+  transition: all .15s;
+}
+.lang button.is-active { background: #fff; color: var(--c-primary); box-shadow: var(--sh-sm); }
+
+/* ─── Stepper (compact, secondary) ───────────────────────────────────── */
+.steps {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+}
+.steps__item {
+  display: flex; align-items: center; gap: calc(var(--k)*0.45);
+  color: #b3b6bd; font-weight: 700; font-size: calc(var(--k)*0.86);
+}
+.steps__dot {
+  width: calc(var(--k)*1.45); height: calc(var(--k)*1.45);
+  border-radius: 50%; border: 1.5px solid #dcdee3; background: #fff;
+  display: grid; place-items: center; font-size: calc(var(--k)*0.78);
+  transition: all .2s;
+}
+.steps__item.is-active { color: var(--c-primary); }
+.steps__item.is-active .steps__dot {
+  background: var(--c-primary); border-color: var(--c-primary); color: #fff;
+  box-shadow: 0 0 0 4px var(--c-primary-soft);
+}
+.steps__line { width: calc(var(--k)*2.4); height: 2px; background: #e4e5e9; border-radius: 2px; }
+
+/* ─── Category bar (horizontal, touch-friendly, colored icons) ───────── */
+.catbar {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  overflow-x: auto;
+  background: var(--c-bg);
+  scrollbar-width: none;
+}
+.catbar::-webkit-scrollbar { display: none; }
+.cat {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: var(--s2);
+  padding: calc(var(--k)*0.7) calc(var(--k)*1.15);
+  background: var(--c-surface);
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: all .16s;
+  box-shadow: var(--sh-sm);
+}
+.cat:active { transform: scale(0.96); }
+.cat__icon {
+  width: calc(var(--k)*2.1); height: calc(var(--k)*2.1);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: calc(var(--k)*1.15);
+  color: #fff;
+  flex-shrink: 0;
+}
+.cat__label { font-size: calc(var(--k)*1); font-weight: 700; color: var(--c-text); white-space: nowrap; }
+.cat.is-active {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  box-shadow: var(--sh-red);
+}
+.cat.is-active .cat__label { color: #fff; }
+.cat.is-active .cat__icon { background: rgba(255,255,255,0.22) !important; color: #fff; }
+
+/* ─── Scroll area ────────────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s2) var(--s4) var(--s4);
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.section__head {
+  display: flex; align-items: baseline; gap: var(--s2);
+  margin: var(--s3) 0 var(--s3);
+}
+.section__title {
+  font-size: calc(var(--k)*1.4); font-weight: 800; letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: calc(var(--k)*0.5);
+}
+.section__title i { color: var(--c-amber); }
+.section__sub { font-size: calc(var(--k)*0.92); color: var(--c-muted); font-weight: 500; }
+
+/* ════════════════════════════════════════════════════════════════════
+   PRODUCT CARDS — image-first, dark overlay, white text (reusable)
+   .pcard            base (full-bleed image + gradient + white content)
+   .pcard--featured  larger promo card for highlighted sections
+   ════════════════════════════════════════════════════════════════════ */
+.pcard {
+  position: relative;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  cursor: pointer;
+  background: #2a2a2e; /* fallback base under image */
+  box-shadow: var(--sh-md);
+  transition: transform .12s, box-shadow .2s;
+  isolation: isolate;
+}
+.pcard:active { transform: scale(0.98); }
+
+.pcard__media { position: absolute; inset: 0; z-index: 0; }
+.pcard__fallback {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: calc(var(--k)*3);
+  color: rgba(255,255,255,0.25);
+  background: linear-gradient(135deg, #3a3a40, #232327);
+}
+.pcard__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pcard__overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(0deg, rgba(8,8,12,0.92) 0%, rgba(8,8,12,0.45) 38%, rgba(8,8,12,0.05) 64%, transparent 100%);
+}
+
+.pcard__badges { position: absolute; top: calc(var(--k)*0.8); left: calc(var(--k)*0.8); z-index: 3; display: flex; gap: 6px; flex-wrap: wrap; }
+.pcard__qty {
+  position: absolute; top: calc(var(--k)*0.8); right: calc(var(--k)*0.8); z-index: 3;
+  min-width: calc(var(--k)*1.9); height: calc(var(--k)*1.9); padding: 0 7px;
+  background: #fff; color: var(--c-primary); border-radius: var(--r-pill);
+  display: grid; place-items: center; font-weight: 800; font-size: calc(var(--k)*0.95);
+  box-shadow: var(--sh-md);
+}
+
+.pcard__content {
+  position: relative; z-index: 2;
+  height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: calc(var(--k)*1);
+  color: #fff;
+}
+.pcard__name { font-size: calc(var(--k)*1.12); font-weight: 800; line-height: 1.12; letter-spacing: -0.01em; }
+.pcard__desc {
+  font-size: calc(var(--k)*0.82); color: rgba(255,255,255,0.82); margin-top: 3px; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pcard__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s2); margin-top: calc(var(--k)*0.7); }
+.pcard__price { font-size: calc(var(--k)*1.45); font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.pcard__price small { font-size: calc(var(--k)*0.8); font-weight: 700; opacity: 0.75; }
+
+.add-btn {
+  flex-shrink: 0;
+  width: calc(var(--k)*2.9); height: calc(var(--k)*2.9);
+  border-radius: 50%; border: none;
+  background: var(--c-primary); color: #fff;
+  font-size: calc(var(--k)*1.4);
+  display: grid; place-items: center; cursor: pointer;
+  box-shadow: var(--sh-red);
+  transition: transform .1s;
+}
+.add-btn:active { transform: scale(0.88); }
+
+/* Featured section — promo grid */
+.featured {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--k)*24), 1fr));
+  gap: var(--s3);
+}
+.pcard--featured { aspect-ratio: 16 / 10; }
+.pcard--featured .pcard__name { font-size: calc(var(--k)*1.55); }
+.pcard--featured .pcard__desc { font-size: calc(var(--k)*0.95); -webkit-line-clamp: 2; line-clamp: 2; }
+.pcard--featured .pcard__price { font-size: calc(var(--k)*1.9); }
+.pcard--featured .add-btn { width: calc(var(--k)*3.4); height: calc(var(--k)*3.4); font-size: calc(var(--k)*1.6); }
+
+/* Regular grid — same language, slightly simpler/taller */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--k)*13.5), 1fr));
+  gap: var(--s3);
+}
+.pcard--regular { aspect-ratio: 4 / 5; }
+
+/* ─── Badges (reusable) ──────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: calc(var(--k)*0.74); font-weight: 800; color: #fff;
+  padding: calc(var(--k)*0.32) calc(var(--k)*0.65);
+  border-radius: var(--r-pill);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+  letter-spacing: 0.01em;
+}
+.badge--best   { background: var(--c-amber); }
+.badge--new    { background: var(--c-green); }
+.badge--reco   { background: var(--c-violet); }
+.badge--fav    { background: var(--c-primary); }
+
+/* ════════════════════════════════════════════════════════════════════
+   BOTTOM BAR — upsell (supportive) + total (readable) + CTA (strongest)
+   ════════════════════════════════════════════════════════════════════ */
+.orderbar {
+  flex-shrink: 0;
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  box-shadow: 0 -10px 30px rgba(20,20,30,0.08);
+  padding: var(--s2) var(--s4) var(--s3);
+  display: flex; flex-direction: column; gap: var(--s2);
+  z-index: 5;
+}
+.upsell {
+  display: flex; align-items: center; gap: var(--s2);
+  background: linear-gradient(90deg, #fff8ee, #fffdf7);
+  border: 1.5px solid #f6dcad;
+  border-radius: var(--r-md);
+  padding: calc(var(--k)*0.55) calc(var(--k)*0.7) calc(var(--k)*0.55) calc(var(--k)*0.9);
+}
+.upsell__icon {
+  width: calc(var(--k)*2.1); height: calc(var(--k)*2.1); flex-shrink: 0;
+  border-radius: 50%; background: var(--c-amber); color: #fff;
+  display: grid; place-items: center; font-size: calc(var(--k)*1.1);
+}
+.upsell__text { flex: 1; font-size: calc(var(--k)*0.95); font-weight: 600; color: #6b5418; }
+.upsell__text b { font-weight: 800; color: #4a3a0d; }
+.upsell__add {
+  flex-shrink: 0; border: none; background: var(--c-amber); color: #fff;
+  font-weight: 800; font-size: calc(var(--k)*0.88);
+  padding: calc(var(--k)*0.5) calc(var(--k)*0.95); border-radius: var(--r-pill); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.upsell__dismiss {
+  flex-shrink: 0; border: none; background: transparent; color: #c4a463;
+  font-size: calc(var(--k)*1.1); cursor: pointer; padding: calc(var(--k)*0.3);
+}
+
+.orderbar__main { display: flex; align-items: center; gap: var(--s4); }
+.orderbar__totals { display: flex; flex-direction: column; gap: 2px; }
+.orderbar__label { font-size: calc(var(--k)*0.8); font-weight: 700; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.orderbar__amount { font-size: calc(var(--k)*2); font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.orderbar__amount small { font-size: calc(var(--k)*0.85); font-weight: 600; color: var(--c-muted); }
+.orderbar__count {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: calc(var(--k)*1); font-weight: 800;
+  color: var(--c-primary); background: var(--c-primary-soft);
+  padding: calc(var(--k)*0.55) calc(var(--k)*1); border-radius: var(--r-pill);
+}
+.orderbar__spacer { flex: 1; }
+.cta {
+  border: none; background: var(--c-primary); color: #fff;
+  font-size: calc(var(--k)*1.2); font-weight: 800; letter-spacing: -0.01em;
+  padding: calc(var(--k)*1.05) calc(var(--k)*2.4);
+  border-radius: var(--r-lg); cursor: pointer;
+  display: inline-flex; align-items: center; gap: calc(var(--k)*0.65);
+  box-shadow: var(--sh-red);
+  transition: transform .1s, background .15s;
+}
+.cta:active { transform: scale(0.97); background: var(--c-primary-hover); }
+.cta i { font-size: calc(var(--k)*1.1); }
+
+/* ─── Toast ──────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--k)*9); transform: translateX(-50%);
+  background: var(--c-text); color: #fff;
+  padding: calc(var(--k)*0.75) calc(var(--k)*1.3);
+  border-radius: var(--r-pill);
+  display: flex; align-items: center; gap: calc(var(--k)*0.6);
+  font-size: calc(var(--k)*1); font-weight: 600;
+  box-shadow: var(--sh-lg); z-index: 50;
+}
+.toast i { color: #4ade80; font-size: calc(var(--k)*1.3); }
+
+/* Featured stacks on narrow portrait */
+@media (orientation: portrait) and (max-width: 900px) {
+  .featured { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(calc(var(--k)*11), 1fr)); }
+}
+</style>
+</head>
+<body>
+<div class="kiosk">
+
+  <!-- ─── Header ─────────────────────────────────────────────────── -->
+  <header class="header">
+    <button class="header__back" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+    <div class="header__brand">
+      <span class="header__logo"><i class="bi bi-cup-hot-fill"></i></span>
+      <div>
+        <div class="header__name">Pertinho do Céu</div>
+        <div class="header__tagline">Cozinha artesanal · Pedido no totem</div>
+      </div>
+    </div>
+    <nav class="lang" aria-label="Idioma">
+      <button class="is-active">PT</button>
+      <button>EN</button>
+      <button>ES</button>
+    </nav>
+  </header>
+
+  <!-- ─── Stepper ────────────────────────────────────────────────── -->
+  <div class="steps">
+    <div class="steps__item is-active"><span class="steps__dot">1</span> Cardápio</div>
+    <span class="steps__line"></span>
+    <div class="steps__item"><span class="steps__dot">2</span> Revisão</div>
+    <span class="steps__line"></span>
+    <div class="steps__item"><span class="steps__dot">3</span> Pagamento</div>
+    <span class="steps__line"></span>
+    <div class="steps__item"><span class="steps__dot">4</span> Pronto</div>
+  </div>
+
+  <!-- ─── Category bar ───────────────────────────────────────────── -->
+  <nav class="catbar" aria-label="Categorias">
+    <button class="cat is-active">
+      <span class="cat__icon" style="background:var(--c-primary)"><i class="bi bi-grid-fill"></i></span>
+      <span class="cat__label">Todos</span>
+    </button>
+    <button class="cat">
+      <span class="cat__icon" style="background:var(--c-brown)"><i class="bi bi-egg-fried"></i></span>
+      <span class="cat__label">Entradas</span>
+    </button>
+    <button class="cat">
+      <span class="cat__icon" style="background:var(--c-blue)"><i class="bi bi-cup-straw"></i></span>
+      <span class="cat__label">Bebidas</span>
+    </button>
+    <button class="cat">
+      <span class="cat__icon" style="background:var(--c-primary)"><i class="bi bi-fire"></i></span>
+      <span class="cat__label">Principais</span>
+    </button>
+    <button class="cat">
+      <span class="cat__icon" style="background:var(--c-pink)"><i class="bi bi-cake2"></i></span>
+      <span class="cat__label">Sobremesas</span>
+    </button>
+    <button class="cat">
+      <span class="cat__icon" style="background:var(--c-amber)"><i class="bi bi-cup-hot"></i></span>
+      <span class="cat__label">Cafeteria</span>
+    </button>
+  </nav>
+
+  <!-- ─── Content ────────────────────────────────────────────────── -->
+  <main class="content">
+
+    <!-- Featured -->
+    <div class="section__head">
+      <span class="section__title"><i class="bi bi-star-fill"></i> Mais pedidos</span>
+      <span class="section__sub">os favoritos da casa</span>
+    </div>
+    <section class="featured">
+      <article class="pcard pcard--featured">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-stack"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=900&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__badges"><span class="badge badge--best"><i class="bi bi-fire"></i> Mais vendido</span></div>
+        <div class="pcard__content">
+          <div class="pcard__name">Mirante Burger Duplo</div>
+          <div class="pcard__desc">2 smash de costela, cheddar, bacon e molho da casa</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 38,90</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pcard pcard--featured">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-egg-fried"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=900&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__badges"><span class="badge badge--new"><i class="bi bi-stars"></i> Novo</span></div>
+        <div class="pcard__content">
+          <div class="pcard__name">Tábua Mirante</div>
+          <div class="pcard__desc">Mix de queijos, embutidos e pães artesanais para compartilhar</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 42,00</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Full menu -->
+    <div class="section__head">
+      <span class="section__title" style="color:var(--c-text)"><i class="bi bi-list-ul" style="color:#b3b6bd"></i> Todo o cardápio</span>
+      <span class="section__sub">24 itens</span>
+    </div>
+    <section class="grid">
+
+      <article class="pcard pcard--regular">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-cup-straw"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1554866585-cd94860890b7?w=600&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <span class="pcard__qty">1</span>
+        <div class="pcard__content">
+          <div class="pcard__name">Coca-Cola Zero</div>
+          <div class="pcard__desc">Lata 350ml gelada</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 8,90</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pcard pcard--regular">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-cup-straw"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__badges"><span class="badge badge--reco"><i class="bi bi-hand-thumbs-up-fill"></i> Recomendado</span></div>
+        <div class="pcard__content">
+          <div class="pcard__name">Coca-Cola Normal</div>
+          <div class="pcard__desc">Lata 350ml gelada</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 8,90</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pcard pcard--regular">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-droplet"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1523371683702-af0b8c1c1f12?w=600&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__content">
+          <div class="pcard__name">Água sem gás</div>
+          <div class="pcard__desc">Garrafa 500ml</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 5,50</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pcard pcard--regular">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-cake2"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1551024601-bec78aea704b?w=600&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__badges"><span class="badge badge--fav"><i class="bi bi-heart-fill"></i> Favorito da casa</span></div>
+        <div class="pcard__content">
+          <div class="pcard__name">Brownie da casa</div>
+          <div class="pcard__desc">Com sorvete de baunilha</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 18,00</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pcard pcard--regular">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-egg-fried"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__content">
+          <div class="pcard__name">Bruschetta Artesanal</div>
+          <div class="pcard__desc">Tomate, manjericão e azeite extra virgem</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 22,00</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+      <article class="pcard pcard--regular">
+        <div class="pcard__media">
+          <span class="pcard__fallback"><i class="bi bi-cup-hot"></i></span>
+          <img class="pcard__img" src="https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&q=80" alt="" onerror="this.remove()" />
+          <div class="pcard__overlay"></div>
+        </div>
+        <div class="pcard__content">
+          <div class="pcard__name">Cappuccino Cremoso</div>
+          <div class="pcard__desc">Espresso, leite vaporizado e canela</div>
+          <div class="pcard__foot">
+            <span class="pcard__price">R$ 12,00</span>
+            <button class="add-btn" aria-label="Adicionar"><i class="bi bi-plus-lg"></i></button>
+          </div>
+        </div>
+      </article>
+
+    </section>
+  </main>
+
+  <!-- ─── Toast ──────────────────────────────────────────────────── -->
+  <div class="toast"><i class="bi bi-check-circle-fill"></i> <span><b>Coca-Cola Zero</b> · adicionado</span></div>
+
+  <!-- ─── Bottom bar ─────────────────────────────────────────────── -->
+  <footer class="orderbar">
+    <div class="upsell">
+      <span class="upsell__icon"><i class="bi bi-stars"></i></span>
+      <span class="upsell__text">Que tal acompanhar com <b>Batata Rústica</b>? Combina com seu pedido.</span>
+      <button class="upsell__add"><i class="bi bi-plus-lg"></i> R$ 12,90</button>
+      <button class="upsell__dismiss" aria-label="Dispensar"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="orderbar__main">
+      <div class="orderbar__totals">
+        <span class="orderbar__label">Meu pedido · Comer aqui</span>
+        <span class="orderbar__amount">R$ 9,79 <small>+ taxa R$ 0,89</small></span>
+      </div>
+      <span class="orderbar__count"><i class="bi bi-bag-fill"></i> 1 item</span>
+      <span class="orderbar__spacer"></span>
+      <button class="cta">Revisar pedido <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

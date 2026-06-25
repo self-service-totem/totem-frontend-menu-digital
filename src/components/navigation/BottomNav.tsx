@@ -14,16 +14,16 @@ interface NavItem {
 
 const items: NavItem[] = [
   {
+    to: (tableId) => (tableId ? `/menu/${tableId}` : '/menu'),
+    matches: (p) => p.startsWith('/menu'),
+    labelKey: 'nav.menu',
+    icon: 'bi-card-list',
+  },
+  {
     to: () => '/waiter',
     matches: (p) => p === '/waiter',
     labelKey: 'nav.waiter',
     icon: 'bi-bell',
-  },
-  {
-    to: () => '/rating',
-    matches: (p) => p === '/rating',
-    labelKey: 'nav.rating',
-    icon: 'bi-hand-thumbs-up',
   },
   {
     to: () => '/cart',
@@ -65,7 +65,7 @@ export function BottomNav() {
             onClick={() => navigate(item.to(tableId))}
             className={`ff-bottom-nav__item ${
               item.center ? 'ff-bottom-nav__item--center' : ''
-            } ${active ? 'ff-bottom-nav__item--active' : ''}`}
+            } ${active && !item.center ? 'ff-bottom-nav__item--active' : ''}`}
             aria-current={active ? 'page' : undefined}
           >
             <i className={`bi ${item.icon}`} aria-hidden />

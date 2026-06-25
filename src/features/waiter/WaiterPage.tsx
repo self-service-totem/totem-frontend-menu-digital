@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TopBar } from '@/components/layout/TopBar';
 import { WaiterActionCard } from '@/components/waiter/WaiterActionCard';
 import { Modal } from '@/components/common/Modal';
@@ -7,52 +8,229 @@ import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { SecondaryButton } from '@/components/common/SecondaryButton';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
-import { waiterService } from '@/services';
+import type { LabelKey } from '@/i18n/labels';
+import { waiterService, orderService } from '@/lib/services';
+import type { WaiterCall } from '@/lib/types';
 
-const actions = [
+type ActionId = 'call' | 'bill' | 'order' | 'other';
+
+const actions: { id: ActionId; icon: string }[] = [
   { id: 'call', icon: 'bi-bell' },
   { id: 'bill', icon: 'bi-receipt' },
   { id: 'order', icon: 'bi-clock-history' },
   { id: 'other', icon: 'bi-three-dots' },
-] as const;
+];
 
-const ACTION_LABELS_PT: Record<string, string> = {
-  call: 'Chamar garçom',
-  bill: 'Pedir a conta',
-  order: 'Consultar pedido',
-  other: 'Outro motivo',
+const ACTION_LABEL_KEYS: Record<ActionId, LabelKey> = {
+  call: 'waiter.action.call',
+  bill: 'waiter.action.bill',
+  order: 'waiter.action.order',
+  other: 'waiter.action.other',
 };
 
-const ACTION_LABELS_ES: Record<string, string> = {
-  call: 'Llamar al mozo',
-  bill: 'Pedir la cuenta',
-  order: 'Consultar pedido',
-  other: 'Otro motivo',
+const STATUS_LABEL_KEYS: Record<string, LabelKey> = {
+  PENDING: 'waiter.status.pending',
+  ACKNOWLEDGED: 'waiter.status.acknowledged',
+  RESOLVED: 'waiter.status.resolved',
+  CANCELED: 'waiter.status.canceled',
 };
+
+function timeAgo(iso: string, locale: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  if (diff < 60) return rtf.format(-diff, 'second');
+  if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+  return rtf.format(-Math.floor(diff / 3600), 'hour');
+}
+
+// ─── Active request card ──────────────────────────────────────────────────────
+
+interface ActiveRequestCardProps {
+  call: WaiterCall;
+  actionLabel: string;
+  statusLabel: string;
+  cancelLabel: string;
+  resolveLabel: string;
+  locale: string;
+  onCancel: () => void;
+  onResolve: () => void;
+}
+
+function ActiveRequestCard({
+  call,
+  actionLabel,
+  statusLabel,
+  cancelLabel,
+  resolveLabel,
+  locale,
+  onCancel,
+  onResolve,
+}: ActiveRequestCardProps) {
+  const isPending = call.status === 'PENDING';
+  const isAcknowledged = call.status === 'ACKNOWLEDGED';
+  const isActive = isPending || isAcknowledged;
+
+  const borderColor = isPending ? 'var(--ff-primary)' : isAcknowledged ? '#d97706' : '#6b7280';
+  const badgeBg = isPending ? 'var(--ff-primary)' : isAcknowledged ? '#d97706' : '#6b7280';
+
+  return (
+    <div
+      style={{
+        borderRadius: 'var(--ff-radius-md)',
+        border: `2px solid ${borderColor}`,
+        overflow: 'hidden',
+        background: '#fff',
+        opacity: isActive ? 1 : 0.55,
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 14px',
+          background: isPending ? 'var(--ff-primary-soft)' : isAcknowledged ? '#fffbeb' : '#f9fafb',
+        }}
+      >
+        <i
+          className={`bi ${isPending ? 'bi-hourglass-split' : isAcknowledged ? 'bi-person-check' : 'bi-check-circle'}`}
+          style={{ color: borderColor, fontSize: '1.1rem', flexShrink: 0 }}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{actionLabel}</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--ff-text-muted)' }}>
+            {timeAgo(call.createdAt, locale)}
+          </div>
+        </div>
+        <span
+          style={{
+            background: badgeBg,
+            color: '#fff',
+            borderRadius: 6,
+            padding: '2px 8px',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {statusLabel}
+        </span>
+      </div>
+
+      {/* Actions */}
+      {isActive && (
+        <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderTop: '1px solid #f3f4f6' }}>
+          <button
+            className="btn btn-sm btn-outline-secondary flex-1"
+            style={{ fontSize: '0.82rem' }}
+            onClick={onCancel}
+          >
+            <i className="bi bi-x-circle me-1" />
+            {cancelLabel}
+          </button>
+          <button
+            className="btn btn-sm flex-1"
+            style={{ fontSize: '0.82rem', background: '#059669', color: '#fff', border: 'none' }}
+            onClick={onResolve}
+          >
+            <i className="bi bi-check2-circle me-1" />
+            {resolveLabel}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function WaiterPage() {
   const { tableId, customer, setCustomerName, setCustomerPhone } = useSession();
   const { t, language } = useLabels();
-  const actionLabels = language.startsWith('pt') ? ACTION_LABELS_PT : ACTION_LABELS_ES;
+  const navigate = useNavigate();
+  const actionLabel = (id: ActionId) => t(ACTION_LABEL_KEYS[id]);
+  const statusLabel = (status: string) => t(STATUS_LABEL_KEYS[status] ?? 'waiter.status.pending');
 
   const [open, setOpen] = useState(false);
+  const [currentAction, setCurrentAction] = useState<ActionId>('call');
   const [name, setName] = useState(customer?.name ?? '');
   const [phone, setPhone] = useState(customer?.phone ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [confirmationVariant, setConfirmationVariant] = useState<'success' | 'info'>('success');
+  const [calls, setCalls] = useState<WaiterCall[]>([]);
 
-  const startCall = () => {
+  const activeCalls = calls.filter((c) => c.status === 'PENDING' || c.status === 'ACKNOWLEDGED');
+  const pastCalls = calls.filter((c) => c.status === 'RESOLVED' || c.status === 'CANCELED');
+
+  // Poll for call status updates
+  useEffect(() => {
+    if (!tableId) return;
+    async function load() {
+      const result = await waiterService.getCallsForTable(tableId!);
+      setCalls(result);
+    }
+    load();
+    const interval = setInterval(load, 4000);
+    return () => clearInterval(interval);
+  }, [tableId]);
+
+  function showConfirmation(msg: string, variant: 'success' | 'info' = 'success') {
+    setConfirmation(msg);
+    setConfirmationVariant(variant);
+    setTimeout(() => setConfirmation(null), 3500);
+  }
+
+  function hasActiveCall(): boolean {
+    return activeCalls.length > 0;
+  }
+
+  function handleAction(id: ActionId) {
+    if (id === 'order') {
+      navigate('/account');
+      return;
+    }
+    if (id === 'bill') {
+      handleRequestBill();
+      return;
+    }
+    // Check for existing active request (call or other)
+    if (hasActiveCall()) {
+      showConfirmation(t('waiter.dupeActive'), 'info');
+      return;
+    }
+    setCurrentAction(id);
     setName(customer?.name ?? '');
     setPhone(customer?.phone ?? '');
     setError(null);
     setOpen(true);
-  };
+  }
+
+  async function handleRequestBill() {
+    if (!tableId) {
+      showConfirmation(t('waiter.tableUnknown'), 'info');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await orderService.requestCloseBill(tableId, {
+        customerName: customer?.name ?? '',
+      });
+      showConfirmation(t('bill.requestSent'));
+      navigate('/close-account');
+    } catch {
+      showConfirmation(t('waiter.billError'), 'info');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!tableId) {
-      setError('Mesa no identificada.');
+      setError(t('waiter.tableUnknown'));
       return;
     }
     if (!phone.trim()) {
@@ -62,15 +240,35 @@ export function WaiterPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await waiterService.callWaiter(tableId, {
+      const { ticketId } = await waiterService.callWaiter(tableId, {
         customerName: name.trim(),
         phone: phone.trim(),
+        reason: currentAction,
       });
       if (name.trim()) setCustomerName(name.trim());
       if (phone.trim()) setCustomerPhone(phone.trim());
       setOpen(false);
-      setConfirmation(t('waiter.sent'));
-      setTimeout(() => setConfirmation(null), 3500);
+      showConfirmation(t('waiter.sent'));
+      // Optimistically add the new call to local state
+      const now = new Date().toISOString();
+      const tables = await import('@/lib/mock-db').then(m => m.getCollection<{ id: string; number: string }>('tables'));
+      const table = tables.find((tb) => tb.id === tableId || tb.number === tableId);
+      setCalls((prev) => [
+        {
+          id: ticketId,
+          tenantId: '',
+          branchId: '',
+          tableId: table?.id ?? tableId,
+          tableNumber: table?.number ?? tableId,
+          customerName: name.trim(),
+          phone: phone.trim(),
+          reason: currentAction,
+          status: 'PENDING',
+          createdAt: now,
+          updatedAt: now,
+        },
+        ...prev,
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'error');
     } finally {
@@ -78,9 +276,27 @@ export function WaiterPage() {
     }
   };
 
+  async function handleCancelCall(id: string) {
+    await waiterService.cancelCall(id);
+    setCalls((prev) => prev.map((c) => c.id === id ? { ...c, status: 'CANCELED', updatedAt: new Date().toISOString() } : c));
+    showConfirmation(t('waiter.requestCanceled'), 'info');
+  }
+
+  async function handleResolveCall(id: string) {
+    await waiterService.resolveCall(id);
+    setCalls((prev) => prev.map((c) => c.id === id ? { ...c, status: 'RESOLVED', updatedAt: new Date().toISOString() } : c));
+    showConfirmation(t('waiter.requestResolved'));
+  }
+
+  const cancelLabel = t('waiter.cancelRequest');
+  const resolveLabel = t('waiter.resolveRequest');
+  const activeTitle = t('waiter.activeTitle');
+  const historyTitle = t('waiter.historyTitle');
+
   return (
     <div className="ff-page">
-      <TopBar title={t('waiter.title')} />
+      <TopBar title={t('waiter.title')} onBack={() => navigate('/menu')} />
+
       <div style={{ padding: '20px 16px 0', textAlign: 'center' }}>
         <i
           className="bi bi-bell-fill"
@@ -98,29 +314,82 @@ export function WaiterPage() {
           <WaiterActionCard
             key={a.id}
             icon={a.icon}
-            label={actionLabels[a.id]}
-            onClick={startCall}
+            label={actionLabel(a.id)}
+            onClick={() => handleAction(a.id)}
           />
         ))}
       </div>
 
+      {/* Flash confirmation */}
       {confirmation && (
         <div
           role="status"
           style={{
-            margin: 16,
+            margin: '16px 16px 0',
             padding: 12,
-            background: 'var(--ff-primary-soft)',
-            color: 'var(--ff-primary)',
+            background: confirmationVariant === 'success' ? 'var(--ff-primary-soft)' : '#f0f9ff',
+            color: confirmationVariant === 'success' ? 'var(--ff-primary)' : '#0369a1',
             borderRadius: 'var(--ff-radius-md)',
             fontSize: '0.9rem',
             fontWeight: 600,
             textAlign: 'center',
           }}
         >
-          <i className="bi bi-check-circle-fill" /> {confirmation}
+          <i className={`bi ${confirmationVariant === 'success' ? 'bi-check-circle-fill' : 'bi-info-circle-fill'} me-1`} />
+          {confirmation}
         </div>
       )}
+
+      {/* Active requests */}
+      {activeCalls.length > 0 && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--ff-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {activeTitle}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {activeCalls.map((call) => (
+              <ActiveRequestCard
+                key={call.id}
+                call={call}
+                actionLabel={actionLabel((call.reason as ActionId) ?? 'call')}
+                statusLabel={statusLabel(call.status)}
+                cancelLabel={cancelLabel}
+                resolveLabel={resolveLabel}
+                locale={language}
+                onCancel={() => handleCancelCall(call.id)}
+                onResolve={() => handleResolveCall(call.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Past requests (collapsed) */}
+      {pastCalls.length > 0 && (
+        <details style={{ padding: '12px 16px 0' }}>
+          <summary style={{ fontSize: '0.8rem', color: 'var(--ff-text-muted)', cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <i className="bi bi-clock-history" />
+            {historyTitle} ({pastCalls.length})
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {pastCalls.map((call) => (
+              <ActiveRequestCard
+                key={call.id}
+                call={call}
+                actionLabel={actionLabel((call.reason as ActionId) ?? 'call')}
+                statusLabel={statusLabel(call.status)}
+                cancelLabel={cancelLabel}
+                resolveLabel={resolveLabel}
+                locale={language}
+                onCancel={() => handleCancelCall(call.id)}
+                onResolve={() => handleResolveCall(call.id)}
+              />
+            ))}
+          </div>
+        </details>
+      )}
+
+      <div style={{ height: 24 }} />
 
       <Modal
         open={open}

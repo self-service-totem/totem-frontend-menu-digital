@@ -14,6 +14,9 @@ docs/02-ui-component-standard.md
 docs/03-api-integration-standard.md
 docs/04-modal-toast-standard.md
 docs/05-testing-strategy.md
+docs/06-how-to-add-a-screen.md
+docs/UI_STANDARDS.md
+docs/DESIGN_SYSTEM.md
 docs/planning/frontend-masterplan-prs.md
 docs/tickets/pr-ticket-template.md
 docs/tickets/prompt-create-ticket.md
@@ -32,6 +35,17 @@ Canonical rules for folder structure, feature organization, page/component bound
 
 Canonical rules for components, Bootstrap usage, styling, naming and UI consistency.
 
+### `UI_STANDARDS.md`
+
+Global layout and interaction standard. Defines the screen-type taxonomy, desktop/mobile
+layout rules, sticky behavior, table rules, and the acceptance checklist every new screen
+must pass. Read this before building any screen.
+
+### `DESIGN_SYSTEM.md`
+
+The shared component catalog: standard-name → real-component mapping, props, imports and
+usage snippets. Reuse these components instead of writing custom page shells.
+
 ### `03-api-integration-standard.md`
 
 Canonical rules for calling the backend, using `/v1`, mapping DTOs, handling loading/error states and keeping mocks aligned.
@@ -43,6 +57,10 @@ Canonical rules for modals, confirmations, alerts, notifications and avoiding ad
 ### `05-testing-strategy.md`
 
 Testing expectations for pages, components, hooks and API integration.
+
+### `06-how-to-add-a-screen.md`
+
+Step-by-step recipe for adding a new screen: folder structure, hook pattern, which layout shell to use, styling rules, service/API calls, error handling, tables, buttons, modals, i18n, routing, and a final checklist.
 
 ### `planning/frontend-masterplan-prs.md`
 

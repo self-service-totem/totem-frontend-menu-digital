@@ -1,23 +1,28 @@
 import { useEffect, useState } from 'react';
-import type { Bill } from '@/types';
-import { orderService } from '@/services';
+import { useNavigate } from 'react-router-dom';
+import type { Bill } from '@/lib/types';
+import { orderService } from '@/lib/services';
 import { useSession } from '@/app/SessionContext';
 import { useLabels } from '@/i18n/I18nContext';
-import { TopBar } from '@/components/layout/TopBar';
+import { useNotify } from '@/lib/notifications';
 import { AccountTabs, type AccountTab } from '@/components/account/AccountTabs';
+import { BillPersonCard } from '@/components/account/BillPersonCard';
 import { OrderSummary } from '@/components/account/OrderSummary';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { EmptyState } from '@/components/common/EmptyState';
-import { formatMoney } from '@/utils/format';
 
 export function CloseAccountPage() {
-  const { tableId, customer } = useSession();
+  const navigate = useNavigate();
+  const { tableId, customer, menuContext } = useSession();
   const { t } = useLabels();
+  const notify = useNotify();
+
+  const currency = menuContext?.currency ?? 'BRL';
+  const serviceFeeRate = menuContext?.serviceFeeRate ?? 0.1;
 
   const [tab, setTab] = useState<AccountTab>('mesa');
   const [bill, setBill] = useState<Bill | null>(null);
   const [requesting, setRequesting] = useState(false);
-  const [confirmation, setConfirmation] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tableId) return;
@@ -29,19 +34,27 @@ export function CloseAccountPage() {
     setRequesting(true);
     try {
       await orderService.requestCloseBill(tableId, {
-        customerName: customer?.name ?? scope === 'table' ? 'mesa' : (customer?.name ?? ''),
+        customerName: scope === 'table' ? (customer?.name ?? 'mesa') : (customer?.name ?? ''),
       });
-      setConfirmation(t('bill.requestSent'));
-      setTimeout(() => setConfirmation(null), 3500);
+      notify(t('bill.requestSent'), 'success');
     } finally {
       setRequesting(false);
     }
   };
 
+  const Header = (
+    <div className="ff-bill-header">
+      <h1 className="ff-bill-header__title">{t('bill.title')}</h1>
+      <button type="button" className="ff-bill-header__back" onClick={() => navigate(-1)}>
+        <i className="bi bi-chevron-left" /> {t('common.back')}
+      </button>
+    </div>
+  );
+
   if (!bill) {
     return (
       <div className="ff-page">
-        <TopBar title={t('bill.title')} />
+        {Header}
         <div className="ff-empty">
           <i className="bi bi-arrow-repeat" />
           <p>{t('common.loading')}</p>
@@ -51,31 +64,13 @@ export function CloseAccountPage() {
   }
 
   const myAccount = bill.customers.find((c) => c.customerName === customer?.name);
-  const myServiceFee = myAccount ? +(myAccount.subtotal * 0.1).toFixed(2) : 0;
+  const myServiceFee = myAccount ? +(myAccount.subtotal * serviceFeeRate).toFixed(2) : 0;
   const myTotal = myAccount ? +(myAccount.subtotal + myServiceFee).toFixed(2) : 0;
 
   return (
     <div className="ff-page">
-      <TopBar title={bill.tableName} />
+      {Header}
       <AccountTabs active={tab} onChange={setTab} />
-
-      {confirmation && (
-        <div
-          role="status"
-          style={{
-            margin: '0 16px 12px',
-            padding: 12,
-            background: 'var(--ff-primary-soft)',
-            color: 'var(--ff-primary)',
-            borderRadius: 'var(--ff-radius-md)',
-            fontSize: '0.9rem',
-            fontWeight: 600,
-            textAlign: 'center',
-          }}
-        >
-          <i className="bi bi-check-circle-fill" /> {confirmation}
-        </div>
-      )}
 
       {tab === 'mesa' ? (
         <>
@@ -83,20 +78,14 @@ export function CloseAccountPage() {
             <EmptyState icon="bi-receipt" title={t('bill.empty')} />
           ) : (
             bill.customers.map((c) => (
-              <article key={c.customerName} className="ff-person">
-                <header className="ff-person__head">
-                  <span className="ff-person__name">{c.customerName}</span>
-                  <span className="ff-person__total">{formatMoney(c.subtotal)}</span>
-                </header>
-                {c.items.map((it) => (
-                  <div key={`${c.customerName}-${it.productId}`} className="ff-person__line">
-                    <span>
-                      {it.quantity}× {it.productName}
-                    </span>
-                    <span>{formatMoney(it.total)}</span>
-                  </div>
-                ))}
-              </article>
+              <BillPersonCard
+                key={c.customerName}
+                name={c.customerName}
+                items={c.items}
+                subtotal={c.subtotal}
+                currency={currency}
+                isMe={c.customerName === customer?.name}
+              />
             ))
           )}
 
@@ -106,13 +95,11 @@ export function CloseAccountPage() {
                 subtotal={bill.subtotal}
                 serviceFee={bill.serviceFee}
                 total={bill.tableTotal}
+                currency={currency}
                 serviceFeeLabel={t('summary.serviceFee')}
               />
               <div className="ff-sticky-cta">
-                <PrimaryButton
-                  onClick={() => requestClose('table')}
-                  disabled={requesting}
-                >
+                <PrimaryButton onClick={() => requestClose('table')} disabled={requesting}>
                   {t('bill.closeTable')}
                 </PrimaryButton>
               </div>
@@ -121,33 +108,24 @@ export function CloseAccountPage() {
         </>
       ) : myAccount ? (
         <>
-          <article className="ff-person">
-            <header className="ff-person__head">
-              <span className="ff-person__name">{myAccount.customerName}</span>
-              <span className="ff-person__total">{formatMoney(myAccount.subtotal)}</span>
-            </header>
-            {myAccount.items.map((it) => (
-              <div key={it.productId} className="ff-person__line">
-                <span>
-                  {it.quantity}× {it.productName}
-                </span>
-                <span>{formatMoney(it.total)}</span>
-              </div>
-            ))}
-          </article>
+          <BillPersonCard
+            name={myAccount.customerName}
+            items={myAccount.items}
+            subtotal={myAccount.subtotal}
+            currency={currency}
+            isMe
+          />
 
           <OrderSummary
             subtotal={myAccount.subtotal}
             serviceFee={myServiceFee}
             total={myTotal}
+            currency={currency}
             serviceFeeLabel={t('summary.serviceFee')}
           />
 
           <div className="ff-sticky-cta">
-            <PrimaryButton
-              onClick={() => requestClose('mine')}
-              disabled={requesting}
-            >
+            <PrimaryButton onClick={() => requestClose('mine')} disabled={requesting}>
               {t('bill.closeMine')}
             </PrimaryButton>
           </div>

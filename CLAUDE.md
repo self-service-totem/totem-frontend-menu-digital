@@ -17,6 +17,8 @@ docs/02-ui-component-standard.md
 docs/03-api-integration-standard.md
 docs/04-modal-toast-standard.md
 docs/05-testing-strategy.md
+docs/UI_STANDARDS.md
+docs/DESIGN_SYSTEM.md
 docs/planning/frontend-masterplan-prs.md
 docs/tickets/pr-ticket-template.md
 ```
@@ -30,13 +32,16 @@ React 18
 TypeScript
 Vite
 React Router
-React Bootstrap
 Bootstrap Icons
+Hand-rolled UI with CSS (tokens en src/styles/theme.css + src/styles/areas.css)
 Feature-based pages
 Shared components
-Service layer currently under src/services
-Mocks currently under src/mocks
+Data layer (services, mocks, types, jsonapi) bajo src/lib
+Service layer: src/lib/services — Mocks: src/lib/mocks — Tipos: src/lib/types
 ```
+
+Frontera: `src/lib` = data/infra; `src/app` + `src/features` = UI.
+react-bootstrap está en package.json pero la UI hoy es CSS propio (0 imports reales).
 
 ---
 
@@ -53,6 +58,7 @@ Mocks currently under src/mocks
 8. Do not duplicate API types in multiple places.
 9. Keep mocks aligned with backend contracts.
 10. Do not rewrite unrelated screens while implementing one PR.
+11. Every new screen must pick a documented layout type and reuse shared layout/components — see docs/UI_STANDARDS.md and docs/DESIGN_SYSTEM.md. Do not hand-roll page shells (sidebar/topbar/grid wrappers).
 ```
 
 ---
