@@ -42,13 +42,20 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     }
 
     const unsub = subscribeAuthState(async (fbUser) => {
-      if (fbUser) {
-        const staffUser = await getStaffUserDoc(fbUser.uid);
-        setCurrentUser(staffUser);
-      } else {
+      try {
+        if (fbUser) {
+          const staffUser = await getStaffUserDoc(fbUser.uid);
+          setCurrentUser(staffUser);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[auth] resolving staff user failed', err);
         setCurrentUser(null);
+      } finally {
+        setAuthLoading(false);
       }
-      setAuthLoading(false);
     });
     return unsub;
   }, []);

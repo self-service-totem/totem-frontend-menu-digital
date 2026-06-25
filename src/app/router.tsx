@@ -103,14 +103,6 @@ export const router = createBrowserRouter([
         ],
       },
 
-      // Kiosk
-      { path: '/kiosk', element: <Navigate to="/kiosk/attract" replace /> },
-      { path: '/kiosk/attract', element: <AttractScreen /> },
-      { path: '/kiosk/start', element: <KioskWelcomePage /> },
-      { path: '/kiosk/menu', element: <KioskMenuPage /> },
-      { path: '/kiosk/cart', element: <KioskCartPage /> },
-      { path: '/kiosk/payment', element: <KioskPaymentPage /> },
-
       // Reports — solo OWNER, MANAGER
       {
         element: <ReportsGuard />,
@@ -125,6 +117,14 @@ export const router = createBrowserRouter([
       { path: '/delivery', element: <DeliveryPage /> },
     ],
   },
+
+  // ─── Kiosk (PIN-gated, no StaffGuard) ────────────────────────────────────
+  { path: '/kiosk', element: <Navigate to="/kiosk/attract" replace /> },
+  { path: '/kiosk/attract', element: <AttractScreen /> },
+  { path: '/kiosk/start', element: <KioskWelcomePage /> },
+  { path: '/kiosk/menu', element: <KioskMenuPage /> },
+  { path: '/kiosk/cart', element: <KioskCartPage /> },
+  { path: '/kiosk/payment', element: <KioskPaymentPage /> },
 
   // ─── Superadmin (PIN-gated, no StaffGuard) ───────────────────────────────
   { path: '/superadmin', element: <SuperAdminPage /> },
