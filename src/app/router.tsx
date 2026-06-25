@@ -1,6 +1,10 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { StaffGuard } from '@/components/shared/StaffGuard';
+import { makeRoleGuard } from '@/components/shared/RoleGuard';
+
+const AdminGuard = makeRoleGuard('OWNER', 'MANAGER', 'SUPPORT');
+const ReportsGuard = makeRoleGuard('OWNER', 'MANAGER');
 import { MenuPage } from '@/features/menu/MenuPage';
 import { CartPage } from '@/features/cart/CartPage';
 import { CloseAccountPage } from '@/features/close-account/CloseAccountPage';
@@ -26,6 +30,7 @@ import { LoginPage } from './login/LoginPage';
 import { ReportsPage } from './reports/ReportsPage';
 import { ReservationsPage } from './reservations/ReservationsPage';
 import { DeliveryPage } from './delivery/DeliveryPage';
+import { SuperAdminPage } from './superadmin/SuperAdminPage';
 
 export const router = createBrowserRouter([
   // ─── Auth ─────────────────────────────────────────────────────────────────
@@ -89,9 +94,14 @@ export const router = createBrowserRouter([
       { path: '/cashier/receipts', element: <CashierPage /> },
       { path: '/cashier/invoices', element: <CashierPage /> },
 
-      // Admin
-      { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
-      { path: '/admin/:section', element: <AdminPage /> },
+      // Admin — solo OWNER, MANAGER, SUPPORT
+      {
+        element: <AdminGuard />,
+        children: [
+          { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
+          { path: '/admin/:section', element: <AdminPage /> },
+        ],
+      },
 
       // Kiosk
       { path: '/kiosk', element: <Navigate to="/kiosk/attract" replace /> },
@@ -101,13 +111,23 @@ export const router = createBrowserRouter([
       { path: '/kiosk/cart', element: <KioskCartPage /> },
       { path: '/kiosk/payment', element: <KioskPaymentPage /> },
 
-      // Reports / Reservations / Delivery
-      { path: '/reports', element: <Navigate to="/reports/dashboard" replace /> },
-      { path: '/reports/:section', element: <ReportsPage /> },
+      // Reports — solo OWNER, MANAGER
+      {
+        element: <ReportsGuard />,
+        children: [
+          { path: '/reports', element: <Navigate to="/reports/dashboard" replace /> },
+          { path: '/reports/:section', element: <ReportsPage /> },
+        ],
+      },
+
+      // Reservations / Delivery
       { path: '/reservations', element: <ReservationsPage /> },
       { path: '/delivery', element: <DeliveryPage /> },
     ],
   },
+
+  // ─── Superadmin (PIN-gated, no StaffGuard) ───────────────────────────────
+  { path: '/superadmin', element: <SuperAdminPage /> },
 
   // ─── 404 ──────────────────────────────────────────────────────────────────
   {

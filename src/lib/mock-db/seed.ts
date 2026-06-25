@@ -30,9 +30,9 @@ const BRANCH_ID = 'branch-1';
 
 const tenant: Tenant = {
   id: TENANT_ID,
-  name: 'Pertinho do Ceu',
-  slug: 'pertinho-do-ceu',
-  currency: 'BRL',
+  name: 'Mi Restaurante',
+  slug: 'mi-restaurante',
+  currency: 'ARS',
   createdAt: NOW,
   updatedAt: NOW,
 };
@@ -46,7 +46,7 @@ const branch: Branch = {
   queueEnabled: true,
   queueMessage: 'Acompanhe seu pedido aqui!',
   serviceFeeRate: 0.1,
-  currency: 'BRL',
+  currency: 'ARS',
   paymentMethods: { card: true, pix: true, mercadoPago: true, cash: true },
   kioskPin: '1234',
   createdAt: NOW,

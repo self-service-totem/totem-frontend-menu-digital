@@ -5,6 +5,9 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/theme.css';
 import './styles/areas.css';
 import { App } from './app/App';
+import { installErrorReporter } from './lib/utils/errorReporter';
+
+installErrorReporter();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

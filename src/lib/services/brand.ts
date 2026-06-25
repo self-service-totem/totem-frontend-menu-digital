@@ -6,7 +6,7 @@
 import { getCollection } from '@/lib/mock-db';
 import type { Tenant, Branch } from '@/lib/types';
 
-const FALLBACK_BRAND_NAME = 'Pertinho do Céu';
+const FALLBACK_BRAND_NAME = 'Restaurante';
 
 export interface Brand {
   name: string;

@@ -1,5 +1,6 @@
 import type { PaymentMethodSummary } from '@/lib/services/reportService';
 import type { LabelKey } from '@/i18n/labels';
+import { formatCurrency, getTenantCurrency, getTenantLocale } from '@/utils/format';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,13 +56,18 @@ export function yesterdayStr(): string {
 }
 
 export function fBRL(v: number | null | undefined): string {
-  if (v == null || isNaN(v as number)) return '—';
-  return (v as number).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return formatCurrency(v);
 }
 
 export function fBRLShort(v: number): string {
-  if (v >= 1000) return `R$ ${(v / 1000).toFixed(1)}k`;
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const currency = getTenantCurrency();
+  const locale = getTenantLocale();
+  if (v >= 1000) {
+    const sym = new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 })
+      .format(0).replace(/[\d.,\s]/g, '').trim();
+    return `${sym} ${(v / 1000).toFixed(1)}k`;
+  }
+  return formatCurrency(v);
 }
 
 export function formatDateFull(dateStr: string, locale: string): string {

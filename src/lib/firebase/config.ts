@@ -1,10 +1,17 @@
 // Firebase init para la demo del totem.
 // La config web NO es secreta; la seguridad real vive en las Security Rules.
 // Se inicializa solo si VITE_USE_FIREBASE === 'true' y hay projectId configurado.
+//
+// App Check (reCAPTCHA v3): activo cuando VITE_FIREBASE_APP_CHECK_KEY está presente.
+// Pasos en consola Firebase para habilitar el enforce:
+//   1. Firebase Console → App Check → Apps → registrar esta app → proveedor reCAPTCHA v3
+//   2. Copiar la site key en VITE_FIREBASE_APP_CHECK_KEY del .env
+//   3. Firebase Console → App Check → APIs → Firestore y Storage → "Enforce"
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -29,6 +36,14 @@ if (firebaseEnabled) {
     firestore = getFirestore(app);
     firebaseAuth = getAuth(app);
     firebaseStorage = getStorage(app);
+
+    const appCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_KEY;
+    if (appCheckKey) {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(appCheckKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[firebase] init failed, falling back to localStorage-only', err);
