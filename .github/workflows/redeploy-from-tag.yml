@@ -1,21 +1,11 @@
-name: Deploy Frontend
-run-name: Deploy Frontend · ${{ inputs.release_version }} → ${{ inputs.target }} · @${{ github.actor }}
+name: Redeploy from Tag
+run-name: Redeploy · ${{ inputs.tag }} → ${{ inputs.target }} · @${{ github.actor }}
 
 on:
   workflow_dispatch:
     inputs:
-      source_branch:
-        description: "Branch to deploy"
-        required: true
-        type: choice
-        options:
-          - main
-          - develop
-          - prototype
-          - prototype-sec
-
-      release_version:
-        description: "Release version. Example: v1.0.0"
+      tag:
+        description: "Existing tag to deploy (e.g. v1.2.3)"
         required: true
         type: string
 
@@ -29,33 +19,35 @@ on:
           - demo
 
 jobs:
-  deploy:
+  redeploy:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: read
       id-token: write
 
     environment: ${{ inputs.target }}
 
     steps:
-      - name: Validate inputs
+      - name: Validate tag exists
         run: |
-          if [ "${{ inputs.target }}" = "prod" ] && [ "${{ inputs.source_branch }}" != "main" ]; then
-            echo "Production deployments must come from main."
-            exit 1
-          fi
+          git ls-remote --tags https://github.com/${{ github.repository }}.git \
+            "refs/tags/${{ inputs.tag }}" | grep -q . \
+            || { echo "Tag not found: ${{ inputs.tag }}"; exit 1; }
 
-      - name: Checkout selected branch
+      - name: Checkout tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_branch }}
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
 
-      - name: Validate tag does not exist
+      - name: Validate prod deploys only from signed tags on main lineage
+        if: inputs.target == 'prod'
         run: |
-          if git rev-parse "${{ inputs.release_version }}" >/dev/null 2>&1; then
-            echo "Tag already exists: ${{ inputs.release_version }}"
+          MERGE_BASE=$(git merge-base ${{ inputs.tag }} origin/main 2>/dev/null || true)
+          TAG_COMMIT=$(git rev-parse ${{ inputs.tag }})
+          if [ "$MERGE_BASE" != "$TAG_COMMIT" ]; then
+            echo "Production redeployments must use a tag on the main branch lineage."
             exit 1
           fi
 
@@ -94,10 +86,3 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
-
-      - name: Create and push tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag "${{ inputs.release_version }}"
-          git push origin "${{ inputs.release_version }}"

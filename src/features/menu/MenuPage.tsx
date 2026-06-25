@@ -20,7 +20,7 @@ export function MenuPage() {
   const params = useParams();
   const tableIdParam = params.tableId ?? params.branchId;
   const [searchParams, setSearchParams] = useSearchParams();
-  const { menuContext, tableId, customer, setTableId, loading } = useSession();
+  const { menuContext, tableId, customer, setTableId, loading, tableError } = useSession();
   const { t } = useLabels();
 
   const openProductId = searchParams.get('product');
@@ -82,6 +82,18 @@ export function MenuPage() {
   const handleToggle = (categoryId: string) => {
     setActiveCategory((prev) => (prev === categoryId ? null : categoryId));
   };
+
+  if (tableError) {
+    return (
+      <div className="ff-page">
+        <EmptyState
+          icon="bi-qr-code"
+          title={t('menu.invalidTable')}
+          description={t('menu.invalidTableDesc')}
+        />
+      </div>
+    );
+  }
 
   if (loading || !menuContext) {
     return (

@@ -14,17 +14,17 @@ export const menuContextService = {
     const tables = getCollection<DbTable>('tables');
     const table = tables.find((t) => t.id === tableId || t.number === tableId);
 
+    if (!table) {
+      return Promise.reject(Object.assign(new Error('TABLE_NOT_FOUND'), { status: 404 }));
+    }
+
     const restaurantName = tenant?.name ?? branch?.name ?? 'Restaurante';
     const currency = (branch?.currency ?? tenant?.currency ?? 'BRL') as MenuContextAttributes['currency'];
     const serviceFeeRate = branch?.serviceFeeRate ?? 0.1;
-    const language = 'pt-BR';
+    const language = tenant?.defaultLanguage ?? 'pt-BR';
 
-    const tableIdResolved = table?.id ?? tableId;
-    const tableName = table
-      ? `Mesa ${table.number}`
-      : tableId.startsWith('mesa-')
-        ? `Mesa ${tableId.replace('mesa-', '')}`
-        : `Mesa ${tableId}`;
+    const tableIdResolved = table.id;
+    const tableName = `Mesa ${table.number}`;
 
     const businessId = branch?.id ?? tenant?.id ?? 'biz-1';
 
