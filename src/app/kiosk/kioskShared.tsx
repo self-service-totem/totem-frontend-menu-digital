@@ -32,8 +32,9 @@ const KIOSK_UNLOCKED_KEY = 'ff_kiosk_unlocked';
 
 export function useKioskPin() {
   const [pin, setPin] = useState<string | null>(getKioskPin);
+  // sessionStorage: survives in-page navigation but clears on tab close / new session.
   const [unlocked, setUnlocked] = useState(
-    () => localStorage.getItem(KIOSK_UNLOCKED_KEY) === 'true',
+    () => sessionStorage.getItem(KIOSK_UNLOCKED_KEY) === 'true',
   );
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function useKioskPin() {
   }, []);
 
   function unlock() {
-    localStorage.setItem(KIOSK_UNLOCKED_KEY, 'true');
+    sessionStorage.setItem(KIOSK_UNLOCKED_KEY, 'true');
     setUnlocked(true);
   }
 
