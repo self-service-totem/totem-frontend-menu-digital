@@ -1,5 +1,5 @@
 import { useLabels } from '@/i18n/I18nContext';
-import { formatCurrency as formatBRL } from '@/utils/format';
+import { formatCurrency as formatBRL, formatDateTime } from '@/utils/format';
 import { AdminModal } from '@/components/admin';
 import type { PaymentMethod, Receipt } from '@/lib/types';
 
@@ -26,7 +26,7 @@ export function ReceiptModal({ receipt, onClose }: { receipt: Receipt; onClose: 
     >
       <div style={{ fontFamily: 'monospace', fontSize: 13 }}>
         <div style={{ textAlign: 'center', marginBottom: 12, fontSize: 12, color: '#9ca3af' }}>
-          {new Date(receipt.createdAt).toLocaleString('pt-BR')}
+          {formatDateTime(receipt.createdAt)}
         </div>
         <hr style={{ borderColor: '#e5e7eb' }} />
         {receipt.items.map((item, i) => (

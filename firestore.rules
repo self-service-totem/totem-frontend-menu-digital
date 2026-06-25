@@ -58,7 +58,8 @@ service cloud.firestore {
     // El comensal puede crear pedidos y llamar al mozo sin tener cuenta.
     match /orders/{id} {
       allow create: if notExpired();
-      allow read, update: if isAuthenticated() || notExpired();
+      allow read:   if notExpired();
+      allow update: if isAuthenticated();
       allow delete: if false;
     }
     match /waiterCalls/{id} {

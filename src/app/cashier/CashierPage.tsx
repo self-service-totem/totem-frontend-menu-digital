@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency as formatBRL } from '@/utils/format';
+import { formatCurrency as formatBRL, formatDateTime } from '@/utils/format';
 import { I18nProvider, useLabels } from '@/i18n/I18nContext';
 import { useAdminLanguage } from '@/i18n/useAdminLanguage';
 import type { LanguageCode } from '@/i18n/labels';
@@ -326,7 +326,7 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
                         <td><strong>{r.number}</strong></td>
                         <td>{formatBRL(r.total)}</td>
                         <td>{methodLabel[r.method] ?? r.method}</td>
-                        <td>{new Date(r.createdAt).toLocaleString('pt-BR')}</td>
+                        <td>{formatDateTime(r.createdAt)}</td>
                         <td>
                           <button className="btn btn-sm btn-outline-secondary" onClick={() => setSelectedReceipt(r)}>
                             <i className="bi bi-eye me-1" />Ver
@@ -362,7 +362,7 @@ function CashierPageInner({ lang, onLangChange }: { lang: LanguageCode; onLangCh
                         <td>{inv.customerName}</td>
                         <td>{formatBRL(inv.total)}</td>
                         <td><span className="badge bg-success">{inv.status}</span></td>
-                        <td>{new Date(inv.createdAt).toLocaleString('pt-BR')}</td>
+                        <td>{formatDateTime(inv.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>

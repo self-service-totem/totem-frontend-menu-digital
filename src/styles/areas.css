@@ -5221,10 +5221,7 @@ th.sorted .ff-sort-icon { opacity: 1; color: #1d4ed8; }
 }
 
 .ff-admin-action-menu-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 100;
+  z-index: 9999;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;

@@ -10,13 +10,14 @@ import { I18nProvider, useLabels } from '@/i18n/I18nContext';
 import { useAdminLanguage } from '@/i18n/useAdminLanguage';
 import { AdminLanguageSelector } from '@/components/admin/AdminLanguageSelector';
 import type { LabelKey, LanguageCode } from '@/i18n/labels';
+import { featureFlagService, type FeatureFlags } from '@/lib/services/featureFlagService';
 
-type AreaDef = { path: string; icon: string; titleKey: LabelKey; descKey: LabelKey; color: string };
+type AreaDef = { path: string; icon: string; titleKey: LabelKey; descKey: LabelKey; color: string; flagKey?: keyof FeatureFlags };
 
 const CUSTOMER_AREAS: AreaDef[] = [
   { path: '/menu/branch-1/table/140', icon: 'bi-phone', titleKey: 'hub.area.menu.title', descKey: 'hub.area.menu.desc', color: '#e11d2a' },
-  { path: '/kiosk', icon: 'bi-display', titleKey: 'hub.area.kiosk.title', descKey: 'hub.area.kiosk.desc', color: '#7c3aed' },
-  { path: '/queue-display', icon: 'bi-tv', titleKey: 'hub.area.queue.title', descKey: 'hub.area.queue.desc', color: '#0284c7' },
+  { path: '/kiosk', icon: 'bi-display', titleKey: 'hub.area.kiosk.title', descKey: 'hub.area.kiosk.desc', color: '#7c3aed', flagKey: 'kiosk' },
+  { path: '/queue-display', icon: 'bi-tv', titleKey: 'hub.area.queue.title', descKey: 'hub.area.queue.desc', color: '#0284c7', flagKey: 'queueDisplay' },
 ];
 
 const OPERATIONAL_AREAS: AreaDef[] = [
@@ -27,8 +28,8 @@ const OPERATIONAL_AREAS: AreaDef[] = [
 ];
 
 const NEW_AREAS: AreaDef[] = [
-  { path: '/delivery', icon: 'bi-bicycle', titleKey: 'hub.area.delivery.title', descKey: 'hub.area.delivery.desc', color: '#06b6d4' },
-  { path: '/reservations', icon: 'bi-calendar-check', titleKey: 'hub.area.reservations.title', descKey: 'hub.area.reservations.desc', color: '#8b5cf6' },
+  { path: '/delivery', icon: 'bi-bicycle', titleKey: 'hub.area.delivery.title', descKey: 'hub.area.delivery.desc', color: '#06b6d4', flagKey: 'delivery' },
+  { path: '/reservations', icon: 'bi-calendar-check', titleKey: 'hub.area.reservations.title', descKey: 'hub.area.reservations.desc', color: '#8b5cf6', flagKey: 'reservations' },
   { path: '/reports', icon: 'bi-bar-chart', titleKey: 'hub.area.reports.title', descKey: 'hub.area.reports.desc', color: '#ffffff' },
   { path: '/login', icon: 'bi-person-lock', titleKey: 'hub.area.login.title', descKey: 'hub.area.login.desc', color: '#60a5fa' },
 ];
@@ -64,6 +65,10 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
   const { currentUser, logout } = useRole();
   const [cardPreviewOpen, setCardPreviewOpen] = useState(false);
   const [tableQrOpen, setTableQrOpen] = useState(false);
+
+  const flags = featureFlagService.getAll();
+  const filterByFlag = (areas: AreaDef[]) =>
+    areas.filter((a) => !a.flagKey || flags[a.flagKey]);
 
   async function handleReset() {
     if (!window.confirm(t('hub.resetConfirm'))) return;
@@ -105,7 +110,7 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
         <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
           {t('hub.sectionCustomer')}
         </div>
-        <AreaGrid areas={CUSTOMER_AREAS} />
+        <AreaGrid areas={filterByFlag(CUSTOMER_AREAS)} />
 
         <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', margin: '24px 0 10px' }}>
           {t('hub.sectionOps')}
@@ -115,7 +120,7 @@ function HubInner({ lang, onLangChange }: { lang: LanguageCode; onLangChange: (l
         <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', margin: '24px 0 10px' }}>
           {t('hub.sectionNew')}
         </div>
-        <AreaGrid areas={NEW_AREAS} />
+        <AreaGrid areas={filterByFlag(NEW_AREAS)} />
       </div>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>

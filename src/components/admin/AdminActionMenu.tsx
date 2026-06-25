@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface ActionMenuItem {
   key: string;
@@ -10,29 +11,52 @@ export interface ActionMenuItem {
 
 export function AdminActionMenu({ items }: { items: ActionMenuItem[] }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  function openMenu() {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      position: 'fixed',
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    });
+    setOpen(true);
+  }
 
   useEffect(() => {
     if (!open) return;
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        triggerRef.current?.contains(e.target as Node) ||
+        dropdownRef.current?.contains(e.target as Node)
+      ) return;
+      setOpen(false);
     }
+    function onScroll() { setOpen(false); }
     document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('scroll', onScroll, true);
+    };
   }, [open]);
 
   return (
-    <div className="ff-admin-action-menu" ref={ref} onClick={(e) => e.stopPropagation()}>
+    <div className="ff-admin-action-menu" onClick={(e) => e.stopPropagation()}>
       <button
+        ref={triggerRef}
         className="ff-admin-action-menu-trigger"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => open ? setOpen(false) : openMenu()}
         type="button"
         aria-label="Ações"
       >
         <i className="bi bi-three-dots-vertical" />
       </button>
-      {open && (
-        <div className="ff-admin-action-menu-dropdown">
+      {open && createPortal(
+        <div ref={dropdownRef} className="ff-admin-action-menu-dropdown" style={dropdownStyle}>
           {items.map((item) => (
             <button
               key={item.key}
@@ -44,7 +68,8 @@ export function AdminActionMenu({ items }: { items: ActionMenuItem[] }) {
               {item.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

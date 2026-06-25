@@ -1,4 +1,6 @@
 import type { CurrencyCode } from '@/lib/types';
+import { getCollection } from '@/lib/mock-db';
+import type { Tenant } from '@/lib/types';
 
 const localeByCurrency: Record<CurrencyCode, string> = {
   BRL: 'pt-BR',
@@ -6,8 +8,17 @@ const localeByCurrency: Record<CurrencyCode, string> = {
   ARS: 'es-AR',
 };
 
-export function formatMoney(amount: number, currency: CurrencyCode = 'BRL'): string {
-  return new Intl.NumberFormat(localeByCurrency[currency], {
+export function getTenantCurrency(): CurrencyCode {
+  const tenant = getCollection<Tenant>('tenants')[0];
+  return (tenant?.currency as CurrencyCode) ?? 'ARS';
+}
+
+export function getTenantLocale(): string {
+  return localeByCurrency[getTenantCurrency()] ?? 'es-AR';
+}
+
+export function formatMoney(amount: number, currency: CurrencyCode = 'ARS'): string {
+  return new Intl.NumberFormat(localeByCurrency[currency] ?? 'es-AR', {
     style: 'currency',
     currency,
   }).format(amount);
@@ -15,5 +26,10 @@ export function formatMoney(amount: number, currency: CurrencyCode = 'BRL'): str
 
 export function formatCurrency(v: number | undefined | null): string {
   if (v == null || isNaN(v as number)) return '—';
-  return (v as number).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const currency = getTenantCurrency();
+  return (v as number).toLocaleString(localeByCurrency[currency], { style: 'currency', currency });
+}
+
+export function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString(getTenantLocale());
 }
