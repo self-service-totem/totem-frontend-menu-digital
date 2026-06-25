@@ -68,7 +68,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       if (user) localStorage.setItem(MOCK_STORAGE_KEY, user.id);
       return;
     }
-    // Firebase mode: signIn triggers onAuthStateChanged which calls setCurrentUser.
+    // Set authLoading so StaffGuard waits for onAuthStateChanged to resolve
+    // the new session instead of redirecting before the state updates.
+    setAuthLoading(true);
     await signIn(email, password);
   }, []);
 
