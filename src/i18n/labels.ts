@@ -26,6 +26,8 @@ export type LabelKey =
   | 'menu.viewCart'
   | 'menu.loadError'
   | 'menu.retry'
+  | 'menu.invalidTable'
+  | 'menu.invalidTableDesc'
   | 'menu.categoryEmpty'
   | 'product.quantity'
   | 'product.notes'
@@ -418,6 +420,7 @@ export type LabelKey =
   | 'adminTables.filterActive'
   | 'adminTables.filterInactive'
   | 'adminTables.filterAllZones'
+  | 'adminTables.filterAllWaiters'
   | 'adminTables.ofCount'
   | 'adminTables.noTablesFound'
   | 'adminTables.noTablesFoundDesc'
@@ -1063,6 +1066,8 @@ const ptBR: LabelMap = {
   'menu.viewCart': 'Ver carrinho',
   'menu.loadError': 'Não foi possível carregar o cardápio.',
   'menu.retry': 'Tentar novamente',
+  'menu.invalidTable': 'Mesa não encontrada',
+  'menu.invalidTableDesc': 'O código da mesa não é válido. Escaneie o QR code na sua mesa para acessar o cardápio.',
   'menu.categoryEmpty': 'Nenhum produto disponível.',
   'product.quantity': 'Quantidade',
   'product.notes': 'Observação',
@@ -1448,6 +1453,7 @@ const ptBR: LabelMap = {
   'adminTables.filterActive': 'Ativas',
   'adminTables.filterInactive': 'Inativas',
   'adminTables.filterAllZones': 'Todas as zonas',
+  'adminTables.filterAllWaiters': 'Todos os garçons',
   'adminTables.ofCount': 'de',
   'adminTables.noTablesFound': 'Nenhuma mesa encontrada',
   'adminTables.noTablesFoundDesc': 'Tente ajustar os filtros ou criar uma nova mesa.',
@@ -2086,6 +2092,8 @@ const es: LabelMap = {
   'menu.viewCart': 'Ver carrito',
   'menu.loadError': 'No pudimos cargar el menú.',
   'menu.retry': 'Reintentar',
+  'menu.invalidTable': 'Mesa no encontrada',
+  'menu.invalidTableDesc': 'El código de mesa no es válido. Escaneá el código QR en tu mesa para acceder al menú.',
   'menu.categoryEmpty': 'No hay productos disponibles.',
   'product.quantity': 'Cantidad',
   'product.notes': 'Observación',
@@ -2471,6 +2479,7 @@ const es: LabelMap = {
   'adminTables.filterActive': 'Activas',
   'adminTables.filterInactive': 'Inactivas',
   'adminTables.filterAllZones': 'Todas las zonas',
+  'adminTables.filterAllWaiters': 'Todos los mozos',
   'adminTables.ofCount': 'de',
   'adminTables.noTablesFound': 'No se encontraron mesas',
   'adminTables.noTablesFoundDesc': 'Intenta ajustar los filtros o crear una nueva mesa.',
@@ -3105,6 +3114,8 @@ const en: LabelMap = {
   'menu.viewCart': 'View cart',
   'menu.loadError': "We couldn't load the menu.",
   'menu.retry': 'Try again',
+  'menu.invalidTable': 'Table not found',
+  'menu.invalidTableDesc': 'This table code is not valid. Please scan the QR code on your table to access the menu.',
   'menu.categoryEmpty': 'No products available.',
   'product.add': 'Add',
   'product.notes': 'Notes',
@@ -3480,6 +3491,7 @@ const en: LabelMap = {
   'adminTables.filterActive': 'Active',
   'adminTables.filterInactive': 'Inactive',
   'adminTables.filterAllZones': 'All zones',
+  'adminTables.filterAllWaiters': 'All waiters',
   'adminTables.ofCount': 'of',
   'adminTables.noTablesFound': 'No tables found',
   'adminTables.noTablesFoundDesc': 'Try adjusting filters or creating a new table.',

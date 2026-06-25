@@ -115,7 +115,7 @@ export function Tables() {
   ];
 
   const waiterOptions = [
-    { key: '', label: t('adminTables.colWaiter') },
+    { key: '', label: t('adminTables.filterAllWaiters') },
     ...waiters.map((w) => ({ key: w.name, label: w.name })),
   ];
 
